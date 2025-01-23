@@ -1,0 +1,307 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.6;
+    color: #090909;
+    background-color: #ffffff;
+}
+
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background-color: #4caf50;
+    color: #fff;
+}
+
+.center-text {
+    text-align: center;
+  }
+  
+.logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color:  #1a3603#507d2a; /
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+}
+
+.nav-links li {
+    margin: 0 15px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: #1a3603; 
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.nav-links a:hover {
+    color: #ffc107; 
+}
+
+
+.center-paragraph {
+    text-align: center;
+  }
+  
+.hero {
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 50px;
+    background: linear-gradient(135deg, #6ebf8b 30%, #a8d8ea 70%);
+    color: #fff;
+}
+
+.hero-content {
+    text-align: center;
+    max-width: 50%;
+}
+
+.hero-content .tagline { 
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+h1 {
+    text-align: center;
+  }
+.hero-content h1 {
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    margin: 20px 0;
+}
+.my-button {
+    font-family:'playfair display',serif;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    background-color: blue;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;}
+
+.hero-content .description {
+    font-size: 1.2rem;
+    margin: 20px 0;
+}
+
+.cta-button {
+    font-family: 'Playfair Display', serif;
+    padding: 10px 25px;
+    font-size: 1rem;
+    color: #000000;
+    background-color: #4eb752;
+    border: none;
+    text-decoration: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.cta-button:hover {
+    background-color: #6cd070;
+}
+
+
+
+.hero-image img {
+    align-self: self-end;
+    max-width: 30%;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+
+.abt {
+    text-align: center;
+    padding: 50px;
+    background: linear-gradient(to right, #e3ffdc, #91ea8f);
+    background-attachment: scroll;
+    background-color: #e3ffdc;
+}
+
+.abt-content{
+    text-align: center;
+}
+.abt h1 {
+    
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #000000;
+}
+
+.abt h2 {
+    font-weight:lighter;
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #2d5d2d;
+}
+.abt svg:hover {
+    transform: scale(1.1); 
+    transition: transform 0.3s ease;}
+.abt p {
+    font-style: italic;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 1rem;
+    color: #364a31;
+    margin-bottom: 20px;
+}
+
+.abt button{
+    font-family: 'Playfair Display', serif;
+    padding: 10px 25px;
+    font-size: 1rem;
+    color: #d9cfcf;
+    background-color: #4eb752;
+    border: none;
+    text-decoration: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.abt button:hover {
+    font-family: 'Playfair Display', serif;
+    background-color: #6cd070;
+    font-weight: bolder;
+}
+.abt a{
+    text-decoration: none;
+    color: #090909;
+}
+.abt img {
+    max-width: 35%;
+    border-radius: 10px;
+}
+
+
+
+   
+
+.about {
+    background: linear-gradient(to right, #afdc82, hsl(61, 62%, 83%), #afdc82);
+    text-align: center;
+    padding: 50px;
+    background-color: #afdc82;
+}
+.animated-icon img {
+    animation: float 4s ease-in-out infinite;
+    width: 100px;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.leaf-decor img {
+    width: 100%;
+    height: auto;
+}
+.about h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #366b38;
+}
+
+.about p {
+    font-style: italic;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 1rem;
+    color: #364a31;
+    margin-bottom: 20px;
+}
+
+  
+.about img {
+    max-width: 35%;
+    border-radius: 10px;
+}
+
+.leaf-decor {
+    position: absolute;
+    top: 20%;
+    left: 5%;
+    opacity: 0.1; 
+    z-index: -1;
+    transform: rotate(-30deg);
+    width: 150px;
+}
+
+
+
+.footer {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+    background-color: #4caf50;
+    color: #fff;
+}
+
+.footer .social-icons a {
+    margin: 0 10px;
+    color: #fff;
+    font-size: 1.5rem;
+    transition: color 0.3s ease;
+}
+
+.footer .social-icons a:hover {
+    color: #ffc107;
+}
+
+
+
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .nav-links {
+        flex-direction: column;
+    }
+
+    .nav-links li {
+        margin: 10px 0;
+    }
+
+    .hero {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .hero-content, .hero-image {
+        max-width: 100%;
+    }
+
+    .hero-image img {
+        margin-top: 20px;
+    }
+}

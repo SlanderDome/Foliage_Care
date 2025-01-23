@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plant Disease Detection - Foliage Care</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="start.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">🌱Foliage Care</div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="login.html">Login/Signup</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </nav>
+
+
+  <section id="home" class="hero">
+    <div class="hero-content">
+      <h1>Plant Disease Detection</h1>
+      <p>Upload or take a photo of your plant, and we'll analyze it for potential diseases.</p>
+      
+      <button class="cta-button" id="upload-photo">Upload Photo</button>
+    </div>
+    <div class="hero-image">
+      <img src="wheat.jpg"class="right-align" alt="Plant Disease" />
+    </div>
+  </section>
+
+ 
+  <section id="detection-form" class="form-section">
+    <h2>Plant Disease Detection</h2>
+    <p>Use the options above to either upload an image or take a photo. Our system will analyze the plant for potential diseases.</p>
+    <form id="form">
+      <div id="photo-container">
+        <input type="file" id="photo" accept="image/*" style="display: none;" />
+        
+        <img id="preview-image" src="#" alt="Photo Preview" style="display: none; max-width: 100%; margin-top: 20px; border-radius: 10px;" />
+      </div>
+      <div class="form-group">
+        <label for="disease-info">Disease Information</label>
+        <textarea id="disease-info" rows="5" readonly placeholder="Results will appear here..."></textarea>
+      </div>
+      <button type="submit" class="cta-button">Analyze Disease</button>
+    </form>
+  </section>
+
+ 
+  <footer class="footer">
+    <p>Connect with us</p>
+    <div class="social-icons">
+      <a href="#"><i class="fab fa-facebook"></i></a>
+      <a href="#"><i class="fab fa-instagram"></i></a>
+      <a href="#"><i class="fab fa-twitter"></i></a>
+    </div>
+    <p>&copy; 2024 Foliage Care. All rights reserved.</p>
+  </footer>
+
+  <script src="up.js"></script>
+</body>
+</html>

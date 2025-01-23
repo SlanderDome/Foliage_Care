@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login/Signup - Foliage Care</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+  <div class="container">
+    <div class="form-container">
+      <h1 class="title">Welcome to Foliage Care</h1>
+      <p class="subtitle">Explore, diagnose, and improve your crop health!</p>
+      
+      <!-- Tabs for Login and Signup -->
+      <div class="tabs">
+        <button class="tab-button active" data-target="#login">Login</button>
+        <button class="tab-button" data-target="#signup">Signup</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login" class="form active">
+        <input type="email" placeholder="Email" required>
+        <input type="password" placeholder="Password" required>
+        <button type="submit" class="cta-button">Login</button>
+      </form>
+
+      <!-- Signup Form -->
+      <form id="signup" class="form">
+        <input type="text" placeholder="Full Name" required>
+        <input type="email" placeholder="Email" required>
+        <input type="password" placeholder="Password" required>
+        <button type="submit" class="cta-button">Signup</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>
