@@ -6,6 +6,7 @@
   <title>Foliage Care</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="892926.png" type="image/png">
   <link rel="stylesheet" href="svg.css">
   <link rel="stylesheet" href="svg2.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -13,14 +14,18 @@
 <body>
   
   <nav class="navbar">
-    <div class="logo">🌱Foliage Care</div>
+    <div class="logo">
+        🌱FOLIAGE CARE
+    </div>
     <ul class="nav-links">
-      <li><a href="#home">Home</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="login.html">Login/Signup</a></li>
-      <li><a href="contact.html">Contact</a></li>
+        <li><a href="#home" id="home-link" class="active">Home</a></li>
+        <li><a href="start.html" id="diagnose-link">Diagnose</a></li>
+        <li><a href="about.html" id="about-link">About</a></li>
+        <li><a href="login.html" id="login-link">Login/Signup</a></li>
+        <li><a href="contact.html" id="connect-link">Connect</a></li>
     </ul>
-  </nav>
+</nav>
+
   
   
 
@@ -45,28 +50,35 @@
       </div>
   </section>
   
-  <section id="about" class="about">
-    <div class="about"></div>
-    <h2>About Foliage Care</h2>
-    <p>Foliage Care is your trusted platform for diagnosing crop diseases. Our tools are designed to empower farmers with real-time insights and organic solutions to maintain healthy crops.</p>
-    <img src="farm.jpg"  alt="Healthy Crops"></section><div>
-  </section>
-
+ 
  
   
   
 
 
   <footer class="footer">
-    <p>Connect with us</p>
+    <p ><a href="contact.html" >Connect with us</a></p>
     <div class="social-icons">
       <a href="#"><i class="fab fa-facebook"></i></a>
       <a href="#"><i class="fab fa-instagram"></i></a>
       <a href="#"><i class="fab fa-youtube"></i></a>
+      
     </div>
-    <p>&copy; 2024 Foliage Care. All rights reserved.</p>
+    <p>&copy; 2025 Foliage Care. All rights reserved.</p>
   </footer>
 
   <script src="script.js"></script>
+  <script>
+    
+    const message = localStorage.getItem("successMessage");
+    
+    if (message) {
+       
+        alert(message);
+
+        localStorage.removeItem("successMessage");
+    }
+</script>
+
 </body>
 </html>
