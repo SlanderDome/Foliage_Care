@@ -1,14 +1,27 @@
+document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', () => {
+        document.querySelector('.tab-button.active').classList.remove('active');
+        button.classList.add('active');
 
-document.querySelectorAll(".tab-button").forEach((button) => {
-    button.addEventListener("click", (e) => {
-     
-      document.querySelectorAll(".tab-button").forEach((btn) => btn.classList.remove("active"));
-      document.querySelectorAll(".form").forEach((form) => form.classList.remove("active"));
-  
-    
-      const target = document.querySelector(e.target.getAttribute("data-target"));
-      button.classList.add("active");
-      target.classList.add("active");
+        document.querySelector('.form.active').classList.remove('active');
+        const target = button.dataset.target;
+        document.querySelector(target).classList.add('active');
     });
-  });
-  
+});
+
+document.querySelector("#login").addEventListener("submit", function (event) {
+    event.preventDefault();  
+    
+    
+    const email = event.target.querySelector('input[type="email"]').value;
+    const password = event.target.querySelector('input[type="password"]').value;
+
+    if (email && password) {
+        localStorage.setItem("successMessage", "Successfully Logged In");
+
+        
+        window.location.href = "index.html";
+    } else {
+        alert("Please enter valid credentials.");
+    }
+});
