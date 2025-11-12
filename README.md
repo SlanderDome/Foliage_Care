@@ -4,17 +4,7 @@ Foliage Care is a full-stack web application that helps users **diagnose crop di
 
 
 
- Tech Stack
-
-| Layer       | Technology             |
-|------------|-------------------------|
-| Frontend   | HTML, CSS, JavaScript   |
-| UI Design  | Google Fonts, Font Awesome, SVGs |
-| Backend    | FastAPI (Python)        |
-| AI Model   | TensorFlow / Keras (.h5 or .keras format) |
-| Server     | Uvicorn (for FastAPI)   |
-| Data       | Image-based crop disease dataset |
-
+1. Application StackLayerTechnologyRole / PurposeFrontendHTML5, CSS, JavaScript (ES6)Provides the user interface (Foliage Care website) for image upload and result display.AuthenticationFirebase AuthenticationManages secure user registration (Email/Password) and third-party login (Google OAuth).StylingGoogle Fonts (Playfair Display, Roboto), Font AwesomeUsed for aesthetic, elegant typography and iconography.Backend APIFastAPI (Python)High-performance API that routes frontend requests to the AI models.ServerUvicornASGI server used to run the FastAPI application efficiently.
 
  Features
 
@@ -47,7 +37,7 @@ ABOUT PAGE
 
 LOGIN/SIGNUP PAGE
 
-![image](https://github.com/user-attachments/assets/5591c25a-53c1-4e1d-aad3-483b9e221232)
+
 
 CONNECT/FEEDBACK PAGE
 
