@@ -45,7 +45,9 @@ DIAGNOSE PAGE
 
 ![image](https://github.com/user-attachments/assets/42fca12d-5e2e-48c6-8fb4-7cb54d83aa7f)
 
-![image](https://github.com/user-attachments/assets/1cb2223f-a77c-4686-9d54-affcb1954b3d)
+
+<img width="789" height="831" alt="image" src="https://github.com/user-attachments/assets/2fd3a05e-5006-4ec6-9501-36284af67406" />
+
 
 ![image](https://github.com/user-attachments/assets/415aa5f9-a358-40cb-bb7e-e8017d26eeb8)
 
