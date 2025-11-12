@@ -2,9 +2,29 @@
 
 Foliage Care is a full-stack web application that helps users **diagnose crop diseases** using machine learning. The platform promotes **organic agriculture** and provides an intuitive interface for farmers and enthusiasts to upload images, get diagnosis results, and connect for help.
 
+🧩 Application Stack
+
+| **Layer**          | **Technology**                                      | **Role / Purpose**                                                                                          |
+|--------------------|------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+| **Frontend**       | HTML5, CSS, JavaScript (ES6)                        | Provides the user interface (Foliage Care website) for image upload and result display.                     |
+| **Authentication** | Firebase Authentication                              | Manages secure user registration (Email/Password) and third-party login (Google OAuth).                     |
+| **Styling**        | Google Fonts (*Playfair Display*, *Roboto*), Font Awesome | Used for aesthetic, elegant typography and iconography.                                                     |
+| **Backend API**    | FastAPI (Python)                                    | High-performance API that routes frontend requests to the AI models.                                        |
+| **Server**         | Uvicorn                                              | ASGI server used to run the FastAPI application efficiently.                                                |
+
+## 🤖 Machine Learning Pipeline
+
+The detection process uses a robust **two-step classification pipeline** to ensure accuracy and prevent false positives (like identifying a non-plant image).
+
+| **Step**                 | **Model File**          | **Function & Output**                                                                                                                                                     |
+|---------------------------|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Step 1: Gatekeeper**    | `plant_detector.h5`    | **Binary Classification:** Determines if the image contains a plant leaf (Yes/No).                                                                                         |
+| **Step 2: Expert**        | `new_disease_model.h5` | **Multi-Class Classification:** Identifies the specific plant and its health status among **22 total classes** (e.g., `Apple__Black_rot`, `Potato__healthy`, etc.).         |
+| **Framework**             | TensorFlow / Keras     | Used for training, fine-tuning (*MobileNetV2* base), and loading all `.h5` models.                                                                                        |
+| **Data**                  | Image-based dataset    | Contains images for **22 classes** across multiple crops (Apple, Potato, Corn, Grape, Peach, Cherry, Pepper Bell).                                                        |
 
 
-1. Application StackLayerTechnologyRole / PurposeFrontendHTML5, CSS, JavaScript (ES6)Provides the user interface (Foliage Care website) for image upload and result display.AuthenticationFirebase AuthenticationManages secure user registration (Email/Password) and third-party login (Google OAuth).StylingGoogle Fonts (Playfair Display, Roboto), Font AwesomeUsed for aesthetic, elegant typography and iconography.Backend APIFastAPI (Python)High-performance API that routes frontend requests to the AI models.ServerUvicornASGI server used to run the FastAPI application efficiently.
+
 
  Features
 
@@ -36,6 +56,7 @@ ABOUT PAGE
 ![image](https://github.com/user-attachments/assets/a925bac1-1f28-4fb5-8476-73d9cbce0abe)
 
 LOGIN/SIGNUP PAGE
+<img width="1784" height="825" alt="image" src="https://github.com/user-attachments/assets/09a34f79-8f78-4ede-9b51-08e856fca2a6" />
 
 
 
