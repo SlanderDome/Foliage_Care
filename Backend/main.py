@@ -1,3 +1,4 @@
+# Backend/main.py
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -6,79 +7,74 @@ from io import BytesIO
 from PIL import Image
 import tensorflow as tf
 import os
+import traceback
 
 app = FastAPI()
 
-
+# CORS: in prod, replace "*" with your frontend origin
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-
-print("📁 Files in working directory:", os.listdir("."))
+# Working dir debug (will appear in Render logs)
+print("📁 CWD:", os.getcwd())
+print("📁 Files in CWD:", os.listdir("."))
 print("📁 Files in /opt/render/project/src:", os.listdir("/opt/render/project/src"))
 
-# Get the directory where this script (main.py) is located
-# ...
+# Paths relative to this file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PLANT_PATH = os.path.join(BASE_DIR, "new_plant_detector.keras")
+DISEASE_PATH = os.path.join(BASE_DIR, "new_disease_model.keras")
 
-# CHANGE THESE TWO LINES:
-PLANT_DETECTOR_MODEL = os.path.join(BASE_DIR, "new_plant_detector.keras")
-DISEASE_MODEL_FILE = os.path.join(BASE_DIR, "new_disease_model.keras") 
-# ...
+PLANT_MODEL = None
+DISEASE_MODEL = None
 
-
+# Load models (compile=False -> inference only, avoids optimizer issues)
 try:
-    if not os.path.exists(PLANT_DETECTOR_MODEL):
-        raise FileNotFoundError(f"Model file not found: {PLANT_DETECTOR_MODEL}")
-    PLANT_MODEL = tf.keras.models.load_model(PLANT_DETECTOR_MODEL)
-    
-    if not os.path.exists(DISEASE_MODEL_FILE):
-        raise FileNotFoundError(f"Model file not found: {DISEASE_MODEL_FILE}")
-    DISEASE_MODEL = tf.keras.models.load_model(DISEASE_MODEL_FILE)
-    
-    print("✅ All models loaded successfully.")
+    if not os.path.exists(PLANT_PATH):
+        raise FileNotFoundError(f"Plant model not found at {PLANT_PATH}")
+    print("Loading plant model from:", PLANT_PATH)
+    PLANT_MODEL = tf.keras.models.load_model(PLANT_PATH, compile=False)
+
+    if not os.path.exists(DISEASE_PATH):
+        raise FileNotFoundError(f"Disease model not found at {DISEASE_PATH}")
+    print("Loading disease model from:", DISEASE_PATH)
+    DISEASE_MODEL = tf.keras.models.load_model(DISEASE_PATH, compile=False)
+
+    print("✅ Models loaded successfully.")
+    # Print summaries (small) to logs for verification
+    try:
+        PLANT_MODEL.summary()
+        DISEASE_MODEL.summary()
+    except Exception:
+        print("Could not print model.summary() (may be large).")
 
 except Exception as e:
-    print(f"❌ CRITICAL ERROR: Could not load models. {e}")
-    print("Please make sure 'plant_detector.h5' and 'new_disease_model.h5' are in the same folder.")
+    print("❌ CRITICAL ERROR loading models:", str(e))
+    traceback.print_exc()
     PLANT_MODEL = None
     DISEASE_MODEL = None
 
 
+# ----------------
+# Class names & tips (keep as you had)
 CLASS_NAMES = [
-    'Apple___Apple_scab',
-    'Apple___Black_rot',
-    'Apple___Cedar_apple_rust',
-    'Apple___healthy',
-    'Cherry_(including_sour)___Powdery_mildew',
-    'Cherry_(including_sour)___healthy',
-    'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot',
-    'Corn_(maize)___Common_rust_',
-    'Corn_(maize)___Northern_Leaf_Blight',
-    'Corn_(maize)___healthy',
-    'Grape___Black_rot',
-    'Grape___Esca_(Black_Measles)',
-    'Grape___Leaf_blight_(Isariopsis_Leaf_Spot)',
-    'Grape___healthy',
-    'Orange___Haunglongbing_(Citrus_greening)',
-    'Peach___Bacterial_spot',
-    'Peach___healthy',
-    'Pepper,_bell___Bacterial_spot',
-    'Pepper,_bell___healthy',
-    'Potato___Early_blight',
-    'Potato___Late_blight',
-    'Potato___healthy'
+    'Apple___Apple_scab','Apple___Black_rot','Apple___Cedar_apple_rust','Apple___healthy',
+    'Cherry_(including_sour)___Powdery_mildew','Cherry_(including_sour)___healthy',
+    'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot','Corn_(maize)___Common_rust_',
+    'Corn_(maize)___Northern_Leaf_Blight','Corn_(maize)___healthy',
+    'Grape___Black_rot','Grape___Esca_(Black_Measles)','Grape___Leaf_blight_(Isariopsis_Leaf_Spot)',
+    'Grape___healthy','Orange___Haunglongbing_(Citrus_greening)','Peach___Bacterial_spot',
+    'Peach___healthy','Pepper,_bell___Bacterial_spot','Pepper,_bell___healthy',
+    'Potato___Early_blight','Potato___Late_blight','Potato___healthy'
 ]
 
-
 PREVENTION_MEASURES = {
-    # Apple
+   # Apple
     'Apple___Apple_scab': "Prune trees to improve air circulation. Rake and destroy fallen leaves. Apply fungicides from bud break until midsummer.",
     'Apple___Black_rot': "Prune out dead or diseased branches. Remove mummified fruit. Apply fungicide sprays during the growing season.",
     'Apple___Cedar_apple_rust': "Remove nearby juniper and red cedar trees if possible. Apply fungicides from pink-bud stage through second cover spray.",
@@ -117,65 +113,72 @@ PREVENTION_MEASURES = {
     'Potato___healthy': "Ensure consistent watering. Hill soil around plants to protect tubers from sun."
 }
 
+# Preprocess function (exactly match training)
+TARGET_SIZE = (224, 224)
+def preprocess_image_bytes(data: bytes) -> np.ndarray:
+    img = Image.open(BytesIO(data)).convert("RGB")
+    # optional: center-crop to square to reduce background influence
+    w, h = img.size
+    if w != h:
+        min_side = min(w,h)
+        left = (w - min_side)//2
+        top = (h - min_side)//2
+        img = img.crop((left, top, left+min_side, top+min_side))
+    img = img.resize(TARGET_SIZE, Image.BILINEAR)
+    arr = np.asarray(img).astype(np.float32) / 255.0
+    return np.expand_dims(arr, axis=0)   # shape (1,224,224,3)
 
-def read_file_as_image(data) -> np.ndarray:
-    """Convert uploaded image file to a preprocessed numpy array"""
-    
-    image = Image.open(BytesIO(data)).convert("RGB")
-    image = image.resize((224, 224)) 
-    image = np.array(image) / 255.0 # Rescale to [0,1]
-    return np.expand_dims(image, axis=0)
-
+@app.get("/")
+def root():
+    return {"status": "ok"}
 
 @app.get("/ping")
-async def ping():
+def ping():
     return {"message": "Hello, I am alive!"}
-
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    if not PLANT_MODEL or not DISEASE_MODEL:
-        return {"error": "Models are not loaded. Check server logs."}
-        
+    if PLANT_MODEL is None or DISEASE_MODEL is None:
+        return {"error": "Models not loaded. Check server logs."}
+
     try:
-        print(f"✅ Received file: {file.filename}")
-        image_data = await file.read()
-        image = read_file_as_image(image_data)
+        data = await file.read()
+        img = preprocess_image_bytes(data)  # float32 normalized array
 
-     
-        plant_pred = PLANT_MODEL.predict(image)[0][0]
-        print(f"🌱 Plant probability: {plant_pred:.4f}")
+        # Plant detector - ensure scalar
+        plant_pred = PLANT_MODEL.predict(img)
+        plant_prob = float(np.array(plant_pred).reshape(-1)[0])  # robust extraction
+        print("🌱 Plant probability:", plant_prob)
 
-        if plant_pred < 0.5:  
+        if plant_prob < 0.5:
             return {
-                "Error": "This is not an accurate image",
-                "confidence": round(float(1 - plant_pred), 2),
-                "prevention_measures": "Please upload a clear image of a plant leaf for accurate disease detection."
+                "class": "Not a plant",
+                "confidence": round(1.0 - plant_prob, 2),
+                "prevention_measures": "Please upload a clear image of a plant leaf."
             }
 
-        
-        predictions = DISEASE_MODEL.predict(image)
-        predicted_index = np.argmax(predictions[0])
-        
-        if predicted_index >= len(CLASS_NAMES):
-            print(f"❌ Error: Model predicted index {predicted_index} which is out of bounds for {len(CLASS_NAMES)} classes.")
-            return {"error": "Model prediction error. Check class list."}
+        # Disease prediction
+        preds = DISEASE_MODEL.predict(img)
+        preds = np.asarray(preds).reshape(-1)
+        top_idx = int(np.argmax(preds))
+        if top_idx >= len(CLASS_NAMES):
+            print("❌ Model index out of range:", top_idx, "len:", len(CLASS_NAMES))
+            return {"error": "Model predicted invalid class index."}
 
-        predicted_class = CLASS_NAMES[predicted_index]
-        confidence = float(np.max(predictions[0]))
-
-        print(f"🌟 Predicted: {predicted_class} with {confidence:.2f} confidence")
-
+        cls = CLASS_NAMES[top_idx]
+        conf = float(preds[top_idx])
         return {
-            "class": predicted_class,
-            "confidence": round(confidence, 2),
-            "prevention_measures": PREVENTION_MEASURES.get(predicted_class, "No prevention tips available for this class.")
+            "class": cls,
+            "confidence": round(conf, 2),
+            "prevention_measures": PREVENTION_MEASURES.get(cls, "No tips available.")
         }
 
     except Exception as e:
-        print(f"❌ Error during prediction: {str(e)}")
-        return {"error": "Prediction failed. Check server logs for details."}
+        print("❌ Error during prediction:", str(e))
+        traceback.print_exc()
+        return {"error": "Prediction failed. Check server logs."}
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
