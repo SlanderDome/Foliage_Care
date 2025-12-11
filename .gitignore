@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+env/
+
+# Data
+new_potato_disease_dataset/
+*.zip
+
+# IDEs
+.vscode/
+.idea/
+
+# Large Models (Optional: Uncomment if you don't want to upload models)
+# *.h5
