@@ -19,6 +19,10 @@ app.add_middleware(
 )
 
 
+
+print("📁 Files in working directory:", os.listdir("."))
+print("📁 Files in /opt/render/project/src:", os.listdir("/opt/render/project/src"))
+
 # Get the directory where this script (main.py) is located
 # ...
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
