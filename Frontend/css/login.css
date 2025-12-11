@@ -1,65 +1,294 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Foliage Care - Login/SignUp</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="login.css">
-  <link rel="icon" href="892926.png" type="image/png">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-</head>
-<body>
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-<nav class="navbar">
-    <div class="logo">
-        🌱FOLIAGE CARE
-    </div>
-    <ul class="nav-links">
-        <li><a href="index.html" id="home-link">Home</a></li>
-        <li><a href="start.html" id="diagnose-link">Diagnose</a></li>
-        <li><a href="about.html" id="about-link">About</a></li>
-        <li><a href="#login" id="login-link" class="active">Login/Signup</a></li>
-        <li><a href="contact.html" id="connect-link">Connect</a></li>
-    </ul>
-</nav>
+html {
+    scroll-behavior: smooth;
+}
 
-<div class="container">
-    <div class="form-container">
-      <h1 class="title">Welcome to Foliage Care</h1>
-      <p class="subtitle">Explore, diagnose, and improve your crop health!</p>
+body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(90deg, #0a823c 0%, #100400 100%);
+    color: #333;
+    line-height: 1.6;
+}
 
-      <div class="tabs">
-        <button class="tab-button active" data-target="#login">Login</button>
-        <button class="tab-button" data-target="#signup">Signup</button>
-      </div>
+/* --- Navbar (No changes) --- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 40px;
+    background: linear-gradient(90deg, #0a823c 0%, #100400 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.logo {
+    font-family: 'Playfair Display', serif; 
+    font-weight: 100;
+    font-size: 2.5rem;
+    letter-spacing: 1px;
+    color: rgb(252, 235, 212);
+}
+.nav-links {
+    display: flex;
+    list-style: none;
+}
+.nav-links li {
+    margin: 0 18px;
+}
+.nav-links a {
+    text-decoration: none;
+    color: rgb(255, 255, 255);
+    font-family: 'Playfair Display', serif; 
+    font-size: 1.05rem;
+    font-weight: 500;
+    position: relative;
+    padding: 5px 0;
+    transition: all 0.3s ease;
+}
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: #ffc107;
+    transition: width 0.3s ease;
+}
+.nav-links a:hover {
+    color: #ffc107;
+}
+.nav-links a:hover::after,
+.nav-links a.active::after {
+    width: 100%;
+}
+/* --- End Navbar --- */
 
-      
-      <form id="login" class="form active">
-        <input type="email" placeholder="Email" required>
-        <input type="password" placeholder="Password" required>
-        <button type="submit" class="cta-button">Login</button>
-      </form>
 
-      
-      <form id="signup" class="form">
-        <input type="text" placeholder="Full Name" required>
-        <input type="email" placeholder="Email" required>
-        <input type="password" placeholder="Password" required>
-        <button type="submit" class="cta-button">Signup</button>
-      </form>
-    </div>
-  </div>
-   <footer class="footer">
-    <p ><a href="contact.html" >Connect with us</a></p>
-    <div class="social-icons">
-      <a href="#"><i class="fab fa-facebook"></i></a>
-      <a href="#"><i class="fab fa-instagram"></i></a>
-      <a href="#"><i class="fab fa-youtube"></i></a>
-      
-    </div>
-    <p>&copy; 2025 Foliage Care. All rights reserved.</p>
-  </footer>
-  <script src="login.js"></script>
-</body>
-</html>
+/* --- Main Login Container --- */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 85vh; 
+    padding: 40px 20px;
+}
+
+/* --- The Login/Signup Card --- */
+.form-container {
+    background-color: rgb(252, 235, 212); 
+    color: #100400;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    border-top: 4px solid #ffc107; /* Gold accent */
+}
+
+.title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #0a823c; 
+    margin-bottom: 10px;
+    font-family: 'Playfair Display', serif;
+}
+
+.subtitle {
+    margin-bottom: 30px;
+    color: #333;
+    font-size: 1.1rem;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* --- Tab Buttons --- */
+.tabs {
+    display: flex;
+    border-bottom: 2px solid rgba(10, 130, 60, 0.2);
+    margin-bottom: 30px;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 12px;
+    background-color: transparent;
+    color: #666;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+}
+
+.tab-button:hover {
+    color: #0a823c;
+}
+
+.tab-button.active {
+    color: #0a823c;
+    border-bottom-color: #0a823c;
+}
+
+/* --- Input Fields --- */
+input[type="email"],
+input[type="password"],
+input[type="text"] {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    font-family: 'Roboto', sans-serif; 
+    background-color: #fff;
+    transition: all 0.3s ease;
+}
+
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="text"]:focus {
+    outline: none;
+    border-color: #0a823c;
+    box-shadow: 0 0 0 3px rgba(10, 130, 60, 0.2);
+}
+
+/* --- Main CTA Button (Login/Signup) --- */
+.cta-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 14px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.cta-button:hover {
+    background-color: #3e8e41;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transform: translateY(-2px);
+}
+
+/* --- Google Sign-In Button --- */
+#google-login-button {
+    display: flex; /* Use flex to align icon and text */
+    align-items: center;
+    justify-content: center; /* Center horizontally */
+    width: 100%;
+    padding: 12px 25px;
+    background-color: #ffffff;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+#google-login-button img {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px; /* Space between logo and text */
+    /* Vertically center the image within the button */
+    vertical-align: middle; 
+}
+
+#google-signin-btn:hover {
+    background-color: #f7f7f7;
+    border-color: #aaa;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* --- Divider (for "or") --- */
+.divider-text {
+    font-size: 1rem;
+    color: #777;
+    margin: 25px 0 20px;
+    text-transform: uppercase;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+}
+
+/* --- Form Toggle --- */
+.form {
+    display: none;
+    animation: fadeIn 0.5s ease;
+}
+
+.form.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Footer (No changes) --- */
+.footer {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(90deg, #000000 0%, #0c9846 100%);
+    color: rgb(252, 235, 212);
+    position: relative;
+    overflow: hidden;
+}
+.footer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 300%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: slide 5s linear infinite;
+}
+@keyframes slide {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+.footer .social-icons a {
+    margin: 0 10px;
+    color: rgb(252, 235, 212);
+    font-size: 1.8rem;
+    transition: all 0.3s ease;
+}
+.footer .social-icons a:hover {
+    color: #ffc107;
+}
+.footer p a {
+    color: rgb(252, 235, 212);
+    text-decoration: none;
+    font-size: 1.1rem;
+    position: relative;
+    overflow: hidden;
+}
+.footer p a:hover {
+    color: #ffc107;
+}
+.footer p {
+    margin-top: 10px;
+    font-size: 1rem;
+    color: rgb(252, 235, 212);
+    letter-spacing: 0.5px;
+}

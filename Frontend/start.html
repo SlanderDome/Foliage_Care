@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Foliage Care - Plant Diagnosis</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="start.css">
+  <link rel="stylesheet" href="css/start.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='start.css') }}">
-  <link rel="icon" href="892926.png" type="image/png">
+  <link rel="icon" href="assets/892926.png" type="image/png">
 <script src="{{ url_for('static', filename='up.js') }}"></script>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -36,7 +36,7 @@
       
     </div>
     <div class="hero-image">
-      <img src="wheat.jpg"class="right-align" alt="Plant Disease" />
+      <img src="assets/wheat.jpg"class="right-align" alt="Plant Disease" />
     </div>
   </section>
 
@@ -85,6 +85,43 @@
     <p>&copy; 2025 Foliage Care. All rights reserved.</p>
   </footer>
 
-  <script src="up.js"></script>
+  <script src="js/up.js"></script>
+  <script type="module">
+      // Import the functions you need from the SDKs
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      import { 
+          getAuth, 
+          onAuthStateChanged,
+          signOut,
+          signInAnonymously,
+          signInWithCustomToken
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  
+      // This is your REAL config from your Firebase project
+      const firebaseConfig = {
+  apiKey: "AIzaSyDISL2WDwxMB-M6Rz8IsrpEAvhbAT2fPqA",
+  authDomain: "foliage-care.firebaseapp.com",
+  projectId: "foliage-care",
+  storageBucket: "foliage-care.firebasestorage.app",
+  messagingSenderId: "233678057855",
+  appId: "1:233678057855:web:36cb051f256fff8e9a6a4a",
+  measurementId: "G-C5JQCWGTMV"
+};
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+  
+      // Make functions available to main.js
+      window.firebaseAuth = auth;
+      window.onAuthStateChanged = onAuthStateChanged;
+      window.signOut = signOut;
+      window.signInAnonymously = signInAnonymously;
+      window.signInWithCustomToken = signInWithCustomToken;
+      window.__initial_auth_token = undefined; // We are not using custom tokens here
+  
+      // Fire the "ready" event for main.js to listen for
+      window.dispatchEvent(new Event('firebase-ready'));
+  </script>
+  <script src="js/main.js"></script>
 </body>
 </html>

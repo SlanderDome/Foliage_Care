@@ -83,12 +83,7 @@
 
 
 /* Wrapper to center the image */
-#image-wrapper {
-    display: flex;
-    justify-content: center;    /* Horizontally center */
-    align-items: center;        /* Vertically center */
-    margin-top: 20px;
-}
+
 
 /* Image Styling */
 #preview-image {
@@ -129,7 +124,30 @@
     background: linear-gradient(135deg, #6ebf8b 30%, #a8d8ea 70%);
     color: #fff;
   }
-  
+  /* Add text-align: center; to center the button */
+#photo-container {
+    margin-bottom: 20px;
+    text-align: center; 
+}
+
+/* This is the new, combined rule for your preview image */
+#preview-image {
+    display: block;
+    width: 100%;             /* Make it responsive */
+    max-width: 400px;        /* Set a max-width */
+    
+    /* --- THIS IS THE FIX --- */
+    max-height: 400px;       /* Set a max-height so it's not too long */
+    object-fit: cover;       /* Ensures the image fills the box without stretching */
+    /* --- END OF FIX --- */
+
+    margin-left: auto;       /* Center it horizontally */
+    margin-right: auto;      /* Center it horizontally */
+    margin-top: 20px;
+    border-radius: 10px;
+    border: 2px solid #4CAF50;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+} 
   .hero-content {
     max-width: 50%;
   }
@@ -220,11 +238,7 @@
     display: block;
   }
   
-  #preview-image {
-    margin-top: 20px;
-    
-  }
-  
+ 
   textarea {
     width: 100%;
     padding: 10px;

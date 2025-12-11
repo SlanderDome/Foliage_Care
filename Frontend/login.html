@@ -3,30 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login/Signup - Foliage Care</title>
+  <title>Foliage Care - Login/SignUp</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="login.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="icon" href="assets/892926.png" type="image/png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+  <!-- Added style for the new button and divider -->
+  <style>
+    .google-button {
+      background-color: #4285F4 !important;
+      color: white !important;
+      width: 100%;
+      margin-top: 15px;
+    }
+    .google-button:hover {
+      background-color: #357ae8 !important;
+    }
+    .divider-text {
+      text-align: center;
+      margin: 15px 0 5px 0;
+      color: #777;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
+
+<nav class="navbar">
+    <div class="logo">
+        🌱FOLIAGE CARE
+    </div>
+    <ul class="nav-links">
+        <li><a href="index.html" id="home-link">Home</a></li>
+        <li><a href="start.html" id="diagnose-link">Diagnose</a></li>
+        <li><a href="about.html" id="about-link">About</a></li>
+        <li><a href="#login" id="login-link" class="active">Login/Signup</a></li>
+        <li><a href="contact.html" id="connect-link">Connect</a></li>
+    </ul>
+</nav>
+
+<div class="container">
     <div class="form-container">
       <h1 class="title">Welcome to Foliage Care</h1>
       <p class="subtitle">Explore, diagnose, and improve your crop health!</p>
       
-      <!-- Tabs for Login and Signup -->
+
+      <div class="divider-text">    </div>
+      <!-- NEW: Google Sign-in Button -->
+      <button id="google-login-button">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
+          Sign in with Google
+      </button>
+      <p class="divider-text">or</p>
+      <!-- End of new button -->
+
       <div class="tabs">
         <button class="tab-button active" data-target="#login">Login</button>
         <button class="tab-button" data-target="#signup">Signup</button>
       </div>
 
-      <!-- Login Form -->
+      
       <form id="login" class="form active">
         <input type="email" placeholder="Email" required>
         <input type="password" placeholder="Password" required>
         <button type="submit" class="cta-button">Login</button>
       </form>
 
-      <!-- Signup Form -->
+      
       <form id="signup" class="form">
         <input type="text" placeholder="Full Name" required>
         <input type="email" placeholder="Email" required>
@@ -35,7 +78,74 @@
       </form>
     </div>
   </div>
+   <footer class="footer">
+    <p ><a href="contact.html" >Connect with us</a></p>
+    <div class="social-icons">
+      <a href="#"><i class="fab fa-facebook"></i></a>
+      <a href="#"><i class="fab fa-instagram"></i></a>
+      <a href="#"><i class="fab fa-youtube"></i></a>
+      
+    </div>
+    <p>&copy; 2025 Foliage Care. All rights reserved.</p>
+  </footer>
 
-  <script src="login.js"></script>
+ 
+  <script type="module">
+      // Import the functions you need from the SDKs
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      import { 
+          getAuth, 
+          onAuthStateChanged,
+          createUserWithEmailAndPassword,
+          signInWithEmailAndPassword,
+          signInAnonymously,
+          signInWithCustomToken,
+          
+          // --- NEW IMPORTS ---
+          GoogleAuthProvider,
+          signInWithPopup
+          // --- END NEW IMPORTS ---
+
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+      // ⬇️⬇️⬇️ PASTE YOUR REAL CONFIG OBJECT FROM FIREBASE HERE ⬇️⬇️⬇️
+     const firebaseConfig = {
+  apiKey: "AIzaSyDISL2WDwxMB-M6Rz8IsrpEAvhbAT2fPqA",
+  authDomain: "foliage-care.firebaseapp.com",
+  projectId: "foliage-care",
+  storageBucket: "foliage-care.firebasestorage.app",
+  messagingSenderId: "233678057855",
+  appId: "1:233678057855:web:36cb051f256fff8e9a6a4a",
+  measurementId: "G-C5JQCWGTMV"
+};
+      // ⬆️⬆️⬆️ END OF CONFIG ⬆️⬆️⬆️
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      // Make 'auth' and functions available to your login.js script
+      window.firebaseAuth = auth;
+      window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+      window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+      window.onAuthStateChanged = onAuthStateChanged;
+      window.signInAnonymously = signInAnonymously;
+      window.signInWithCustomToken = signInWithCustomToken;
+      window.__initial_auth_token = undefined;
+
+      // --- NEW FUNCTIONS FOR GOOGLE ---
+      window.GoogleAuthProvider = GoogleAuthProvider;
+      window.signInWithPopup = signInWithPopup;
+      // --- END NEW FUNCTIONS ---
+
+      console.log("Firebase Auth Initialized.");
+
+      // Fire the custom "ready" event
+      window.dispatchEvent(new Event('firebase-ready'));
+
+  </script>
+
+<!-- 2. Your login.js script (it's perfect, no changes needed to this line) -->
+<script src="js/login.js"></script>
 </body>
 </html>
