@@ -8,7 +8,7 @@ import tensorflow as tf
 import os
 
 app = FastAPI()
-#python -u "c:\Users\Swarom Firagannavar\Desktop\VSC\MP\PY\main.py"
+
 
 app.add_middleware(
     CORSMiddleware,
