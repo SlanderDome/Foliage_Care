@@ -19,8 +19,12 @@ app.add_middleware(
 )
 
 
-PLANT_DETECTOR_MODEL = "new_plant_detector.h5"
-DISEASE_MODEL_FILE = "new_disease_model.h5" 
+# Get the directory where this script (main.py) is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Join that directory with the model filenames
+PLANT_DETECTOR_MODEL = os.path.join(BASE_DIR, "new_plant_detector.h5")
+DISEASE_MODEL_FILE = os.path.join(BASE_DIR, "new_disease_model.h5")
 
 
 try:
