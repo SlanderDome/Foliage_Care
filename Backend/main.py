@@ -8,7 +8,6 @@ import tensorflow as tf
 import os
 
 app = FastAPI()
-#python -u "c:\Users\Swarom Firagannavar\Desktop\VSC\MP\PY\main.py"
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,8 +19,8 @@ app.add_middleware(
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PLANT_DETECTOR_MODEL = os.path.join(BASE_DIR, "new_plant_detector.h5")
-DISEASE_MODEL_FILE = os.path.join(BASE_DIR, "new_disease_model.h5")
+PLANT_DETECTOR_MODEL = os.path.join(BASE_DIR, "new_plant_detector.keras")
+DISEASE_MODEL_FILE = os.path.join(BASE_DIR, "new_disease_model.keras")
 
 
 try:
@@ -169,4 +168,5 @@ async def predict(file: UploadFile = File(...)):
 
 
 if __name__ == "__main__":
+
     uvicorn.run(app, host="127.0.0.1", port=8000)
