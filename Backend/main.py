@@ -26,11 +26,11 @@ DISEASE_MODEL_FILE = os.path.join(BASE_DIR, "new_disease_model.keras")
 try:
     if not os.path.exists(PLANT_DETECTOR_MODEL):
         raise FileNotFoundError(f"Model file not found: {PLANT_DETECTOR_MODEL}")
-    PLANT_MODEL = tf.keras.models.load_model(PLANT_DETECTOR_MODEL)
+    PLANT_MODEL = tf.keras.models.load_model(PLANT_DETECTOR_MODEL, compile=False)
     
     if not os.path.exists(DISEASE_MODEL_FILE):
         raise FileNotFoundError(f"Model file not found: {DISEASE_MODEL_FILE}")
-    DISEASE_MODEL = tf.keras.models.load_model(DISEASE_MODEL_FILE)
+    DISEASE_MODEL = tf.keras.models.load_model(DISEASE_MODEL_FILE, compile=False)
     
     print("✅ All models loaded successfully.")
 
@@ -169,4 +169,6 @@ async def predict(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+uvicorn.run(app, host="0.0.0.0", port=port)
+
