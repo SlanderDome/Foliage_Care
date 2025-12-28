@@ -22,23 +22,37 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PLANT_DETECTOR_MODEL = os.path.join(BASE_DIR, "new_plant_detector.keras")
 DISEASE_MODEL_FILE = os.path.join(BASE_DIR, "new_disease_model.keras")
 
+PLANT_MODEL = None
+DISEASE_MODEL = None
 
+# Load plant detector model
 try:
     if not os.path.exists(PLANT_DETECTOR_MODEL):
-        raise FileNotFoundError(f"Model file not found: {PLANT_DETECTOR_MODEL}")
-    PLANT_MODEL = tf.keras.models.load_model(PLANT_DETECTOR_MODEL, compile=False)
-    
-    if not os.path.exists(DISEASE_MODEL_FILE):
-        raise FileNotFoundError(f"Model file not found: {DISEASE_MODEL_FILE}")
-    DISEASE_MODEL = tf.keras.models.load_model(DISEASE_MODEL_FILE, compile=False)
-    
-    print("✅ All models loaded successfully.")
+        raise FileNotFoundError(f"Plant model not found: {PLANT_DETECTOR_MODEL}")
+
+    PLANT_MODEL = tf.keras.models.load_model(
+        PLANT_DETECTOR_MODEL,
+        compile=False
+    )
+    print("✅ Plant model loaded successfully")
 
 except Exception as e:
-    print(f"❌ CRITICAL ERROR: Could not load models. {e}")
-    print("Please make sure 'plant_detector' and 'new_disease_model' are in the same folder.")
-    PLANT_MODEL = None
-    DISEASE_MODEL = None
+    print("❌ Plant model failed to load:", e)
+
+
+# Load disease model
+try:
+    if not os.path.exists(DISEASE_MODEL_FILE):
+        raise FileNotFoundError(f"Disease model not found: {DISEASE_MODEL_FILE}")
+
+    DISEASE_MODEL = tf.keras.models.load_model(
+        DISEASE_MODEL_FILE,
+        compile=False
+    )
+    print("✅ Disease model loaded successfully")
+
+except Exception as e:
+    print("❌ Disease model failed to load:", e)
 
 
 CLASS_NAMES = [
