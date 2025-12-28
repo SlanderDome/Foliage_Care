@@ -51,14 +51,10 @@ try:
     print("✅ Disease model loaded successfully")
 
 except Exception as e:
-<<<<<<< HEAD
     print(f"❌ CRITICAL ERROR:  {e}")
     print("Please make sure 'plant_detector' and 'new_disease_model' are in the same folder.")
     PLANT_MODEL = None
     DISEASE_MODEL = None
-=======
-    print("❌ Disease model failed to load:", e)
->>>>>>> 4651ea88efb0af68af2effbec763b68b4bc57edb
 
 
 CLASS_NAMES = [
