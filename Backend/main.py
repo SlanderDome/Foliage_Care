@@ -124,7 +124,8 @@ async def ping():
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    if not PLANT_MODEL or not DISEASE_MODEL:
+    if PLANT_MODEL is None or DISEASE_MODEL is None:
+
         return {"error": "Models are not loaded. Check server logs."}
         
     try:
