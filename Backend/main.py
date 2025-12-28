@@ -19,9 +19,8 @@ app.add_middleware(
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PLANT_DETECTOR_MODEL = os.path.join(BASE_DIR, "new_plant_detector.keras")
-DISEASE_MODEL_FILE = os.path.join(BASE_DIR, "new_disease_model.keras")
-
+PLANT_DETECTOR_MODEL = os.path.join(BASE_DIR, "new_plant_detector_fixed.keras")
+DISEASE_MODEL_FILE   = os.path.join(BASE_DIR, "new_disease_model.keras")
 PLANT_MODEL = None
 DISEASE_MODEL = None
 
