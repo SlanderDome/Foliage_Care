@@ -36,7 +36,7 @@ try:
 
 except Exception as e:
     print(f"❌ CRITICAL ERROR: Could not load models. {e}")
-    print("Please make sure 'plant_detector.h5' and 'new_disease_model.h5' are in the same folder.")
+    print("Please make sure 'plant_detector' and 'new_disease_model' are in the same folder.")
     PLANT_MODEL = None
     DISEASE_MODEL = None
 
@@ -168,7 +168,6 @@ async def predict(file: UploadFile = File(...)):
 
 
 if __name__ == "__main__":
-
     port = int(os.environ.get("PORT", 8000))
-uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
