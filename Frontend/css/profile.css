@@ -1,0 +1,393 @@
+/* =========================================
+   1. GLOBAL & BACKGROUND
+   ========================================= */
+:root {
+    --deep-green: #0d3b18;
+    --leaf-green: #2e7d32;
+    --light-green: #e8f5e9;
+    --accent-lime: #c2e8a0;
+    --text-dark: #1f2937;
+    --text-light: #f3f4f6;
+    --glass-white: rgba(255, 255, 255, 0.95);
+    --shadow-premium: 0 20px 40px -5px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    background-color: #f3f8f3;
+    background-image: 
+        radial-gradient(at 10% 10%, rgba(46, 125, 50, 0.1) 0px, transparent 50%),
+        radial-gradient(at 90% 90%, rgba(200, 230, 201, 0.5) 0px, transparent 50%);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-dark);
+    min-height: 100vh;
+}
+
+/* =========================================
+   2. DASHBOARD LAYOUT (The Big Split)
+   ========================================= */
+.dashboard-container {
+    max-width: 1100px;
+    margin: 60px auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 380px 1fr; /* Distinct Sidebar width */
+    gap: 50px;
+    align-items: start;
+    animation: fadeInSlide 0.8s ease-out;
+}
+
+/* =========================================
+   3. LEFT SIDE: THE "HERO" PROFILE CARD
+   ========================================= */
+.user-card {
+    background: linear-gradient(145deg, #1b5e20 0%, #0a2f10 100%);
+    color: white;
+    border-radius: 30px;
+    padding: 50px 30px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(11, 48, 14, 0.5); /* Deep green shadow */
+    overflow: hidden;
+}
+
+/* Artistic Pattern overlay on the green card */
+.user-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    z-index: 0;
+}
+
+.profile-avatar-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 25px;
+    z-index: 1;
+}
+
+.profile-avatar-container img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid rgba(255,255,255,0.2);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.profile-avatar-container img:hover {
+    transform: scale(1.05) rotate(5deg);
+    border-color: rgba(255,255,255,0.5);
+}
+
+.user-card h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    position: relative;
+    z-index: 1;
+    color: #f0fff4;
+}
+
+.name-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 60px; /* Prevents layout jump when switching */
+    transition: opacity 0.2s ease;
+}
+
+.edit-icon {
+    color: rgba(255,255,255,0.6);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: color 0.3s;
+}
+.edit-icon:hover { color: #fff; }
+
+.user-card .email {
+    font-size: 0.95rem;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Edit Input Field Dark Mode Style */
+.edit-ui {
+    display: none; /* JS toggles this to 'flex' */
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    animation: fadeIn 0.3s ease;
+    min-height: 60px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.edit-ui input {
+    width: 80%;
+    background: rgba(0, 0, 0, 0.3); /* Darker background for contrast */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    font-family: 'Playfair Display', serif; /* Match the header font */
+    font-size: 1.5rem; /* Larger text */
+    padding: 8px 15px;
+    border-radius: 12px;
+    text-align: center;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.edit-ui input:focus {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: #4caf50;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+}
+.edit-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.action-btn i {
+    pointer-events: none; /* Prevents clicking the icon instead of button */
+}
+
+/* Save Button (Green) */
+.save-btn {
+    background: #4caf50;
+    color: white;
+}
+.save-btn:hover {
+    background: #43a047;
+    transform: scale(1.15);
+}
+
+/* Cancel Button (Red/Grey) */
+.cancel-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffcdd2;
+    backdrop-filter: blur(4px);
+}
+.cancel-btn:hover {
+    background: rgba(211, 47, 47, 0.8);
+    color: white;
+    transform: scale(1.15);
+}
+
+/* Stats in Sidebar */
+.user-stats {
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 20px 0;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
+}
+
+.stat-item h3 {
+    font-size: 1.8rem;
+    color: var(--accent-lime);
+    margin: 0;
+}
+.stat-item span {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.6);
+}
+
+/* Action Buttons */
+.profile-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: none;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 15px;
+}
+
+.btn-primary {
+    background: #ffffff;
+    color: var(--leaf-green);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+.btn-primary:hover {
+    background: #f0fff4;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.btn-danger {
+    background: rgba(255,0,0,0.15);
+    color: #ffcdd2;
+    backdrop-filter: blur(5px);
+}
+.btn-danger:hover {
+    background: rgba(255,0,0,0.25);
+    color: #fff;
+}
+
+/* =========================================
+   4. RIGHT SIDE: ACTIVITY FEED
+   ========================================= */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.section-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    color: var(--deep-green);
+    margin: 0;
+}
+
+.section-header a {
+    color: var(--leaf-green);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    position: relative;
+}
+
+.section-header a::after {
+    content: ' →';
+    transition: margin 0.3s;
+}
+.section-header a:hover::after { margin-left: 5px; }
+
+/* The List */
+.scan-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.scan-item {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+}
+
+.scan-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    border-color: var(--light-green);
+}
+
+.scan-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #f0fff4 0%, #dcfce7 100%);
+    color: var(--leaf-green);
+    border-radius: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.5);
+}
+
+.scan-details { flex: 1; }
+
+.scan-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.scan-date {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Status Chips */
+.scan-status {
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.status-healthy {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.status-risk {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+/* =========================================
+   5. RESPONSIVE
+   ========================================= */
+@keyframes fadeInSlide {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+    .dashboard-container { grid-template-columns: 1fr; gap: 30px; }
+    .user-card { padding: 40px 20px; }
+    .scan-item { flex-direction: column; align-items: flex-start; text-align: left; }
+    .scan-icon { margin-bottom: 10px; }
+    .scan-status { align-self: flex-start; margin-top: 10px; }
+}

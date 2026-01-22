@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile | Foliage Care</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="profile.css">
+  
+  
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">🌱FOLIAGE CARE</div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="start.html">Diagnose</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="profile.html" class="active">Profile</a></li>
+      <li><a href="contact.html">Connect</a></li>
+    </ul>
+  </nav>
+
+  <div class="dashboard-container">
+    
+    <aside class="glass-card user-card">
+      <div class="profile-avatar-container">
+        <img id="profile-pic" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Profile">
+      </div>
+      
+      <div class="name-wrapper" id="name-display-area">
+    <h1 id="profile-name">Loading...</h1>
+    <button id="edit-name-btn" class="edit-icon" title="Edit Name">
+        <i class="fas fa-pen"></i>
+    </button>
+</div>
+
+<div id="edit-name-ui" class="edit-ui">
+    <input type="text" id="new-name-input" placeholder="Enter your name">
+   <div class="edit-actions">
+    <button id="save-name-btn" class="action-btn save-btn">
+        <i class="fas fa-check"></i> 
+    </button>
+    <button id="cancel-name-btn" class="action-btn cancel-btn">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+</div>
+      <div class="user-stats">
+        <div class="stat-item">
+          <h3>12</h3>
+          <span>Scans</span>
+        </div>
+        <div class="stat-item">
+          <h3>3</h3>
+          <span>Saved</span>
+        </div>
+      </div>
+
+      <button class="profile-btn btn-primary" onclick="location.href='start.html'">
+        <i class="fas fa-camera"></i> New Diagnosis
+      </button>
+      
+      <button class="profile-btn btn-danger" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> Log Out
+      </button>
+    </aside>
+
+    <main class="glass-card">
+      <div class="section-header">
+        <h2>Recent Activity</h2>
+        <a href="#" style="color: #2e7d32; text-decoration: none; font-size: 0.9rem;">View All</a>
+      </div>
+
+      <div class="scan-history-list">
+        
+        <div class="scan-item">
+          <div class="scan-icon"><i class="fas fa-leaf"></i></div>
+          <div class="scan-details">
+            <span class="scan-title">Tomato Leaf Scan</span>
+            <span class="scan-date">Today, 10:23 AM</span>
+          </div>
+          <span class="scan-status status-risk">Early Blight</span>
+        </div>
+
+        <div class="scan-item">
+          <div class="scan-icon"><i class="fas fa-seedling"></i></div>
+          <div class="scan-details">
+            <span class="scan-title">Potato Crop Check</span>
+            <span class="scan-date">Yesterday, 4:15 PM</span>
+          </div>
+          <span class="scan-status status-healthy">Healthy</span>
+        </div>
+
+        <div class="scan-item">
+          <div class="scan-icon"><i class="fas fa-carrot"></i></div>
+          <div class="scan-details">
+            <span class="scan-title">Pepper Bell Bacterial Spot</span>
+            <span class="scan-date">Jan 20, 2025</span>
+          </div>
+          <span class="scan-status status-risk">High Risk</span>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+  <footer class="footer">
+    <p ><a href="contact.html" >Connect with us</a></p>
+    <div class="social-icons">
+      <a href="#"><i class="fab fa-facebook"></i></a>
+      <a href="#"><i class="fab fa-instagram"></i></a>
+      <a href="#"><i class="fab fa-youtube"></i></a>
+      
+    </div>
+    <p>&copy; 2025 Foliage Care. All rights reserved.</p>
+  </footer>
+<script type="module" src="firebase.js"></script>
+  <script type="module" src="profile.js"></script>
+
+</body>
+</html>
