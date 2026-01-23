@@ -13,13 +13,82 @@
 }
 
 body {
-    background-color: #f3f8f3;
+    background-color: #f0fdf4; /* Very light mint */
+    /* Two background layers: A subtle grid pattern + Soft radial glows */
     background-image: 
-        radial-gradient(at 10% 10%, rgba(46, 125, 50, 0.1) 0px, transparent 50%),
-        radial-gradient(at 90% 90%, rgba(200, 230, 201, 0.5) 0px, transparent 50%);
+        linear-gradient(rgba(46, 125, 50, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(46, 125, 50, 0.05) 1px, transparent 1px),
+        radial-gradient(circle at 10% 20%, rgba(167, 243, 208, 0.4) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(254, 202, 202, 0.2) 0%, transparent 50%);
+    background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%; /* Grid size */
     font-family: 'DM Sans', sans-serif;
     color: var(--text-dark);
     min-height: 100vh;
+}
+/* --- WELCOME BANNER --- */
+.welcome-banner {
+    margin-bottom: 30px;
+}
+.welcome-banner h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: var(--deep-green);
+    margin-bottom: 5px;
+}
+.welcome-banner p {
+    color: #6b7280;
+    font-size: 1.1rem;
+}
+
+/* --- INFO GRID (Fills the bottom space) --- */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two columns */
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.info-card {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 160px;
+}
+
+.info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+}
+
+.card-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+}
+
+/* Specific Card Themes */
+.weather-card .card-icon { background: #e0f2fe; color: #0284c7; }
+.weather-card h3 { color: #0c4a6e; font-size: 1.1rem; margin-bottom: 5px; }
+.weather-temp { font-size: 2.5rem; font-weight: 700; color: #0284c7; font-family: 'Playfair Display', serif; }
+
+.tip-card .card-icon { background: #fef3c7; color: #d97706; }
+.tip-card h3 { color: #78350f; font-size: 1.1rem; margin-bottom: 5px; }
+.tip-text { font-size: 0.9rem; color: #92400e; line-height: 1.5; }
+
+/* Mobile fix for grid */
+@media (max-width: 768px) {
+    .info-grid { grid-template-columns: 1fr; }
 }
 
 /* =========================================
@@ -99,6 +168,8 @@ body {
     gap: 12px;
     min-height: 60px; /* Prevents layout jump when switching */
     transition: opacity 0.2s ease;
+    position: relative;
+    z-index: 5;
 }
 
 .edit-icon {
@@ -159,6 +230,8 @@ body {
     display: flex;
     gap: 15px;
     justify-content: center;
+    position: relative;
+    z-index: 5;
 }
 
 .action-btn {
@@ -390,4 +463,227 @@ body {
     .scan-item { flex-direction: column; align-items: flex-start; text-align: left; }
     .scan-icon { margin-bottom: 10px; }
     .scan-status { align-self: flex-start; margin-top: 10px; }
+}
+/* --- NEW HEADER LAYOUT (Welcome + Weather) --- */
+.dashboard-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Aligns them vertically */
+    margin-bottom: 30px;
+    gap: 20px;
+}
+
+/* Make the Welcome text flexible so it doesn't get squished */
+.welcome-section {
+    flex: 1;
+}
+
+/* Compact Weather Card for Top Right */
+.weather-widget-small {
+    background: #e0f2fe; /* Light Blue */
+    padding: 15px 25px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 4px 15px rgba(186, 230, 253, 0.4);
+    transition: transform 0.3s ease;
+    min-width: 180px;
+}
+
+.weather-widget-small:hover {
+    transform: translateY(-3px);
+}
+
+.weather-icon-small {
+    font-size: 1.8rem;
+    color: #0284c7;
+}
+
+.weather-info-small h3 {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #0369a1;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+
+.weather-temp-small {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0c4a6e;
+    font-family: 'Playfair Display', serif;
+}
+
+/* Make the Tip Card Full Width at the Bottom */
+.tip-card-full {
+    margin-top: 30px;
+    background: #fffbeb; /* Light Yellow */
+    padding: 20px 25px;
+    border-radius: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    border: 1px solid #fef3c7;
+}
+
+.tip-icon {
+    background: #fcd34d;
+    color: #78350f;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+/* --- LEFT COLUMN STACK --- */
+/* --- LEFT COLUMN WRAPPER --- */
+.sidebar-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    width: 100%; /* Ensures it fills the grid column */
+}
+
+/* Ensure Profile Card fills the width too */
+.user-card {
+    width: 100%;
+    box-sizing: border-box; /* Prevents padding from breaking layout */
+}
+
+/* --- RE-DESIGNED TIP CARD (Glassy Green) --- */
+.tip-card-sidebar {
+    /* Changed from Yellow to Glassy White/Green */
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 20px;
+    border-radius: 24px; /* Slightly smaller radius than profile for hierarchy */
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    
+    /* FIX THE WIDTH ISSUE */
+    width: 100%;
+    box-sizing: border-box;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.tip-card-sidebar:hover {
+    transform: translateY(-3px);
+    border-color: #4caf50; /* Light green glow on hover */
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.tip-icon {
+    /* Changed to Green Theme */
+    background: #e8f5e9; 
+    color: #2e7d32;
+    min-width: 40px;
+    height: 40px;
+    border-radius: 12px; /* Soft square looks more modern */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.tip-content h3 {
+    margin: 0 0 5px 0;
+    color: #1b5e20; /* Dark Green Text */
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.tip-content p {
+    margin: 0;
+    color: #52665a; /* Softer text color */
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+/* --- ANALYTICS CARD (The Summary Bar) --- */
+.analytics-card {
+    background: white; /* Clean white contrast */
+    border-radius: 24px;
+    padding: 25px 35px;
+    margin-bottom: 30px; /* Space before Recent Activity */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0,0,0,0.03);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle background decoration */
+.analytics-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 6px; height: 100%;
+    background: #4caf50; /* Green accent bar on left */
+}
+
+.analytics-text h3 {
+    margin: 0 0 5px 0;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--deep-green);
+}
+
+.analytics-text p {
+    margin: 0 0 20px 0;
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+/* Legend Styling */
+.chart-legend {
+    display: flex;
+    gap: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+}
+
+.legend-item b {
+    margin-left: 4px;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+.healthy-dot { background: #4caf50; box-shadow: 0 0 0 2px #e8f5e9; }
+.risk-dot { background: #ef5350; box-shadow: 0 0 0 2px #ffebee; }
+
+/* Chart Sizing */
+.chart-wrapper {
+    height: 120px;
+    width: 120px;
+}
+
+/* Mobile Fix */
+@media (max-width: 768px) {
+    .analytics-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    .chart-legend { justify-content: center; }
+    .analytics-card::before { width: 100%; height: 6px; top: 0; left: 0; }
 }

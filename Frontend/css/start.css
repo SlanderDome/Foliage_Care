@@ -80,8 +80,15 @@
   width: 100%;
   color: rgb(252, 235, 212);
 }
+/* Highlight the active link */
+.nav-links a.active {
+    
+    
+}
 
-
+.nav-links a.active::after {
+    width: 100%;
+}
 /* Wrapper to center the image */
 
 
@@ -334,4 +341,40 @@
     font-size: 1rem;
     color: rgb(252, 235, 212);
     letter-spacing: 0.5px;
+}
+/* Prevent auth flicker */
+.auth-hidden {
+  visibility: hidden;
+}
+/* Hide auth link until JS resolves auth state */
+.auth-hidden {
+  visibility: hidden;
+}
+
+.auth-visible {
+  visibility: visible;
+}
+/* Skeleton base */
+.nav-skeleton {
+  width: 70px;
+  height: 16px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.15) 25%,
+    rgba(255,255,255,0.3) 37%,
+    rgba(255,255,255,0.15) 63%
+  );
+  border-radius: 4px;
+  animation: shimmer 1.4s infinite;
+}
+
+/* Hide real nav until ready */
+.hidden {
+  display: none;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
 }

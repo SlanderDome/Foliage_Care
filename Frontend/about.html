@@ -6,22 +6,41 @@
   <title>Foliage Care - About Us</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/about.css">
+  <link rel="stylesheet" href="css/cursor.css">
   <link rel="icon" href="assets/892926.png" type="image/png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="logo">
-        🌱FOLIAGE CARE
-    </div>
-    <ul class="nav-links">
-        <li><a href="index.html" id="home-link">Home</a></li>
-        <li><a href="start.html" id="diagnose-link">Diagnose</a></li>
-        <li><a href="#about" id="about-link" class="active">About</a></li>
-        <li><a href="login.html" id="login-link">Login/Signup</a></li>
-        <li><a href="contact.html" id="connect-link">Connect</a></li>
-    </ul>
+  <div class="logo">
+    🌱FOLIAGE CARE
+  </div>
+
+  <ul class="nav-links">
+
+    <!-- Skeleton placeholder -->
+    <li class="nav-skeleton"></li>
+    <li class="nav-skeleton"></li>
+    <li class="nav-skeleton"></li>
+
+    <!-- REAL LINKS (hidden initially) -->
+    <li class="nav-real hidden">
+      <a href="index.html">Home</a>
+    </li>
+    <li class="nav-real hidden">
+      <a href="start.html">Diagnose</a>
+    </li>
+    <li class="nav-real hidden">
+      <a href="about.html">About</a>
+    </li>
+    <li class="nav-real hidden">
+      <a href="login.html" id="auth-link">Login / Signup</a>
+    </li>
+    <li class="nav-real hidden">
+      <a href="contact.html">Connect</a>
+    </li>
+  </ul>
 </nav>
 
 <section id="about" class="about">
@@ -63,7 +82,7 @@
     
 </section>
 <div class="about">
-  <img src="css/farm.jpg" alt="Healthy Crops" class="about-image">
+  <img src="assets/farm.jpg" alt="Healthy Crops" class="about-image">
 </div>
 <footer class="footer">
     <p><a href="contact.html">Connect with us</a></p>
@@ -74,44 +93,11 @@
     </div>
     <p>&copy; 2025 Foliage Care. All rights reserved.</p>
 </footer>
-
-<script src="js/script.js"></script>
-<script type="module">
-      // Import the functions you need from the SDKs
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-      import { 
-          getAuth, 
-          onAuthStateChanged,
-          signOut,
-          signInAnonymously,
-          signInWithCustomToken
-      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-  
-      // This is your REAL config from your Firebase project
-      const firebaseConfig = {
-  apiKey: "AIzaSyDISL2WDwxMB-M6Rz8IsrpEAvhbAT2fPqA",
-  authDomain: "foliage-care.firebaseapp.com",
-  projectId: "foliage-care",
-  storageBucket: "foliage-care.firebasestorage.app",
-  messagingSenderId: "233678057855",
-  appId: "1:233678057855:web:36cb051f256fff8e9a6a4a",
-  measurementId: "G-C5JQCWGTMV"
-};
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-  
-      // Make functions available to main.js
-      window.firebaseAuth = auth;
-      window.onAuthStateChanged = onAuthStateChanged;
-      window.signOut = signOut;
-      window.signInAnonymously = signInAnonymously;
-      window.signInWithCustomToken = signInWithCustomToken;
-      window.__initial_auth_token = undefined; // We are not using custom tokens here
-  
-      // Fire the "ready" event for main.js to listen for
-      window.dispatchEvent(new Event('firebase-ready'));
-  </script>
+    <!-- 
+    <script src="script.js"></script> -->
+<script type="module" src="js/firebase.js"></script>
+ <script src="js/navbar-auth.js"></script> 
 <script src="js/main.js"></script>
+<script src="js/cursor.js"></script>
 </body>
 </html>

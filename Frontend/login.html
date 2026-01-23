@@ -6,6 +6,7 @@
   <title>Foliage Care - Login/SignUp</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/cursor.css">
   <link rel="icon" href="assets/892926.png" type="image/png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
@@ -50,7 +51,7 @@
 
       <div class="divider-text">    </div>
       <!-- NEW: Google Sign-in Button -->
-      <button id="google-login-button">
+      <button type="button" id="google-login-button">
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
           Sign in with Google
       </button>
@@ -90,62 +91,9 @@
   </footer>
 
  
-  <script type="module">
-      // Import the functions you need from the SDKs
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-      import { 
-          getAuth, 
-          onAuthStateChanged,
-          createUserWithEmailAndPassword,
-          signInWithEmailAndPassword,
-          signInAnonymously,
-          signInWithCustomToken,
-          
-          // --- NEW IMPORTS ---
-          GoogleAuthProvider,
-          signInWithPopup
-          // --- END NEW IMPORTS ---
+<script type="module" src="js/firebase.js"></script>
 
-      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-      // ⬇️⬇️⬇️ PASTE YOUR REAL CONFIG OBJECT FROM FIREBASE HERE ⬇️⬇️⬇️
-     const firebaseConfig = {
-  apiKey: "AIzaSyDISL2WDwxMB-M6Rz8IsrpEAvhbAT2fPqA",
-  authDomain: "foliage-care.firebaseapp.com",
-  projectId: "foliage-care",
-  storageBucket: "foliage-care.firebasestorage.app",
-  messagingSenderId: "233678057855",
-  appId: "1:233678057855:web:36cb051f256fff8e9a6a4a",
-  measurementId: "G-C5JQCWGTMV"
-};
-      // ⬆️⬆️⬆️ END OF CONFIG ⬆️⬆️⬆️
-
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-
-      // Make 'auth' and functions available to your login.js script
-      window.firebaseAuth = auth;
-      window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
-      window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-      window.onAuthStateChanged = onAuthStateChanged;
-      window.signInAnonymously = signInAnonymously;
-      window.signInWithCustomToken = signInWithCustomToken;
-      window.__initial_auth_token = undefined;
-
-      // --- NEW FUNCTIONS FOR GOOGLE ---
-      window.GoogleAuthProvider = GoogleAuthProvider;
-      window.signInWithPopup = signInWithPopup;
-      // --- END NEW FUNCTIONS ---
-
-      console.log("Firebase Auth Initialized.");
-
-      // Fire the custom "ready" event
-      window.dispatchEvent(new Event('firebase-ready'));
-
-  </script>
-
-<!-- 2. Your login.js script (it's perfect, no changes needed to this line) -->
 <script src="js/login.js"></script>
+<script src="js/cursor.js"></script>
 </body>
 </html>

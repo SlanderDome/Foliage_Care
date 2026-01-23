@@ -7,9 +7,9 @@
   
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="profile.css">
-  
+   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/profile.css">
+  <link rel="stylesheet" href="css/cursor.css">
   
 </head>
 <body>
@@ -17,7 +17,7 @@
   <nav class="navbar">
     <div class="logo">🌱FOLIAGE CARE</div>
     <ul class="nav-links">
-      <li><a href="index.html">Home</a></li>
+      <li><a href="index.html">Home</a></li>  
       <li><a href="start.html">Diagnose</a></li>
       <li><a href="about.html">About</a></li>
       <li><a href="profile.html" class="active">Profile</a></li>
@@ -27,88 +27,108 @@
 
   <div class="dashboard-container">
     
-    <aside class="glass-card user-card">
-      <div class="profile-avatar-container">
-        <img id="profile-pic" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Profile">
-      </div>
-      
-      <div class="name-wrapper" id="name-display-area">
-    <h1 id="profile-name">Loading...</h1>
-    <button id="edit-name-btn" class="edit-icon" title="Edit Name">
-        <i class="fas fa-pen"></i>
-    </button>
-</div>
-
-<div id="edit-name-ui" class="edit-ui">
-    <input type="text" id="new-name-input" placeholder="Enter your name">
-   <div class="edit-actions">
-    <button id="save-name-btn" class="action-btn save-btn">
-        <i class="fas fa-check"></i> 
-    </button>
-    <button id="cancel-name-btn" class="action-btn cancel-btn">
-        <i class="fas fa-times"></i>
-    </button>
-</div>
-</div>
-      <div class="user-stats">
-        <div class="stat-item">
-          <h3>12</h3>
-          <span>Scans</span>
-        </div>
-        <div class="stat-item">
-          <h3>3</h3>
-          <span>Saved</span>
-        </div>
-      </div>
-
-      <button class="profile-btn btn-primary" onclick="location.href='start.html'">
-        <i class="fas fa-camera"></i> New Diagnosis
-      </button>
-      
-      <button class="profile-btn btn-danger" id="logoutBtn">
-        <i class="fas fa-sign-out-alt"></i> Log Out
-      </button>
-    </aside>
-
-    <main class="glass-card">
-      <div class="section-header">
-        <h2>Recent Activity</h2>
-        <a href="#" style="color: #2e7d32; text-decoration: none; font-size: 0.9rem;">View All</a>
-      </div>
-
-      <div class="scan-history-list">
+    <div class="sidebar-stack">
         
-        <div class="scan-item">
-          <div class="scan-icon"><i class="fas fa-leaf"></i></div>
-          <div class="scan-details">
-            <span class="scan-title">Tomato Leaf Scan</span>
-            <span class="scan-date">Today, 10:23 AM</span>
-          </div>
-          <span class="scan-status status-risk">Early Blight</span>
+        <aside class="glass-card user-card">
+            <div class="profile-avatar-container">
+                <img id="profile-pic" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Profile">
+            </div>
+            
+            <div class="name-wrapper" id="name-display-area">
+                <h1 id="profile-name">Loading...</h1>
+                <button id="edit-name-btn" class="edit-icon" title="Edit Name">
+                    <i class="fas fa-pen"></i>
+                </button>
+            </div>
+
+            <div id="edit-name-ui" class="edit-ui" style="display: none;">
+                <input type="text" id="new-name-input" placeholder="Enter name">
+                <div class="edit-actions">
+                    <button id="save-name-btn" class="action-btn save-btn"><i class="fas fa-check"></i></button>
+                    <button id="cancel-name-btn" class="action-btn cancel-btn"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+
+            <div class="user-stats">
+                <div class="stat-item">
+                    <h3>12</h3>
+                    <span>Scans</span>
+                </div>
+                <div class="stat-item">
+                    <h3>3</h3>
+                    <span>Saved</span>
+                </div>
+            </div>
+
+            <button class="profile-btn btn-primary" onclick="location.href='start.html'">
+                <i class="fas fa-camera"></i> New Diagnosis
+            </button>
+            
+            <button class="profile-btn btn-danger" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> Log Out
+            </button>
+        </aside>
+
+        <div class="tip-card-sidebar">
+            <div class="tip-icon"><i class="fas fa-lightbulb"></i></div>
+            <div class="tip-content">
+                <h3>Daily Insight</h3>
+                <p>"Inspect the undersides of leaves regularly. Many pests, like aphids, hide there to avoid sunlight."</p>
+            </div>
         </div>
 
-        <div class="scan-item">
-          <div class="scan-icon"><i class="fas fa-seedling"></i></div>
-          <div class="scan-details">
-            <span class="scan-title">Potato Crop Check</span>
-            <span class="scan-date">Yesterday, 4:15 PM</span>
-          </div>
-          <span class="scan-status status-healthy">Healthy</span>
+    </div> <main class="glass-card" style="background: transparent; box-shadow: none; border: none; padding: 0;">
+        
+        <div class="dashboard-header-row">
+            <div class="welcome-section">
+                <h2 style="font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--deep-green); margin-bottom: 5px;">
+                    Hello, <span id="welcome-name">Gardener</span>! 🌿
+                </h2>
+                <p style="color: #6b7280; font-size: 1.1rem;">Your crop health dashboard is ready.</p>
+            </div>
+
+            <div class="weather-widget-small">
+                <div class="weather-icon-small"><i class="fas fa-cloud-sun"></i></div>
+                <div class="weather-info-small">
+                    <h3>Pune, IN</h3>
+                    <div class="weather-temp-small">24°C</div>
+                </div>
+            </div>
+        </div>
+        <div class="analytics-card">
+        <div class="analytics-text">
+            <h3>Crop Health Overview</h3>
+            <p>Summary of your last 10 diagnoses.</p>
+            
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="dot healthy-dot"></span>
+                    <span>Healthy <b id="stat-healthy">0</b></span>
+                </div>
+                <div class="legend-item">
+                    <span class="dot risk-dot"></span>
+                    <span>Action Needed <b id="stat-risk">0</b></span>
+                </div>
+            </div>
         </div>
 
-        <div class="scan-item">
-          <div class="scan-icon"><i class="fas fa-carrot"></i></div>
-          <div class="scan-details">
-            <span class="scan-title">Pepper Bell Bacterial Spot</span>
-            <span class="scan-date">Jan 20, 2025</span>
-          </div>
-          <span class="scan-status status-risk">High Risk</span>
+        <div class="chart-wrapper">
+            <canvas id="cropChart"></canvas>
+        </div>
+    </div>
+        <div style="background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.6);">
+            <div class="section-header">
+                <h2 style="font-size: 1.8rem;">Recent Activity</h2>
+                <a href="#">View All</a>
+            </div>
+
+            <div class="scan-history-list">
+                <p style="text-align:center; color:#888;">Loading history...</p>
+            </div>
         </div>
 
-      </div>
     </main>
-
-  </div>
+</div>
   <footer class="footer">
     <p ><a href="contact.html" >Connect with us</a></p>
     <div class="social-icons">
@@ -119,8 +139,8 @@
     </div>
     <p>&copy; 2025 Foliage Care. All rights reserved.</p>
   </footer>
-<script type="module" src="firebase.js"></script>
-  <script type="module" src="profile.js"></script>
-
+<script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/profile.js"></script>
+<script src="jscursor.js"></script>
 </body>
 </html>

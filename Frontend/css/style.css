@@ -407,3 +407,42 @@ background: linear-gradient(to right, #afdc82, hsl(61, 62%, 83%), #afdc82);
         margin-top: 20px;
     }
 }
+/* Hide auth link until Firebase confirms state */
+/* Hide auth link until JS resolves auth state */
+/* Auth link hidden until resolved (NO layout shift) */
+.auth-hidden {
+  display: none !important;
+}
+
+.auth-visible {
+  display: inline-block !important;
+}
+
+/* Skeleton base */
+.nav-skeleton {
+  width: 70px;
+  height: 16px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.15) 25%,
+    rgba(255,255,255,0.3) 37%,
+    rgba(255,255,255,0.15) 63%
+  );
+  border-radius: 4px;
+  animation: shimmer 1.4s infinite;
+}
+
+/* Hide real nav until ready */
+.hidden {
+  display: none;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+/* Full height layout fix */
+
+/* Main content expands, footer stays down */

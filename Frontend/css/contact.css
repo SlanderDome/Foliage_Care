@@ -95,117 +95,187 @@ body {
 
 
 
+/* --- Feedback / About Section Wrapper --- */
 .abt {
-    text-align: center;
-    padding: 50px;
-background: linear-gradient(to right, #afdc82, hsl(61, 62%, 83%), #afdc82);
-    background-attachment: scroll;
-    background-color: #e3ffdc;
-}
-
-.abt-content{
-    text-align: center;
-}
-.abt h1 {
-    
-    font-family: 'Playfair Display', serif;
-    font-size: 2rem;
-    margin-bottom: 20px;
-    color: #000000;
-}
-
-.abt h2 {
-    font-weight:lighter;
-    font-family: 'Playfair Display', serif;
-    font-size: 2rem;
-    margin-bottom: 20px;
-    color: #2d5d2d;
-}
-.abt svg:hover {
-    transform: scale(1.1); 
-    transition: transform 0.3s ease;}
-.abt p {
-    font-style: italic;
-    font-family: Georgia, 'Times New Roman', Times, serif;
-    font-size: 1rem;
-    color: #364a31;
-    margin-bottom: 20px;
-}
-
-.abt button{
-    font-family: 'Playfair Display', serif;
-    padding: 10px 25px;
-    font-size: 1rem;
-    color: rgb(252, 235, 212);
-    background-color:#2d5d2d;
-    border: none;
-    text-decoration: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.abt button:hover {
-    font-family: 'Playfair Display', serif;
-    background-color: #031905;
-    
-}
-.abt a{
-    text-decoration: none;
-    color: #090909;
-}
-
-.abt .social {
-    margin: 0 10px;
-   color: rgb(188, 36, 36);
-    font-size: 2.9rem;
-    transition: all 0.3s ease;
     position: relative;
-    display: inline-block;
+    text-align: center;
+    padding: 80px 20px; /* Increased padding for breathing room */
+    background: linear-gradient(135deg, #afdc82 0%, #e3ffdc 50%, #afdc82 100%);
+    overflow: hidden; /* Keeps animations contained */
 }
 
+/* Decorative background leaf/circle (Optional - adds depth) */
+.abt::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    z-index: 0;
+}
+
+.abt-content {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* --- Typography --- */
+.abt h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #1a3c1a; /* Darker green for better contrast */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.abt h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4  rem;
+    margin-bottom: 10px;
+    color: #1a3c1a; /* Darker green for better contrast */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.abt p {
+    font-family: 'DM Sans', sans-serif; /* Switched to DM Sans for readability */
+    font-style: normal;
+    font-size: 1.1rem;
+    color: #3c5e3c;
+    margin-bottom: 30px;
+}
+
+/* --- The Robot/Plant Icon Animation --- */
+.abt svg {
+    margin-bottom: 20px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.abt svg:hover {
+    transform: scale(1.1) rotate(5deg); 
+}
+
+/* --- Glassmorphic Form Container --- */
 .contact-form {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 20px;
+    background: rgba(255, 255, 255, 0.6); /* Semi-transparent white */
+    backdrop-filter: blur(12px); /* The frosted glass effect */
+    -webkit-backdrop-filter: blur(12px);
+    padding: 40px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 15px 35px rgba(0, 50, 0, 0.1); /* Soft green shadow */
+    margin-top: 20px;
 }
 
+/* --- Input Fields --- */
 .contact-form input,
 .contact-form textarea {
-    flex: 1 1 calc(50% - 10px);
-    padding: 12px 15px;
+    flex: 1 1 calc(50% - 20px);
+    padding: 15px 20px;
+    font-family: 'DM Sans', sans-serif;
     font-size: 1rem;
-    border: 2px solid #c3e6cb;
-    border-radius: 8px;
-    background-color: #ffffff;
-    transition: border-color 0.3s ease;
+    color: #2d5d2d;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 2px solid transparent; /* Prepare for hover state */
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
 }
 
-.contact-form input:focus,
-.contact-form textarea:focus {
-    border-color: #6ebf8b;
-    outline: none;
-    box-shadow: 0 0 5px rgba(110, 191, 139, 0.5);
-}
-
+/* Make textarea full width */
 .contact-form textarea {
     flex: 1 1 100%;
-    resize: horizontal;
+    min-height: 120px;
+    resize: vertical;
 }
 
+/* Input Focus States */
+.contact-form input:focus,
+.contact-form textarea:focus {
+    outline: none;
+    background-color: #ffffff;
+    border-color: #4ca052;
+    box-shadow: 0 0 0 4px rgba(76, 160, 82, 0.2); /* Green glow ring */
+    transform: translateY(-2px);
+}
+
+.contact-form input::placeholder,
+.contact-form textarea::placeholder {
+    color: #8da38d;
+}
+
+/* --- Submit Button --- */
 .cta-button {
-    background-color: #4ca052;
+    font-family: 'Playfair Display', serif;
+    font-weight: bold;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #2d5d2d 0%, #0a823c 100%);
     border: none;
-    color: white;
-    padding: 12px 25px;
+    color: rgb(252, 235, 212);
+    padding: 15px 40px;
     font-size: 1.1rem;
     cursor: pointer;
-    border-radius: 8px;
-    transition: background-color 0.3s ease;
+    border-radius: 50px; /* Pill shape */
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(10, 130, 60, 0.3);
+    margin: 10px auto 0; /* Center the button */
+    display: block;
+    width: auto;
+    min-width: 200px;
 }
 
 .cta-button:hover {
-    background-color: #3c4e3d;
+    background: linear-gradient(90deg, #0a823c 0%, #2d5d2d 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(10, 130, 60, 0.4);
+}
+
+.cta-button:active {
+    transform: translateY(-1px);
+}
+
+/* --- Social Icons --- */
+.social-links-container {
+    margin-top: 40px;
+}
+
+.abt .social {
+    /* Change this line to make them black */
+    color: #000000; 
+    
+    /* Keep your existing styling below */
+    margin: 0 15px;
+    font-size: 2.2rem;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: inline-block;
+}
+
+/* Optional: If you want them to stay black on hover (or turn grey), update this too */
+.abt .social:hover {
+    color: #333333; /* Dark Grey on hover */
+    transform: translateY(-5px) scale(1.1);
+}
+
+/* --- Mobile Responsive Tweaks --- */
+@media (max-width: 768px) {
+    .contact-form {
+        padding: 25px;
+        gap: 15px;
+    }
+    
+    .contact-form input {
+        flex: 1 1 100%; /* Stack inputs on mobile */
+    }
+    
+    .cta-button {
+        width: 100%;
+    }
 }
 
 
@@ -218,10 +288,6 @@ background: linear-gradient(to right, #afdc82, hsl(61, 62%, 83%), #afdc82);
         transform: translateY(-10px);
     }
 }
-
-
-
-
 
 .footer {
     font-family: 'Playfair Display', serif;
@@ -255,8 +321,15 @@ background: linear-gradient(to right, #afdc82, hsl(61, 62%, 83%), #afdc82);
     }
 }
 
-
-
+/* 🌿 Social Icons */
+.footer .social-icons a {
+    margin: 0 10px;
+   color: rgb(252, 235, 212);
+    font-size: 1.8rem;
+    transition: all 0.3s ease;
+    position: relative;
+    display: inline-block;
+}
 
 .footer .social-icons a:hover {
     color: #ffc107;
@@ -328,3 +401,32 @@ background: linear-gradient(to right, #afdc82, hsl(61, 62%, 83%), #afdc82);
         margin-top: 20px;
     }
 }
+/* Prevent auth flicker */
+.auth-hidden {
+  visibility: hidden;
+}
+/* Skeleton base */
+.nav-skeleton {
+  width: 70px;
+  height: 16px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.15) 25%,
+    rgba(255,255,255,0.3) 37%,
+    rgba(255,255,255,0.15) 63%
+  );
+  border-radius: 4px;
+  animation: shimmer 1.4s infinite;
+}
+
+/* Hide real nav until ready */
+.hidden {
+  display: none;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
