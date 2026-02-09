@@ -16,8 +16,8 @@ async function saveScanToHistory(diseaseResult, confidenceVal) {
         const db = window.db; // From your firebase.js export
 
         // Format confidence as a readable string if it's a number
-        const confidenceStr = (typeof confidenceVal === 'number') 
-            ? (confidenceVal * 100).toFixed(2) + "%" 
+        const confidenceStr = (typeof confidenceVal === 'number')
+            ? (confidenceVal * 100).toFixed(2) + "%"
             : confidenceVal;
 
         // Add to "scans" collection
@@ -32,7 +32,7 @@ async function saveScanToHistory(diseaseResult, confidenceVal) {
         });
 
         console.log("✅ Scan saved to history!");
-        
+
     } catch (error) {
         console.error("❌ Error saving scan to history:", error);
     }
@@ -54,7 +54,7 @@ fileInput.addEventListener("change", () => {
 
 
 analyzeButton.addEventListener("click", async (event) => {
-    event.preventDefault();
+    event.preventDefault(); // Prevents page reload
 
     const file = fileInput.files[0];
     if (!file) {
@@ -65,6 +65,14 @@ analyzeButton.addEventListener("click", async (event) => {
     const formData = new FormData();
     formData.append("file", file);
 
+    // UI Elements from your HTML
+    const visualResultDiv = document.getElementById("visual-result");
+    const gradCamImg = document.getElementById("gradcam-image");
+    const infoBox = document.getElementById("disease-info");
+
+    // Reset UI before new scan
+    visualResultDiv.style.display = "none";
+    infoBox.value = "Analyzing...";
 
     try {
         console.log("🌿 Sending to Backend...");
@@ -78,33 +86,85 @@ analyzeButton.addEventListener("click", async (event) => {
             const result = await response.json();
             console.log("🌟 Result from Backend →", result);
 
-            // Calculate confidence
+            // 1. Calculate confidence
             const confidencePercent = (result.confidence * 100).toFixed(2);
 
-            // Display Text
+            // 2. Build Text Output
             let infoText = `🌿 Disease: ${result.class}\n💡 Confidence: ${confidencePercent}%`;
-
             if (result.prevention_measures) {
                 infoText += `\n\n🛡️ Tips:\n${result.prevention_measures}`;
+            }
+            infoBox.value = infoText;
 
-                if (result.class === "Potato___Early_blight") {
-                    infoText += "\n\n📚 For more information: https://ipm.ucanr.edu/agriculture/potato/early-blight/#gsc.tab=0";
-                } else if (result.class === "Potato___Late_blight") {
-                    infoText += "\n\n📚 For more information: https://www.britannica.com/science/late-blight";
-                }
+            // 3. SHOW GRAD-CAM (The new part!)
+            if (result.explanation_image) {
+                // Set the image source to the base64 string
+                gradCamImg.src = "data:image/jpeg;base64," + result.explanation_image;
+
+                // Unhide the container div
+                visualResultDiv.style.display = "block";
             }
 
-            diseaseInfo.value = infoText;
-
-            // --- 2. NEW: Save result to Firebase ---
-            // We pass the class name and the raw confidence number
+            // 4. Save to Firebase
             saveScanToHistory(result.class, result.confidence);
 
         } else {
-            diseaseInfo.value = "❌ Prediction failed. Check server logs.";
+            infoBox.value = "❌ Prediction failed. Check server logs.";
         }
     } catch (error) {
         console.error("❌ Error during fetch:", error);
-        diseaseInfo.value = "❌ Server Error. Check the backend logs.";
+        infoBox.value = "❌ Server Error. Is the Python backend running?";
+    }
+});
+
+// --- MODULE 2: SIMULATION LOGIC ---
+const simulateBtn = document.getElementById("simulate-btn");
+const simulationSection = document.getElementById("simulation-section");
+const futureImg = document.getElementById("future-image");
+const loader = document.getElementById("loader");
+
+// Variable to store the last detected disease
+let currentDisease = "";
+
+// 1. UPDATE YOUR EXISTING ANALYZE LISTENER
+// Inside the analyzeButton.addEventListener, where you get 'result.class':
+// Add this line:
+// currentDisease = result.class;
+// simulationSection.style.display = "block"; // Show the section after detection
+
+// 2. NEW LISTENER FOR SIMULATION
+simulateBtn.addEventListener("click", async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    // UI Updates
+    simulateBtn.disabled = true;
+    loader.style.display = "block";
+    futureImg.style.display = "none";
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("disease_name", currentDisease); // Pass the detected disease!
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/simulate", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.future_image) {
+            futureImg.src = "data:image/jpeg;base64," + data.future_image;
+            futureImg.style.display = "block";
+        } else {
+            alert("Simulation failed. API might be busy.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error connecting to generator.");
+    } finally {
+        simulateBtn.disabled = false;
+        loader.style.display = "none";
     }
 });

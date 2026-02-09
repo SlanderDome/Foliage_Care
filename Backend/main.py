@@ -1,15 +1,20 @@
+# ==========================================
+#  FOLIAGE CARE: API GATEWAY (Local)
+# ==========================================
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-import numpy as np
-from io import BytesIO
-from PIL import Image
 import tensorflow as tf
+import numpy as np
+from PIL import Image
+import json
+import io
+import base64
 import os
-import traceback
+from dotenv import load_dotenv
 
 app = FastAPI()
 
+# --- 1. CONFIGURATION ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,186 +24,223 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "foliagecare_model.keras")
+JSON_PATH = os.path.join(BASE_DIR, "class_indices.json")
 
-# --- PATHS TO YOUR WEIGHT FILES ---
-# Make sure these match exactly what is in your folder
-PLANT_WEIGHTS_FILE = os.path.join(BASE_DIR, "models", "check_weights.weights.h5")
-DISEASE_WEIGHTS_FILE = os.path.join(BASE_DIR, "models", "disease_weights.weights.h5")
-
-
-# --- 1. BUILDER: Plant Detector (Binary) ---
-# Matches: MobileNetV2 -> GlobalAvg -> Dense(64) -> Dropout(0.3) -> Dense(1, sigmoid)
-def build_plant_model():
-    base_model = tf.keras.applications.MobileNetV2(
-        weights=None, 
-        include_top=False, 
-        input_shape=(224, 224, 3)
-    )
-    base_model.trainable = False
-
-    # Using Functional API style (as per your training script)
-    inputs = tf.keras.Input(shape=(224, 224, 3))
-    x = base_model(inputs, training=False)
-    x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    x = tf.keras.layers.Dense(64, activation="relu")(x)
-    x = tf.keras.layers.Dropout(0.3)(x)
-    outputs = tf.keras.layers.Dense(1, activation="sigmoid")(x)
-
-    model = tf.keras.Model(inputs, outputs)
-    return model
-
-# --- 2. BUILDER: Disease Detector (Multi-class) ---
-# Matches: MobileNetV2 -> GlobalAvg -> Dense(128) -> Dropout(0.5) -> Dense(22, softmax)
-def build_disease_model():
-    base_model = tf.keras.applications.MobileNetV2(
-        weights=None,
-        include_top=False,
-        input_shape=(224, 224, 3)
-    )
-    base_model.trainable = False 
-
-    model = tf.keras.Sequential([
-        base_model,
-        tf.keras.layers.GlobalAveragePooling2D(),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(22, activation='softmax')
-    ])
-    
-    # Initialize inputs
-    model.build((None, 224, 224, 3))
-    return model
-
-
-# --- LOAD MODELS ---
+# --- 2. LOAD RESOURCES ---
+print("🏗️ Loading AI Brain...")
 try:
-    print("-----------------------------------")
-    # Load Plant Detector
-    if not os.path.exists(PLANT_WEIGHTS_FILE):
-        raise FileNotFoundError(f"Missing file: {PLANT_WEIGHTS_FILE}")
+    MODEL = tf.keras.models.load_model(MODEL_PATH)
     
-    print("🔨 Building Plant Detector...")
-    PLANT_MODEL = build_plant_model()
-    print(f"📥 Loading weights from {os.path.basename(PLANT_WEIGHTS_FILE)}...")
-    PLANT_MODEL.load_weights(PLANT_WEIGHTS_FILE)
-
-    # Load Disease Detector
-    if not os.path.exists(DISEASE_WEIGHTS_FILE):
-        raise FileNotFoundError(f"Missing file: {DISEASE_WEIGHTS_FILE}")
-
-    print("🔨 Building Disease Detector...")
-    DISEASE_MODEL = build_disease_model()
-    print(f"📥 Loading weights from {os.path.basename(DISEASE_WEIGHTS_FILE)}...")
-    DISEASE_MODEL.load_weights(DISEASE_WEIGHTS_FILE)
-
-    print("✅ All models loaded successfully.")
-    print("-----------------------------------")
+    # ⚠️ CRITICAL: Find the last Conv layer
+    # Based on your previous code, it's likely "out_relu" or "Conv_1"
+    # We try "out_relu" first (standard for MobileNetV2 in Keras)
+    try:
+        target_layer = MODEL.get_layer("out_relu")
+        LAST_CONV_LAYER = "out_relu"
+    except:
+        target_layer = MODEL.get_layer("Conv_1")
+        LAST_CONV_LAYER = "Conv_1"
+        
+    # Build Grad-Model
+    GRAD_MODEL = tf.keras.models.Model(
+        [MODEL.inputs], [target_layer.output, MODEL.output]
+    )
+    print(f"✅ Model & Grad-CAM hooked to layer: {LAST_CONV_LAYER}")
 
 except Exception as e:
-    print(f"❌ CRITICAL ERROR: Could not load models. {e}")
-    traceback.print_exc()
-    PLANT_MODEL = None
-    DISEASE_MODEL = None
+    print(f"❌ CRITICAL ERROR: Could not load model. {e}")
+    MODEL = None
+    GRAD_MODEL = None
 
+# Load Class Names
+try:
+    with open(JSON_PATH, "r") as f:
+        class_indices = json.load(f)
+        CLASS_NAMES = {v: k for k, v in class_indices.items()}
+    print(f"✅ Loaded {len(CLASS_NAMES)} disease classes.")
+except:
+    CLASS_NAMES = {}
 
-# --- CONFIGURATION ---
-CLASS_NAMES = [
-    "Apple___Apple_scab", "Apple___Black_rot", "Apple___Cedar_apple_rust", "Apple___healthy",
-    "Cherry_(including_sour)___Powdery_mildew", "Cherry_(including_sour)___healthy",
-    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot", "Corn_(maize)___Common_rust_",
-    "Corn_(maize)___Northern_Leaf_Blight", "Corn_(maize)___healthy",
-    "Grape___Black_rot", "Grape___Esca_(Black_Measles)", "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
-    "Grape___healthy", "Orange___Haunglongbing_(Citrus_greening)",
-    "Peach___Bacterial_spot", "Peach___healthy", "Pepper,_bell___Bacterial_spot",
-    "Pepper,_bell___healthy", "Potato___Early_blight", "Potato___Late_blight", "Potato___healthy"
-]
-
-PREVENTION_MEASURES = {
-    "Apple___Apple_scab": "Prune trees to improve air circulation. Apply fungicides.",
-    "Apple___Black_rot": "Remove infected fruit and branches. Apply fungicide.",
-    "Apple___Cedar_apple_rust": "Remove nearby junipers. Apply fungicide sprays.",
-    "Apple___healthy": "Maintain proper watering and nutrition.",
-    "Cherry_(including_sour)___Powdery_mildew": "Improve airflow and apply sulfur fungicides.",
-    "Cherry_(including_sour)___healthy": "Maintain watering and pruning.",
-    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": "Crop rotation and resistant hybrids.",
-    "Corn_(maize)___Common_rust_": "Plant resistant varieties.",
-    "Corn_(maize)___Northern_Leaf_Blight": "Use resistant hybrids.",
-    "Corn_(maize)___healthy": "Ensure proper nutrients and irrigation.",
-    "Grape___Black_rot": "Prune vines and apply fungicides.",
-    "Grape___Esca_(Black_Measles)": "Remove infected wood.",
-    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": "Remove fallen leaves and improve airflow.",
-    "Grape___healthy": "Maintain proper pruning and spraying.",
-    "Orange___Haunglongbing_(Citrus_greening)": "Remove infected trees immediately.",
-    "Peach___Bacterial_spot": "Use resistant varieties and copper sprays.",
-    "Peach___healthy": "Prune and maintain tree health.",
-    "Pepper,_bell___Bacterial_spot": "Use disease-free seed and crop rotation.",
-    "Pepper,_bell___healthy": "Provide consistent watering.",
-    "Potato___Early_blight": "Use clean seed potatoes and fungicides.",
-    "Potato___Late_blight": "Plant resistant varieties.",
-    "Potato___healthy": "Maintain soil moisture and nutrition.",
+# Prevention Tips
+PREVENTION_TIPS = {
+    "Potato___Early_blight": "Use copper-based fungicides. Remove infected leaves.",
+    "Potato___Late_blight": "Destroy infected plants immediately. Preventative fungicide.",
+    "Potato___healthy": "Healthy! Keep monitoring.",
+    "Unknown": "Consult an expert."
 }
 
+# --- 3. HELPER FUNCTIONS (From your Hugging Face Code) ---
 
-def read_file_as_image(data) -> np.ndarray:
-    image = Image.open(BytesIO(data)).convert("RGB")
+def apply_turbo_colormap(heatmap):
+    """
+    Your custom Turbo Colormap function (Pure Numpy)
+    Removes the need for OpenCV!
+    """
+    heatmap = np.clip(heatmap, 0, 1)
+    r = np.clip((heatmap - 0.5) * 2, 0, 1) * 255
+    g = np.clip(1 - np.abs(heatmap - 0.5) * 2, 0, 1) * 255
+    b = np.clip((0.5 - heatmap) * 2, 0, 1) * 255
+    return np.stack([r, g, b], axis=-1).astype(np.uint8)
+
+def process_image_for_model(image_bytes):
+    """Converts raw bytes to (1, 224, 224, 3) array normalized 0-1"""
+    image = Image.open(io.BytesIO(image_bytes))
+    if image.mode != "RGB":
+        image = image.convert("RGB")
     image = image.resize((224, 224))
-    image = np.array(image) / 255.0
-    return np.expand_dims(image, axis=0)
+    img_array = np.array(image) / 255.0
+    return np.expand_dims(img_array, axis=0)
+
+def generate_gradcam_heatmap(img_array, pred_index):
+    """Generates the Raw Heatmap Matrix"""
+    with tf.GradientTape() as tape:
+        # Cast to tensor to avoid "graph disconnected" errors
+        inputs = tf.cast(img_array, tf.float32)
+        tape.watch(inputs)
+        
+        # Get outputs
+        conv_outputs, predictions = GRAD_MODEL(inputs)
+        
+        # Handle Output Structure (List vs Tensor)
+        if isinstance(predictions, list): predictions = predictions[0]
+        if isinstance(conv_outputs, list): conv_outputs = conv_outputs[0]
+            
+        loss = predictions[:, pred_index]
+
+    # Calculate Gradients
+    grads = tape.gradient(loss, conv_outputs)
+    
+    # Pool Gradients
+    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+
+    # Weighted Sum
+    conv_outputs = conv_outputs[0]
+    heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
+    heatmap = tf.squeeze(heatmap)
+
+    # Normalize
+    heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-10)
+    return heatmap.numpy()
+
+def overlay_heatmap_turbo(original_bytes, heatmap):
+    """Overlays the Turbo heatmap on the original image"""
+    # 1. Load Original Image
+    original_img = Image.open(io.BytesIO(original_bytes)).convert("RGB")
+    
+    # 2. Colorize Heatmap (Using your custom function)
+    colored_heatmap_array = apply_turbo_colormap(heatmap)
+    colored_heatmap = Image.fromarray(colored_heatmap_array)
+    
+    # 3. Resize Heatmap to match Original Image
+    colored_heatmap = colored_heatmap.resize(original_img.size, resample=Image.BILINEAR)
+    
+    # 4. Blend (Alpha 0.4 means 40% heatmap, 60% original)
+    final_image = Image.blend(original_img, colored_heatmap, alpha=0.4)
+    
+    # 5. Convert to Base64
+    buffered = io.BytesIO()
+    final_image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
-@app.get("/ping")
-async def ping():
-    return {"message": "Hello, I am alive!"}
+# --- 4. API ENDPOINTS ---
 
+@app.get("/")
+def home():
+    return {"status": "FoliageCare API Online"}
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    if PLANT_MODEL is None or DISEASE_MODEL is None:
-        return {"error": "Models are not loaded. Check server logs."}
+    if MODEL is None:
+        return {"error": "Model not loaded"}
 
+    # 1. Read Image
+    image_bytes = await file.read()
+    processed_image = process_image_for_model(image_bytes)
+    
+    # 2. Prediction
+    predictions = MODEL.predict(processed_image)
+    predicted_index = np.argmax(predictions[0])
+    confidence = float(np.max(predictions[0]))
+    class_name = CLASS_NAMES.get(predicted_index, "Unknown")
+    
+    # 3. Grad-CAM (Using your logic)
+    heatmap_base64 = None
     try:
-        print(f"✅ Received file: {file.filename}")
+        heatmap = generate_gradcam_heatmap(processed_image, predicted_index)
+        heatmap_base64 = overlay_heatmap_turbo(image_bytes, heatmap)
+    except Exception as e:
+        print(f"Grad-CAM Error: {e}")
+    
+    # 4. Get Tips
+    tip = PREVENTION_TIPS.get(class_name, "Consult an expert.")
 
-        image_data = await file.read()
-        image = read_file_as_image(image_data)
+    return {
+        "class": class_name,
+        "confidence": confidence,
+        "prevention_measures": tip,
+        "explanation_image": heatmap_base64
+    }
 
-        # 1. Check if it is a plant
-        plant_pred_raw = PLANT_MODEL.predict(image)
-        plant_pred = float(np.squeeze(plant_pred_raw))
+# ... (Previous imports)
+from huggingface_hub import InferenceClient
 
-        # IMPORTANT: Threshold check
-        # Since your model is 'sigmoid', 0 = Not Plant, 1 = Plant (usually)
-        # BUT double check your class_mode='binary' labels.
-        # Typically class 0 is first alphabetically, 1 is second.
-        # If your folders were "0_not_plant" and "1_plant", then > 0.5 is Plant.
-        # If you find the logic is reversed, change this to: if plant_pred > 0.5:
-        if plant_pred < 0.5:
-            return {
-                "error": "This is not a valid plant image",
-                "confidence": round(1 - plant_pred, 2),
-                "prevention_measures": "Upload a clear plant leaf image.",
-            }
+# --- MODULE 2 CONFIGURATION ---
+load_dotenv()
+HF_TOKEN = os.getenv("HF_TOKEN") 
 
-        # 2. Detect Disease
-        predictions = DISEASE_MODEL.predict(image)
-        predicted_index = int(np.argmax(predictions[0]))
-        predicted_class = CLASS_NAMES[predicted_index]
-        confidence = float(np.max(predictions[0]))
+# We use a fast model optimized for Image-to-Image
+# "timbrooks/instruct-pix2pix" is GREAT for editing images (e.g., "make it rainy")
+REPO_ID = "timbrooks/instruct-pix2pix"
 
-        return {
-            "class": predicted_class,
-            "confidence": round(confidence, 2),
-            "prevention_measures": PREVENTION_MEASURES.get(
-                predicted_class,
-                "No prevention tips available."
-            ),
-        }
+client = InferenceClient(model=REPO_ID, token=HF_TOKEN)
+
+@app.post("/simulate")
+async def simulate_progression(file: UploadFile = File(...), disease_name: str = "disease"):
+    """
+    Module 2: Generative AI (Temporal Prediction)
+    Takes an image -> Returns a 'Worsened' version
+    """
+    # 1. Read Image
+    image_bytes = await file.read()
+    original_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    original_image = original_image.resize((512, 512)) # SD likes 512x512
+
+    # 2. Construct the Prompt
+    # We tell the AI exactly how to ruin the leaf
+    prompt = f"make the {disease_name} much worse, spread the lesions, rotting leaf, severe damage, high contrast, realistic texture"
+    
+    try:
+        # 3. Call Hugging Face (The Magic)
+        print(f"🔮 Generating future state for {disease_name}...")
+        generated_image = client.image_to_image(
+            image=original_image,
+            prompt=prompt,
+            strength=0.8,         # 0.8 = Change the image a lot!
+            guidance_scale=7.5,   # Stick to the prompt
+            negative_prompt="blur, cartoon, drawing, healthy, green, recovering"
+        )
+
+        # 4. Return as Base64
+        buffered = io.BytesIO()
+        generated_image.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        
+        return {"future_image": img_str}
 
     except Exception as e:
-        print(f"❌ Error during prediction: {e}")
-        traceback.print_exc()
-        return {"error": "Prediction failed."}
+        print(f"❌ Generation failed: {e}")
+        return {"error": str(e)}
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    import uvicorn
+    uvicorn.run(app, host="localhost", port=8000)
+
+
+
+
+
+
+

@@ -12,5 +12,5 @@ new_potato_disease_dataset/
 # IDEs
 .vscode/
 .idea/
-
+.env
 

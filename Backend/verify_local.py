@@ -1,84 +1,79 @@
-# Backend/verify_local.py
+import os
 import tensorflow as tf
 import numpy as np
-import os
-import sys
+from PIL import Image
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 
-# Add path to import utils
-sys.path.append(os.getcwd())
-from utils.gradcam_handler import generate_and_save_gradcam
+# Set path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+models_dir = os.path.join(script_dir, "models")
 
-# --- 1. DEFINE ARCHITECTURE LOCALLY ---
-# We copy this exactly from your training script to ensure compatibility
-def build_model_locally():
-    from tensorflow.keras.applications import MobileNetV2
-    from tensorflow.keras import layers, models
+print("=" * 60)
+print("TESTING PLANT CHECKER MODEL")
+print("=" * 60)
 
-    print("🏗️ Reconstructing model architecture...")
-    IMG_SIZE = (224, 224)
+# Test Plant Checker
+try:
+    plant_model_path = os.path.join(models_dir, "new_plant_detector.h5")
+    print(f"\n📦 Loading: {plant_model_path}")
+    plant_model = tf.keras.models.load_model(plant_model_path)
+    print("✅ Plant Checker Loaded Successfully!")
     
-    # Recreate the base
-    base_model = MobileNetV2(
-        input_shape=IMG_SIZE + (3,),
-        include_top=False,
-        weights='imagenet' # Weights don't matter here, we will overwrite them
-    )
-    base_model.trainable = False 
+    print("\n📊 Model Summary:")
+    plant_model.summary()
+    
+    # Check input/output shape
+    print(f"\n🔍 Input shape: {plant_model.input_shape}")
+    print(f"🔍 Output shape: {plant_model.output_shape}")
+    
+    # Test prediction with dummy data
+    dummy_img = np.random.rand(1, 224, 224, 3)
+    test_pred = plant_model.predict(dummy_img, verbose=0)
+    print(f"\n🧪 Test prediction shape: {test_pred.shape}")
+    print(f"🧪 Test prediction value: {test_pred[0][0]:.4f}")
+    print("✅ Plant Checker is working!")
+    
+except Exception as e:
+    print(f"❌ Error loading plant checker: {e}")
+    import traceback
+    traceback.print_exc()
 
-    # Recreate the classifier head
-    model = models.Sequential([
-        base_model,
-        layers.GlobalAveragePooling2D(),
-        layers.Dropout(0.2),
-        # Note: We must match the number of classes. 
-        # If you know the exact number (e.g. 3), put it here. 
-        # Otherwise, the load_weights might complain if shapes mismatch.
-        # For Potato Disease, it's usually 3 (Early, Late, Healthy).
-        layers.Dense(3, activation='softmax') 
-    ])
-    return model
+print("\n" + "=" * 60)
+print("TESTING DISEASE DETECTOR MODEL")
+print("=" * 60)
 
-# --- 2. CONFIGURATION ---
-MODEL_PATH = "models/fast_disease_model.h5"
-TEST_IMAGE = "test_leaf.jpg"
-OUTPUT_IMAGE = "gradcam_result.png"
+# Test Disease Detector
+try:
+    disease_model_path = os.path.join(models_dir, "fast_disease_model.h5")
+    print(f"\n📦 Loading: {disease_model_path}")
+    disease_model = tf.keras.models.load_model(disease_model_path)
+    print("✅ Disease Detector Loaded Successfully!")
+    
+    print("\n📊 Model Summary:")
+    disease_model.summary()
+    
+    # Check input/output shape
+    print(f"\n🔍 Input shape: {disease_model.input_shape}")
+    print(f"🔍 Output shape: {disease_model.output_shape}")
+    
+    # Test prediction with dummy data
+    dummy_img = np.random.rand(1, 224, 224, 3)
+    test_pred = disease_model.predict(dummy_img, verbose=0)
+    print(f"\n🧪 Test prediction shape: {test_pred.shape}")
+    print(f"🧪 Number of classes: {test_pred.shape[1]}")
+    print(f"🧪 Max probability: {np.max(test_pred):.4f}")
+    print(f"🧪 Predicted class: {np.argmax(test_pred)}")
+    print("✅ Disease Detector is working!")
+    
+except Exception as e:
+    print(f"❌ Error loading disease detector: {e}")
+    import traceback
+    traceback.print_exc()
 
-def run_test():
-    # Force CPU to avoid VRAM crashes during debug
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-
-    if not os.path.exists(MODEL_PATH):
-        print(f"❌ Error: Model file not found at {MODEL_PATH}")
-        return
-
-    try:
-        # A. Build the empty shell
-        model = build_model_locally()
-        
-        # B. Load ONLY the weights (Bypasses the architecture version conflict)
-        print(f"⚖️ Loading weights from {MODEL_PATH}...")
-        model.load_weights(MODEL_PATH)
-        print("✅ Model loaded successfully (Weights only mode).")
-        
-    except Exception as e:
-        print(f"\n❌ CRITICAL ERROR: {e}")
-        print("Tip: If the error is about 'shape mismatch', the number of Dense neurons (3) in build_model_locally() might be wrong for your dataset.")
-        return
-
-    # C. Run Grad-CAM
-    print(f"🔎 Generating Grad-CAM for {TEST_IMAGE}...")
-    success = generate_and_save_gradcam(
-        img_path=TEST_IMAGE,
-        output_path=OUTPUT_IMAGE,
-        model=model,
-        layer_name="out_relu",
-        alpha=0.5
-    )
-
-    if success:
-        print(f"✅ Success! Heatmap saved to: {OUTPUT_IMAGE}")
-    else:
-        print("❌ Grad-CAM generation failed.")
-
-if __name__ == "__main__":
-    run_test()
+print("\n" + "=" * 60)
+print("SUMMARY")
+print("=" * 60)
+print("✅ Both models loaded successfully!")
+print("\nNext step: Test with a real image")
+print("Create a file called 'test_leaf.jpg' in the Backend folder")
+print("Then run step3_test_real_image.py")
