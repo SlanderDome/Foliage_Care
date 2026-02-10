@@ -95,7 +95,8 @@ analyzeButton.addEventListener("click", async (event) => {
                 infoText += `\n\n🛡️ Tips:\n${result.prevention_measures}`;
             }
             infoBox.value = infoText;
-
+            detectedDiseaseName = result.class;       // 1. Save the name for Module 2
+            simSection.style.display = "block";
             // 3. SHOW GRAD-CAM (The new part!)
             if (result.explanation_image) {
                 // Set the image source to the base64 string
@@ -119,34 +120,41 @@ analyzeButton.addEventListener("click", async (event) => {
 
 // --- MODULE 2: SIMULATION LOGIC ---
 const simulateBtn = document.getElementById("simulate-btn");
-const simulationSection = document.getElementById("simulation-section");
+const simSection = document.getElementById("simulation-section");
 const futureImg = document.getElementById("future-image");
-const loader = document.getElementById("loader");
+const simLoader = document.getElementById("sim-loader");
+const futureContainer = document.getElementById("future-container");
 
-// Variable to store the last detected disease
-let currentDisease = "";
+// GLOBAL VARIABLE to store the disease name detected in Step 1
+let detectedDiseaseName = "";
 
-// 1. UPDATE YOUR EXISTING ANALYZE LISTENER
-// Inside the analyzeButton.addEventListener, where you get 'result.class':
-// Add this line:
-// currentDisease = result.class;
-// simulationSection.style.display = "block"; // Show the section after detection
+// 1. LISTEN FOR THE "SIMULATE" CLICK
+// ... (Previous code)
 
-// 2. NEW LISTENER FOR SIMULATION
 simulateBtn.addEventListener("click", async () => {
+    // Safety check
+    if (!detectedDiseaseName) {
+        alert("Please analyze an image first!");
+        return;
+    }
+
     const file = fileInput.files[0];
     if (!file) return;
 
-    // UI Updates
+    // UI Updates (Show Loader)
     simulateBtn.disabled = true;
-    loader.style.display = "block";
-    futureImg.style.display = "none";
+    simulateBtn.innerText = "Generating...";
+    simLoader.style.display = "block";
+    futureContainer.style.display = "none";
 
+    // Prepare Data
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("disease_name", currentDisease); // Pass the detected disease!
+    formData.append("disease_name", detectedDiseaseName);
 
     try {
+        console.log(`🔮 Requesting simulation for: ${detectedDiseaseName}...`);
+
         const response = await fetch("http://127.0.0.1:8000/simulate", {
             method: "POST",
             body: formData
@@ -155,16 +163,22 @@ simulateBtn.addEventListener("click", async () => {
         const data = await response.json();
 
         if (data.future_image) {
+            // Success! Show image
             futureImg.src = "data:image/jpeg;base64," + data.future_image;
-            futureImg.style.display = "block";
+            futureContainer.style.display = "block";
         } else {
-            alert("Simulation failed. API might be busy.");
+            // FAILURE: Show the actual error from Python
+            console.error("Backend Error:", data);
+            alert("Simulation failed: " + (data.error || "Unknown error"));
         }
+
     } catch (e) {
-        console.error(e);
-        alert("Error connecting to generator.");
+        console.error("Network Error:", e);
+        alert("Error connecting to the server. Is main.py running?");
     } finally {
+        // Reset UI
         simulateBtn.disabled = false;
-        loader.style.display = "none";
+        simulateBtn.innerHTML = '<i class="fas fa-biohazard"></i> Simulate Progression';
+        simLoader.style.display = "none";
     }
-});
+}); 
