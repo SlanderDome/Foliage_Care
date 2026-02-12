@@ -160,7 +160,7 @@ analyzeButton.addEventListener("click", async (event) => {
     try {
         console.log("🌿 Sending to Backend...");
 
-        const response = await fetch("http://127.0.0.1:8000/predict", {
+        const response = await fetch("https://foliage-care-backend.onrender.com/predict", {
             method: "POST",
             body: formData
         });
@@ -259,11 +259,10 @@ simulateBtn.addEventListener("click", async () => {
     try {
         console.log(`🔮 Requesting simulation for: ${detectedDiseaseName}...`);
 
-        const response = await fetch("http://127.0.0.1:8000/simulate", {
+        const response = await fetch("https://foliage-care-backend.onrender.com/simulate", {
             method: "POST",
             body: formData
         });
-
         const data = await response.json();
 
         if (data.future_image) {
