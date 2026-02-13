@@ -85,7 +85,7 @@ async function fetchWeather(lat, lng) {
 
 // 
 // CHART LOGIC
-// ---------------------------------------
+// ----------------------------------
 function initHealthChart() {
   const ctx = document.getElementById('healthChart');
   if (!ctx) return;
