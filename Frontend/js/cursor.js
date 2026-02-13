@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.addEventListener("click", (e) => {
         // Spawn 3 flowers per click for a "burst" effect
-        for(let i = 0; i < 3; i++) {
+        for (let i = 0; i < 3; i++) {
             createFlower(e.clientX, e.clientY);
         }
     });
@@ -17,17 +17,17 @@ document.addEventListener("DOMContentLoaded", () => {
     function createFlower(x, y) {
         const flower = document.createElement("div");
         flower.classList.add("click-flower");
-        
+
         // Pick a random flower emoji
         flower.innerText = flowers[Math.floor(Math.random() * flowers.length)];
 
         // Spread them out slightly around the click center
-        const spreadX = (Math.random() - 0.5) * 50; 
+        const spreadX = (Math.random() - 0.5) * 50;
         const spreadY = (Math.random() - 0.5) * 50;
 
         flower.style.left = `${x + spreadX}px`;
         flower.style.top = `${y + spreadY}px`;
-        
+
         // Randomize size slightly for variety
         const scale = 0.8 + Math.random() * 0.6;
         flower.style.fontSize = `${scale}rem`;

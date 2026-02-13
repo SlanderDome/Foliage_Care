@@ -11,14 +11,16 @@ waitForFirebase(() => {
   const realItems = document.querySelectorAll(".nav-real");
 
   window.onAuthStateChanged(auth, (user) => {
-    if (user) {
-      authLink.textContent = "Profile";
-      authLink.href = "profile.html";
-    } else {
-      authLink.textContent = "Login / Signup";
-      authLink.href = "login.html";
+    if (authLink) {
+      if (user) {
+        authLink.textContent = "Profile";
+        authLink.href = "profile.html";
+      } else {
+        authLink.textContent = "Login / Signup";
+        authLink.href = "login.html";
+      }
     }
-document.querySelector(".nav-links").style.visibility = "visible";
+    document.querySelector(".nav-links").style.visibility = "visible";
 
     // Remove skeletons
     skeletons.forEach(s => s.remove());

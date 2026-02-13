@@ -1,99 +1,321 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Foliage Care - Login/SignUp</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/login.css">
+  <title>Foliage Care — Login / Signup</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Devanagari:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="css/start.css">
   <link rel="stylesheet" href="css/cursor.css">
   <link rel="icon" href="assets/892926.png" type="image/png">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <!-- Added style for the new button and divider -->
   <style>
-    .google-button {
-      background-color: #4285F4 !important;
-      color: white !important;
+    /* Specific styles for the Login Page layout */
+    .auth-section {
+      min-height: 85vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 20px 40px;
+    }
+
+    .auth-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--r-xl);
+      padding: 40px;
       width: 100%;
-      margin-top: 15px;
+      max-width: 420px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      animation: fadeUp 0.8s var(--ease-out) both;
     }
-    .google-button:hover {
-      background-color: #357ae8 !important;
+
+    /* Gradient Border Effect */
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--r-xl);
+      padding: 1px;
+      background: linear-gradient(135deg, var(--accent-dim), transparent 60%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
     }
-    .divider-text {
+
+    .auth-header {
       text-align: center;
-      margin: 15px 0 5px 0;
-      color: #777;
+      margin-bottom: 30px;
+    }
+
+    .auth-header h1 {
+      font-family: var(--ff-display);
+      font-size: 2rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .auth-header p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* Google Button */
+    .google-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-card);
+      color: var(--text-primary);
+      padding: 12px;
+      border-radius: var(--r-md);
+      font-family: var(--ff-body);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
+    }
+
+    .google-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--text-muted);
+    }
+
+    .google-btn img {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Divider */
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin: 20px 0;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border-card);
+    }
+
+    .auth-divider span {
+      padding: 0 10px;
+    }
+
+    /* Tabs */
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 24px;
+      background: var(--bg-input);
+      padding: 4px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border-card);
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      padding: 10px;
+      border-radius: var(--r-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: var(--ff-body);
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--bg-card);
+      color: var(--accent);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Form Inputs */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-card);
+      border-radius: var(--r-md);
+      color: var(--text-primary);
+      font-family: var(--ff-body);
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    /* Form Visibility Logic */
+    .auth-form {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .auth-form.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .full-width {
+      width: 100%;
+      justify-content: center;
     }
   </style>
 </head>
+
 <body>
+  <canvas id="leaf-canvas"></canvas>
 
-<nav class="navbar">
+  <div class="ambient-bg"></div>
+
+  <nav class="navbar">
     <div class="logo">
-        🌱FOLIAGE CARE
+      <span class="logo-icon">🌱</span>FOLIAGE CARE
+      <span class="deva-inline">फोलिएज केयर</span>
     </div>
+
     <ul class="nav-links">
-        <li><a href="index.html" id="home-link">Home</a></li>
-        <li><a href="start.html" id="diagnose-link">Diagnose</a></li>
-        <li><a href="about.html" id="about-link">About</a></li>
-        <li><a href="#login" id="login-link" class="active">Login/Signup</a></li>
-        <li><a href="contact.html" id="connect-link">Connect</a></li>
+      <!-- Skeleton placeholder -->
+      <li class="nav-skeleton"></li>
+      <li class="nav-skeleton"></li>
+      <li class="nav-skeleton"></li>
+
+      <!-- REAL LINKS (hidden initially) -->
+      <li class="nav-real hidden"><a href="index.html">Home <span class="deva-inline">मुख्य पृष्ठ</span></a></li>
+      <li class="nav-real hidden"><a href="start.html">Diagnose <span class="deva-inline">जांच करें</span></a></li>
+      <li class="nav-real hidden"><a href="about.html">About <span class="deva-inline">हमारे बारे में</span></a></li>
+      <li class="nav-real hidden"><a href="login.html" id="auth-link" class="active">Login / Signup <span
+            class="deva-inline">प्रवेश</span></a></li>
+      <li class="nav-real hidden"><a href="contact.html">Connect <span class="deva-inline">संपर्क</span></a></li>
     </ul>
-</nav>
+  </nav>
 
-<div class="container">
-    <div class="form-container">
-      <h1 class="title">Welcome to Foliage Care</h1>
-      <p class="subtitle">Explore, diagnose, and improve your crop health!</p>
-      
-
-      <div class="divider-text">    </div>
-      <!-- NEW: Google Sign-in Button -->
-      <button type="button" id="google-login-button">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
-          Sign in with Google
-      </button>
-      <p class="divider-text">or</p>
-      <!-- End of new button -->
-
-      <div class="tabs">
-        <button class="tab-button active" data-target="#login">Login</button>
-        <button class="tab-button" data-target="#signup">Signup</button>
+  <section class="auth-section">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1>Welcome Back</h1>
+        <span class="deva-card" style="margin-bottom: 8px;">स्वागत है</span>
+        <p>Access your diagnosis history and saved reports.</p>
       </div>
 
-      
-      <form id="login" class="form active">
-        <input type="email" placeholder="Email" required>
-        <input type="password" placeholder="Password" required>
-        <button type="submit" class="cta-button">Login</button>
+      <button type="button" id="google-login-button" class="google-btn">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        <span>Continue with Google</span>
+      </button>
+
+      <div class="auth-divider">
+        <span>or with email</span>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+        <button class="tab-btn" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <form id="login-form" class="auth-form active">
+        <div class="form-group">
+          <input type="email" class="form-input" placeholder="Email Address" required>
+        </div>
+        <div class="form-group">
+          <input type="password" class="form-input" placeholder="Password" required>
+        </div>
+        <button type="submit" class="cta-button cta-primary full-width">
+          Login <i class="fas fa-arrow-right"></i>
+        </button>
       </form>
 
-      
-      <form id="signup" class="form">
-        <input type="text" placeholder="Full Name" required>
-        <input type="email" placeholder="Email" required>
-        <input type="password" placeholder="Password" required>
-        <button type="submit" class="cta-button">Signup</button>
+      <form id="signup-form" class="auth-form">
+        <div class="form-group">
+          <input type="text" class="form-input" placeholder="Full Name" required>
+        </div>
+        <div class="form-group">
+          <input type="email" class="form-input" placeholder="Email Address" required>
+        </div>
+        <div class="form-group">
+          <input type="password" class="form-input" placeholder="Create Password" required>
+        </div>
+        <button type="submit" class="cta-button cta-primary full-width">
+          Create Account <i class="fas fa-user-plus"></i>
+        </button>
       </form>
+
     </div>
-  </div>
-   <footer class="footer">
-    <p ><a href="contact.html" >Connect with us</a></p>
+  </section>
+
+  <footer class="footer">
+    <p><a href="contact.html">Connect with us</a></p>
     <div class="social-icons">
-      <a href="#"><i class="fab fa-facebook"></i></a>
-      <a href="#"><i class="fab fa-instagram"></i></a>
-      <a href="#"><i class="fab fa-youtube"></i></a>
-      
+      <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+      <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+      <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
     </div>
     <p>&copy; 2025 Foliage Care. All rights reserved.</p>
   </footer>
 
- 
-<script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/leaf-particles.js"></script>
+  <script type="module" src="js/firebase.js"></script>
+  <script src="js/navbar-auth.js"></script>
+  <script src="js/cursor.js"></script>
+  <script src="js/login.js"></script>
+  <script>
+    function switchTab(tab) {
+      // Buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
 
-<script src="js/login.js"></script>
-<script src="js/cursor.js"></script>
+      // Forms
+      document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+      document.getElementById(tab + '-form').classList.add('active');
+
+      // Header Text Update (Optional polish)
+      const header = document.querySelector('.auth-header h1');
+      if (tab === 'signup') {
+        header.textContent = "Create Account";
+      } else {
+        header.textContent = "Welcome Back";
+      }
+    }
+  </script>
+
 </body>
+
 </html>

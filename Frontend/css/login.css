@@ -1,294 +1,306 @@
-/* General Reset */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* ═══════════════════════════════════════════════════
+   FOLIAGE CARE — Login / Signup Styles
+   Theme: Deep Canopy (Extension of start.css)
+   ═══════════════════════════════════════════════════ */
 
-html {
-    scroll-behavior: smooth;
-}
+/* NOTE: This file relies on variables defined in start.css 
+   (:root, --bg-card, --accent, etc.)
+*/
 
-body {
-    font-family: 'Roboto', sans-serif;
-    background: linear-gradient(90deg, #0a823c 0%, #100400 100%);
-    color: #333;
-    line-height: 1.6;
-}
-
-/* --- Navbar (No changes) --- */
-.navbar {
+/* ═══════════════════════════════════════════════════
+   § 1  LAYOUT & CONTAINER
+   ═══════════════════════════════════════════════════ */
+.auth-section {
+    min-height: calc(100vh - 64px);
+    /* Full height minus navbar */
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 18px 40px;
-    background: linear-gradient(90deg, #0a823c 0%, #100400 100%);
-    color: #ffffff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-.logo {
-    font-family: 'Playfair Display', serif; 
-    font-weight: 100;
-    font-size: 2.5rem;
-    letter-spacing: 1px;
-    color: rgb(252, 235, 212);
-}
-.nav-links {
-    display: flex;
-    list-style: none;
-}
-.nav-links li {
-    margin: 0 18px;
-}
-.nav-links a {
-    text-decoration: none;
-    color: rgb(255, 255, 255);
-    font-family: 'Playfair Display', serif; 
-    font-size: 1.05rem;
-    font-weight: 500;
+    justify-content: center;
+    padding: 60px 20px;
     position: relative;
-    padding: 5px 0;
-    transition: all 0.3s ease;
+    z-index: 1;
 }
-.nav-links a::after {
+
+.auth-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--r-xl);
+    padding: 48px 40px;
+    position: relative;
+    overflow: hidden;
+
+    /* Deep shadow for floating effect */
+    box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.6),
+        0 1px 0 rgba(255, 255, 255, 0.05) inset;
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    /* Entrance Animation */
+    animation: fadeUp 0.8s var(--ease-out) both;
+}
+
+/* Premium Gradient Border (Matches start.css styling) */
+.auth-card::before {
     content: '';
     position: absolute;
-    width: 0;
-    height: 2px;
-    bottom: 0;
-    left: 0;
-    background-color: #ffc107;
-    transition: width 0.3s ease;
-}
-.nav-links a:hover {
-    color: #ffc107;
-}
-.nav-links a:hover::after,
-.nav-links a.active::after {
-    width: 100%;
-}
-/* --- End Navbar --- */
+    inset: 0;
+    border-radius: var(--r-xl);
+    padding: 1px;
+    background: linear-gradient(135deg,
+            rgba(163, 230, 53, 0.2),
+            rgba(251, 191, 36, 0.15),
+            transparent 60%);
 
-
-/* --- Main Login Container --- */
-.container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 85vh; 
-    padding: 40px 20px;
+    /* Masking magic for thin border */
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
 }
 
-/* --- The Login/Signup Card --- */
-.form-container {
-    background-color: rgb(252, 235, 212); 
-    color: #100400;
-    padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    max-width: 420px;
-    width: 100%;
-    text-align: center;
-    border-top: 4px solid #ffc107; /* Gold accent */
-}
-
-.title {
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: #0a823c; 
-    margin-bottom: 10px;
-    font-family: 'Playfair Display', serif;
-}
-
-.subtitle {
-    margin-bottom: 30px;
-    color: #333;
-    font-size: 1.1rem;
-    font-family: 'Roboto', sans-serif;
-}
-
-/* --- Tab Buttons --- */
-.tabs {
-    display: flex;
-    border-bottom: 2px solid rgba(10, 130, 60, 0.2);
-    margin-bottom: 30px;
-}
-
-.tab-button {
-    flex: 1;
-    padding: 12px;
-    background-color: transparent;
-    color: #666;
-    border: none;
-    cursor: pointer;
-    font-size: 1.1rem;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
-    transition: all 0.3s ease;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -2px;
-}
-
-.tab-button:hover {
-    color: #0a823c;
-}
-
-.tab-button.active {
-    color: #0a823c;
-    border-bottom-color: #0a823c;
-}
-
-/* --- Input Fields --- */
-input[type="email"],
-input[type="password"],
-input[type="text"] {
-    width: 100%;
-    padding: 14px;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-    font-family: 'Roboto', sans-serif; 
-    background-color: #fff;
-    transition: all 0.3s ease;
-}
-
-input[type="email"]:focus,
-input[type="password"]:focus,
-input[type="text"]:focus {
-    outline: none;
-    border-color: #0a823c;
-    box-shadow: 0 0 0 3px rgba(10, 130, 60, 0.2);
-}
-
-/* --- Main CTA Button (Login/Signup) --- */
-.cta-button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 14px 25px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
-    transition: all 0.3s ease;
-    width: 100%;
-}
-
-.cta-button:hover {
-    background-color: #3e8e41;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    transform: translateY(-2px);
-}
-
-/* --- Google Sign-In Button --- */
-#google-login-button {
-    display: flex; /* Use flex to align icon and text */
-    align-items: center;
-    justify-content: center; /* Center horizontally */
-    width: 100%;
-    padding: 12px 25px;
-    background-color: #ffffff;
-    color: #333;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
-    transition: all 0.3s ease;
-}
-
-#google-login-button img {
-    width: 20px;
-    height: 20px;
-    margin-right: 12px; /* Space between logo and text */
-    /* Vertically center the image within the button */
-    vertical-align: middle; 
-}
-
-#google-signin-btn:hover {
-    background-color: #f7f7f7;
-    border-color: #aaa;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-/* --- Divider (for "or") --- */
-.divider-text {
-    font-size: 1rem;
-    color: #777;
-    margin: 25px 0 20px;
-    text-transform: uppercase;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 500;
-}
-
-/* --- Form Toggle --- */
-.form {
-    display: none;
-    animation: fadeIn 0.5s ease;
-}
-
-.form.active {
-    display: block;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- Footer (No changes) --- */
-.footer {
-    font-family: 'Playfair Display', serif;
-    font-style: italic;
-    text-align: center;
-    padding: 20px;
-    background: linear-gradient(90deg, #000000 0%, #0c9846 100%);
-    color: rgb(252, 235, 212);
-    position: relative;
-    overflow: hidden;
-}
-.footer::before {
-    content: "";
+/* Top Glow Line */
+.auth-card::after {
+    content: '';
     position: absolute;
     top: 0;
-    left: -100%;
-    width: 300%;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    animation: slide 5s linear infinite;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(163, 230, 53, 0.3), transparent);
+    pointer-events: none;
 }
-@keyframes slide {
-    0% { left: -100%; }
-    100% { left: 100%; }
+
+/* ═══════════════════════════════════════════════════
+   § 2  HEADER & TYPOGRAPHY
+   ═══════════════════════════════════════════════════ */
+.auth-header {
+    text-align: center;
+    margin-bottom: 32px;
 }
-.footer .social-icons a {
-    margin: 0 10px;
-    color: rgb(252, 235, 212);
-    font-size: 1.8rem;
-    transition: all 0.3s ease;
+
+.auth-header h1 {
+    font-family: var(--ff-display);
+    font-size: 2.2rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
 }
-.footer .social-icons a:hover {
-    color: #ffc107;
+
+.auth-header p {
+    font-family: var(--ff-body);
+    font-size: 0.9rem;
+    color: var(--text-muted);
 }
-.footer p a {
-    color: rgb(252, 235, 212);
-    text-decoration: none;
-    font-size: 1.1rem;
-    position: relative;
-    overflow: hidden;
+
+/* ═══════════════════════════════════════════════════
+   § 3  GOOGLE BUTTON
+   ═══════════════════════════════════════════════════ */
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-card);
+    border-radius: var(--r-md);
+
+    padding: 14px;
+    margin-bottom: 24px;
+
+    color: var(--text-primary);
+    font-family: var(--ff-body);
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+
+    transition: all var(--t-fast) var(--ease-out);
 }
-.footer p a:hover {
-    color: #ffc107;
+
+.google-btn img {
+    width: 20px;
+    height: 20px;
 }
-.footer p {
-    margin-top: 10px;
-    font-size: 1rem;
-    color: rgb(252, 235, 212);
-    letter-spacing: 0.5px;
+
+.google-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════
+   § 4  DIVIDER
+   ═══════════════════════════════════════════════════ */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--ff-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 24px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--border-card);
+}
+
+.auth-divider span {
+    padding: 0 12px;
+    opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════
+   § 5  TABS (Login/Signup Switcher)
+   ═══════════════════════════════════════════════════ */
+.auth-tabs {
+    display: flex;
+    background: var(--bg-input);
+    padding: 4px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-card);
+    margin-bottom: 28px;
+}
+
+.tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 10px;
+    border-radius: var(--r-sm);
+
+    color: var(--text-muted);
+    font-family: var(--ff-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    transition: all var(--t-fast) ease;
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+}
+
+/* Active State - Glassy Light Effect */
+.tab-btn.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════
+   § 6  FORMS & INPUTS
+   ═══════════════════════════════════════════════════ */
+.auth-form {
+    display: none;
+    /* Hidden by default */
+}
+
+.auth-form.active {
+    display: block;
+    animation: slideIn 0.4s var(--ease-spring);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 14px 16px;
+
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: var(--r-md);
+
+    color: var(--text-primary);
+    font-family: var(--ff-body);
+    font-size: 0.95rem;
+
+    transition: all var(--t-fast);
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    /* Lime green */
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--bg-card-hover);
+}
+
+/* Full width CTA override */
+.cta-button.full-width {
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+    font-size: 0.95rem;
+    padding: 15px;
+}
+
+/* Icon inside button */
+.cta-button i {
+    font-size: 0.8rem;
+    margin-left: 6px;
+    transition: transform var(--t-fast);
+}
+
+.cta-button:hover i {
+    transform: translateX(4px);
+}
+
+/* ═══════════════════════════════════════════════════
+   § 7  RESPONSIVE
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 32px 24px;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .auth-card::before {
+        display: none;
+        /* Remove border on very small screens for cleaner look */
+    }
+
+    .auth-header h1 {
+        font-size: 1.8rem;
+    }
 }

@@ -160,7 +160,7 @@ analyzeButton.addEventListener("click", async (event) => {
     try {
         console.log("🌿 Sending to Backend...");
 
-        const response = await fetch("https://foliage-care-backend.onrender.com/predict", {
+        const response = await fetch("http://localhost:8000", {
             method: "POST",
             body: formData
         });

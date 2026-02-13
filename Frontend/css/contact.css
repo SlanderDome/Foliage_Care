@@ -13,83 +13,123 @@ body {
 }
 
 
+/* ═══════════════════════════════════════════════════
+   § 3  NAVBAR
+   ═══════════════════════════════════════════════════ */
 .navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 40px;
-  background: linear-gradient(90deg, #0a823c 0%, #100400 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(90, 38, 38, 0.182);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 48px;
+    height: 64px;
+    background: rgba(5, 6, 4, .9);
+    backdrop-filter: blur(20px) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .03);
+    color: var(--text-primary);
 }
 
+/* Logo */
 .logo {
-  font-family: 'Playfair Display', serif;
-  font-style: normal;
-  font-weight: 100;
-  font-size: 2.5rem;
-  letter-spacing: 1px;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-  color: rgb(252, 235, 212);
-  
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--ff-display);
+    font-size: 1.65rem;
+    font-weight: 500;
+    letter-spacing: 3px;
+    color: var(--text-primary);
+    cursor: default;
+    transition: letter-spacing var(--t-med) var(--ease-out);
 }
 
+.logo-icon {
+    font-size: 1.4rem;
+    animation: breathe 4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+.logo:hover {
+    letter-spacing: 4.5px;
+}
+
+/* Nav links */
 .nav-links {
-  display: flex;
-  list-style: none;
-  font-family: 'Playfair Display', serif;
-  font-size: 2.0rem;
-  
-}
-
-.nav-links li {
-  margin: 0 18px;
-  color: #530a0a;
+    display: flex;
+    list-style: none;
+    align-items: center;
+    gap: 2px;
 }
 
 .nav-links a {
-  text-decoration: none;
-  color: rgb(255, 255, 255);
-  font-family: 'Playfair Display', serif;
-  font-size: 1.05rem;
-  font-weight: 500;
-  position: relative;
-  padding: 5px 0;
-  transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    font-family: var(--ff-body);
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: var(--r-sm);
+    position: relative;
+    transition: color var(--t-fast), background var(--t-fast);
 }
 
 .nav-links a::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 2px;
-  bottom: 0;
-  left: 0;
-  background-color: #ffc107;
-  transition: width 0.3s ease;
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    transform: translateX(-50%);
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width var(--t-med) var(--ease-out);
 }
 
 .nav-links a:hover {
-  color: #ffc107;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, .04);
 }
 
 .nav-links a:hover::after {
-  width: 100%;
-  color: rgb(252, 235, 212);
+    width: 50%;
 }
 
-
-/* Highlight the active link */
 .nav-links a.active {
-    
+    color: var(--accent);
+    font-weight: 700;
 }
 
 .nav-links a.active::after {
-    width: 100%;
+    width: 50%;
+}
+
+.deva-inline {
+    display: inline;
+    font-size: .68rem;
+    font-weight: 400;
+    opacity: .55;
+    margin-left: 4px;
+    font-family: var(--ff-deva);
 }
 
 
@@ -99,9 +139,11 @@ body {
 .abt {
     position: relative;
     text-align: center;
-    padding: 80px 20px; /* Increased padding for breathing room */
+    padding: 80px 20px;
+    /* Increased padding for breathing room */
     background: linear-gradient(135deg, #afdc82 0%, #e3ffdc 50%, #afdc82 100%);
-    overflow: hidden; /* Keeps animations contained */
+    overflow: hidden;
+    /* Keeps animations contained */
 }
 
 /* Decorative background leaf/circle (Optional - adds depth) */
@@ -129,18 +171,23 @@ body {
     font-family: 'Playfair Display', serif;
     font-size: 2.5rem;
     margin-bottom: 10px;
-    color: #1a3c1a; /* Darker green for better contrast */
-    text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    color: #1a3c1a;
+    /* Darker green for better contrast */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
+
 .abt h2 {
     font-family: 'Playfair Display', serif;
-    font-size: 1.4  rem;
+    font-size: 1.4 rem;
     margin-bottom: 10px;
-    color: #1a3c1a; /* Darker green for better contrast */
-    text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    color: #1a3c1a;
+    /* Darker green for better contrast */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
+
 .abt p {
-    font-family: 'DM Sans', sans-serif; /* Switched to DM Sans for readability */
+    font-family: 'DM Sans', sans-serif;
+    /* Switched to DM Sans for readability */
     font-style: normal;
     font-size: 1.1rem;
     color: #3c5e3c;
@@ -150,12 +197,12 @@ body {
 /* --- The Robot/Plant Icon Animation --- */
 .abt svg {
     margin-bottom: 20px;
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .abt svg:hover {
-    transform: scale(1.1) rotate(5deg); 
+    transform: scale(1.1) rotate(5deg);
 }
 
 /* --- Glassmorphic Form Container --- */
@@ -163,13 +210,16 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
-    background: rgba(255, 255, 255, 0.6); /* Semi-transparent white */
-    backdrop-filter: blur(12px); /* The frosted glass effect */
+    background: rgba(255, 255, 255, 0.6);
+    /* Semi-transparent white */
+    backdrop-filter: blur(12px);
+    /* The frosted glass effect */
     -webkit-backdrop-filter: blur(12px);
     padding: 40px;
     border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 15px 35px rgba(0, 50, 0, 0.1); /* Soft green shadow */
+    box-shadow: 0 15px 35px rgba(0, 50, 0, 0.1);
+    /* Soft green shadow */
     margin-top: 20px;
 }
 
@@ -182,10 +232,11 @@ body {
     font-size: 1rem;
     color: #2d5d2d;
     background-color: rgba(255, 255, 255, 0.9);
-    border: 2px solid transparent; /* Prepare for hover state */
+    border: 2px solid transparent;
+    /* Prepare for hover state */
     border-radius: 12px;
     transition: all 0.3s ease;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 /* Make textarea full width */
@@ -201,7 +252,8 @@ body {
     outline: none;
     background-color: #ffffff;
     border-color: #4ca052;
-    box-shadow: 0 0 0 4px rgba(76, 160, 82, 0.2); /* Green glow ring */
+    box-shadow: 0 0 0 4px rgba(76, 160, 82, 0.2);
+    /* Green glow ring */
     transform: translateY(-2px);
 }
 
@@ -221,10 +273,12 @@ body {
     padding: 15px 40px;
     font-size: 1.1rem;
     cursor: pointer;
-    border-radius: 50px; /* Pill shape */
+    border-radius: 50px;
+    /* Pill shape */
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(10, 130, 60, 0.3);
-    margin: 10px auto 0; /* Center the button */
+    margin: 10px auto 0;
+    /* Center the button */
     display: block;
     width: auto;
     min-width: 200px;
@@ -247,8 +301,8 @@ body {
 
 .abt .social {
     /* Change this line to make them black */
-    color: #000000; 
-    
+    color: #000000;
+
     /* Keep your existing styling below */
     margin: 0 15px;
     font-size: 2.2rem;
@@ -258,7 +312,8 @@ body {
 
 /* Optional: If you want them to stay black on hover (or turn grey), update this too */
 .abt .social:hover {
-    color: #333333; /* Dark Grey on hover */
+    color: #333333;
+    /* Dark Grey on hover */
     transform: translateY(-5px) scale(1.1);
 }
 
@@ -268,11 +323,12 @@ body {
         padding: 25px;
         gap: 15px;
     }
-    
+
     .contact-form input {
-        flex: 1 1 100%; /* Stack inputs on mobile */
+        flex: 1 1 100%;
+        /* Stack inputs on mobile */
     }
-    
+
     .cta-button {
         width: 100%;
     }
@@ -281,9 +337,12 @@ body {
 
 
 @keyframes float {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: translateY(0);
     }
+
     50% {
         transform: translateY(-10px);
     }
@@ -316,6 +375,7 @@ body {
     0% {
         left: -100%;
     }
+
     100% {
         left: 100%;
     }
@@ -324,7 +384,7 @@ body {
 /* 🌿 Social Icons */
 .footer .social-icons a {
     margin: 0 10px;
-   color: rgb(252, 235, 212);
+    color: rgb(252, 235, 212);
     font-size: 1.8rem;
     transition: all 0.3s ease;
     position: relative;
@@ -337,9 +397,9 @@ body {
 
 
 .footer p a {
-   color: rgb(252, 235, 212);
+    color: rgb(252, 235, 212);
     text-decoration: none;
-    
+
     font-size: 1.1rem;
     position: relative;
     overflow: hidden;
@@ -350,7 +410,7 @@ body {
     position: absolute;
     width: 100%;
     height: 2px;
-     
+
     bottom: 0;
     left: -100%;
     transition: all 0.3s ease;
@@ -393,7 +453,8 @@ body {
         text-align: center;
     }
 
-    .hero-content, .hero-image {
+    .hero-content,
+    .hero-image {
         max-width: 100%;
     }
 
@@ -401,32 +462,36 @@ body {
         margin-top: 20px;
     }
 }
+
 /* Prevent auth flicker */
 .auth-hidden {
-  visibility: hidden;
+    visibility: hidden;
 }
+
 /* Skeleton base */
 .nav-skeleton {
-  width: 70px;
-  height: 16px;
-  background: linear-gradient(
-    90deg,
-    rgba(255,255,255,0.15) 25%,
-    rgba(255,255,255,0.3) 37%,
-    rgba(255,255,255,0.15) 63%
-  );
-  border-radius: 4px;
-  animation: shimmer 1.4s infinite;
+    width: 70px;
+    height: 16px;
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.15) 25%,
+            rgba(255, 255, 255, 0.3) 37%,
+            rgba(255, 255, 255, 0.15) 63%);
+    border-radius: 4px;
+    animation: shimmer 1.4s infinite;
 }
 
 /* Hide real nav until ready */
 .hidden {
-  display: none;
+    display: none;
 }
 
 /* Shimmer animation */
 @keyframes shimmer {
-  0% { background-position: -200px 0; }
-  100% { background-position: 200px 0; }
-}
+    0% {
+        background-position: -200px 0;
+    }
 
+    100% {
+        background-position: 200px 0;
+    }
+}

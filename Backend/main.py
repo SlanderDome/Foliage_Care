@@ -216,13 +216,8 @@ async def simulate_progression(
         print(f"❌ Simulation Failed: {e}")
         # Return the error to the frontend so you can alert() it
         return {"error": str(e)}
-
 if __name__ == "__main__":
     import uvicorn
-    import os
-
-    # Use the PORT variable provided by Render, or default to 8000 for local dev
-    port = int(os.environ.get("PORT", 8000))
-    
-    # Use 0.0.0.0 so it's accessible on the web when deployed
-    uvicorn.run("Backend.main:app", host="0.0.0.0", port=port, reload=True)
+    # NEW (Works locally)
+    # We remove "Backend." because we are already in that file/folder
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

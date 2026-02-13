@@ -1,4 +1,4 @@
-// firebase.js
+// js/firebase.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import {
   getAuth,
@@ -11,17 +11,19 @@ import {
   updateProfile
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-// 1. IMPORT FIRESTORE FUNCTIONS
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  doc,       // <--- ADDED THIS
+  setDoc,    // <--- ADDED THIS
+  getDoc,    // <--- ADDED THIS
+  query,
+  where,
+  orderBy,
+  limit,
   getDocs,
-  serverTimestamp 
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -35,11 +37,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app); // Initialize Database
+const db = getFirestore(app);
 
-// 🔥 GLOBAL EXPORTS (Added DB tools)
+// 🔥 GLOBAL EXPORTS
 window.firebaseAuth = auth;
-window.db = db; // Export the database itself
+window.db = db;
 
 // Auth functions
 window.GoogleAuthProvider = GoogleAuthProvider;
@@ -50,9 +52,12 @@ window.signOut = signOut;
 window.onAuthStateChanged = onAuthStateChanged;
 window.updateProfile = updateProfile;
 
-// Firestore functions (Exporting these so we can use them in profile.js)
+// Firestore functions
 window.collection = collection;
 window.addDoc = addDoc;
+window.doc = doc;         // <--- EXPORTED HERE
+window.setDoc = setDoc;   // <--- EXPORTED HERE
+window.getDoc = getDoc;   // <--- EXPORTED HERE
 window.query = query;
 window.where = where;
 window.orderBy = orderBy;
@@ -60,7 +65,6 @@ window.limit = limit;
 window.getDocs = getDocs;
 window.serverTimestamp = serverTimestamp;
 
-// 🔥 READY FLAG
+// Ready Flag
 window.firebaseReady = true;
-
-console.log("Firebase & Firestore loaded");
+console.log("Firebase & Firestore loaded (v11.6.1)");
