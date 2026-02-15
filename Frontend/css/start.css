@@ -855,6 +855,338 @@ img {
   line-height: 1.8;
 }
 
+/* ═══════════ FIELD NOTE BAR ═══════════ */
+.field-note-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-top: 16px;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.field-note-bar:focus-within {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 3px rgba(124, 179, 66, 0.1);
+}
+
+.field-note-icon {
+  color: var(--accent-dim);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.field-note-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--ff-body);
+  font-size: 0.9rem;
+}
+
+.field-note-bar input::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ═══════════ THREAD CONTAINER ═══════════ */
+.thread-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.thread-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 8px;
+  scroll-behavior: smooth;
+}
+
+.thread-entries::-webkit-scrollbar {
+  width: 4px;
+}
+
+.thread-entries::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thread-entries::-webkit-scrollbar-thumb {
+  background: rgba(124, 179, 66, 0.3);
+  border-radius: 4px;
+}
+
+/* ═══════════ THREAD ENTRIES ═══════════ */
+.thread-entry {
+  position: relative;
+  padding: 20px 24px;
+  border-radius: 12px;
+  border-left: 4px solid transparent;
+  animation: entrySlideIn 0.4s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+@keyframes entrySlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.thread-entry .entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.entry-meta .entry-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.entry-meta .entry-time {
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-left: auto;
+  font-size: 0.65rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* --- User Entry --- */
+.thread-entry.user-entry {
+  border-left-color: #c9a84c;
+  background: rgba(201, 168, 76, 0.06);
+}
+
+.user-entry .entry-meta {
+  color: #c9a84c;
+}
+
+.user-entry .entry-icon {
+  background: rgba(201, 168, 76, 0.15);
+  color: #c9a84c;
+}
+
+.user-entry .entry-body {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* --- AI Entry --- */
+.thread-entry.ai-entry {
+  border-left-color: var(--accent);
+  background: rgba(124, 179, 66, 0.04);
+}
+
+.ai-entry .entry-meta {
+  color: var(--accent);
+}
+
+.ai-entry .entry-icon {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  color: #fff;
+}
+
+.ai-entry .entry-body {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.ai-entry .entry-body strong {
+  color: var(--accent);
+}
+
+/* --- Diagnosis Entry (Special AI entry with visuals) --- */
+.diagnosis-visuals {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .diagnosis-visuals {
+    grid-template-columns: 1fr;
+  }
+}
+
+.diagnosis-visuals .diag-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.diagnosis-report {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 16px 20px;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* ═══════════ TYPING INDICATOR ═══════════ */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 24px;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ═══════════ FOLLOW-UP BAR ═══════════ */
+.followup-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-deepest);
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  padding: 10px 14px 10px 18px;
+  margin-top: 24px;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.followup-bar:focus-within {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 3px rgba(124, 179, 66, 0.1), 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.followup-icon {
+  color: var(--accent-dim);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.followup-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--ff-body);
+  font-size: 0.9rem;
+  padding: 6px 0;
+}
+
+.followup-bar input::placeholder {
+  color: var(--text-muted);
+}
+
+.followup-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform var(--t-fast), box-shadow var(--t-fast);
+  flex-shrink: 0;
+}
+
+.followup-send-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(124, 179, 66, 0.4);
+}
+
+.followup-send-btn:active {
+  transform: scale(0.95);
+}
+
+.followup-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Warning Entry (Non-plant image) --- */
+.thread-entry.warning-entry {
+  border-left-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.06);
+}
+
+.warning-entry .entry-meta {
+  color: #e74c3c;
+}
+
+.warning-entry .entry-icon {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+
+.warning-entry .entry-body {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
 /* Animated gradient border on hover — the premium touch */
 .upload-card::before,
 .results-card::before {

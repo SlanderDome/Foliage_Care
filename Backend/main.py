@@ -1,5 +1,5 @@
 # ==========================================
-#  FOLIAGE CARE: API GATEWAY (Local)
+#  FOLIAGE CARE: API GATEWAY (Final Production)
 #  M1: Detection | M2: Smart Sim | M3: Expert
 # ==========================================
 import os
@@ -10,10 +10,11 @@ import numpy as np
 import tensorflow as tf
 import requests
 import traceback
-from google import genai  # <--- NEW LIBRARY IMPORT
-from google.genai import types # <--- For Type Hints if needed
+from google import genai  # <--- NEW LIBRARY
 from PIL import Image
-from fastapi import FastAPI, File, UploadFile, Form
+from typing import Optional, List
+from pydantic import BaseModel
+from fastapi import FastAPI, File, UploadFile, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -43,7 +44,7 @@ gemini_client = None
 if GEMINI_API_KEY:
     try:
         gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-        print("✅ Gemini Client Initialized")
+        print("✅ Gemini Client Initialized (New SDK)")
     except Exception as e:
         print(f"⚠️ Gemini Init Failed: {e}")
 
@@ -72,7 +73,6 @@ try:
 except:
     CLASS_NAMES = {}
 
-# Prevention Tips
 PREVENTION_TIPS = {
     "Potato___Early_blight": "Use copper-based fungicides. Remove infected leaves.",
     "Potato___Late_blight": "Destroy infected plants immediately. Preventative fungicide.",
@@ -88,7 +88,6 @@ def process_image_for_model(image_bytes):
     return np.expand_dims(img_array, axis=0)
 
 def generate_gradcam_heatmap(img_array, pred_index):
-    # Robust List Method
     img_tensor = tf.cast(img_array, tf.float32)
     with tf.GradientTape() as tape:
         tape.watch(img_tensor)
@@ -107,7 +106,6 @@ def generate_gradcam_heatmap(img_array, pred_index):
     return heatmap.numpy()
 
 def overlay_heatmap_turbo(original_bytes, heatmap):
-    # Turbo Colormap (No OpenCV)
     heatmap = np.clip(heatmap, 0, 1)
     r = np.clip((heatmap - 0.5) * 2, 0, 1) * 255
     g = np.clip(1 - np.abs(heatmap - 0.5) * 2, 0, 1) * 255
@@ -130,11 +128,43 @@ def home():
     return {"status": "FoliageCare API Online"}
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
-    """Module 1: Diagnosis"""
+async def predict(
+    file: UploadFile = File(...),
+    user_name: str = Form("Farmer"),
+    location: str = Form(None),
+    context: str = Form(None),
+    latitude: str = Form(None),
+    longitude: str = Form(None)
+):
+    """Module 1: Diagnosis & Tailored Report (with Image Validation)"""
     if MODEL is None: return {"error": "Model not loaded"}
     
     image_bytes = await file.read()
+
+    # --- Image Validation: Detect non-plant images ---
+    if gemini_client:
+        try:
+            validation_image = Image.open(io.BytesIO(image_bytes))
+            validation_response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[
+                    "Does this image contain a plant leaf or crop? Reply with ONLY 'YES' or 'NO'.",
+                    validation_image
+                ]
+            )
+            answer = validation_response.text.strip().upper()
+            if "NO" in answer:
+                print(f"⚠️ Non-plant image detected for {user_name}")
+                return {
+                    "is_invalid_image": True,
+                    "class": "Invalid",
+                    "confidence": 0,
+                    "prevention_measures": f"Hey {user_name}, this doesn't look like a plant leaf! 🌿 Please upload a clear, close-up photo of the affected leaf so I can give you an accurate diagnosis.",
+                    "explanation_image": None
+                }
+        except Exception as e:
+            print(f"⚠️ Image validation warning: {e}")
+
     processed_image = process_image_for_model(image_bytes)
     
     predictions = MODEL.predict(processed_image)
@@ -142,7 +172,6 @@ async def predict(file: UploadFile = File(...)):
     confidence = float(np.max(predictions[0]))
     class_name = CLASS_NAMES.get(idx, "Unknown")
     
-    # Generate Grad-CAM
     heatmap_base64 = None
     try:
         heatmap = generate_gradcam_heatmap(processed_image, idx)
@@ -150,13 +179,34 @@ async def predict(file: UploadFile = File(...)):
     except Exception as e:
         print(f"⚠️ Grad-CAM Warning: {e}")
 
-    # Get Tips
-    tip = PREVENTION_TIPS.get(class_name, "Consult an expert.")
+    # Generate Tailored Analysis Report with Gemini
+    if gemini_client:
+        loc_str = f"{location} (GPS: {latitude}, {longitude})" if latitude and longitude else (location or "remote field")
+        report_prompt = f"""
+        Act as an AI Plant Pathologist.
+        USER: {user_name}
+        LOCATION: {loc_str}
+        DETECTED DISEASE: {class_name} ({confidence*100:.1f}% confidence)
+        ENVIRONMENT: {context}
+
+        Provide a concise 2-3 sentence analysis report specifically for {user_name}. 
+        Briefly explain what this disease does to the plant and give one immediate 'first-aid' tip tailored to {loc_str}.
+        """
+        try:
+            response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=report_prompt
+            )
+            report_text = response.text.strip()
+        except:
+            report_text = PREVENTION_TIPS.get(class_name, "Consult an expert.")
+    else:
+        report_text = PREVENTION_TIPS.get(class_name, "Consult an expert.")
 
     return {
         "class": class_name,
         "confidence": confidence,
-        "prevention_measures": tip,
+        "prevention_measures": report_text,
         "explanation_image": heatmap_base64
     }
 
@@ -164,35 +214,44 @@ async def predict(file: UploadFile = File(...)):
 async def simulate_progression(
     file: UploadFile = File(...), 
     disease_name: str = Form(...),
-    context: str = Form(None)
+    context: str = Form(None),
+    user_name: str = Form("Farmer"),
+    latitude: str = Form(None),
+    longitude: str = Form(None)
 ):
-    """Module 2: Smart Simulation (Gemini + Stable Diffusion)"""
-    
-    # Stable Diffusion API URL
+    """Module 2: Smart Simulation"""
     SD_API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
     try:
         image_bytes = await file.read()
         
-        # 1. Ask Gemini for Prompt (If context exists)
-        if context and gemini_client:
-            print(f"🧠 Gemini Context: {context}")
+        # Build precise location string
+        loc_str = f"GPS: {latitude}, {longitude}" if latitude and longitude else "remote field"
+
+        # 1. Ask Gemini for Prompt
+        if gemini_client:
+            print(f"🧠 Gemini Context for {user_name}: {context} @ {loc_str}")
             gemini_prompt = f"""
+            Act as a visual strategist for {user_name}'s farm located at {loc_str}.
             Describe the visual appearance of a plant leaf with '{disease_name}' 
-            after 5 days of untreated progression in these conditions: '{context}'.
-            Return ONLY a comma-separated list of visual keywords.
-            Example: dark necrotic spots, yellow halos, wilting.
+            after 5 days of untreated progression in these exact conditions: '{context}'.
+            
+            Return ONLY a comma-separated list of visual keywords (e.g., soggy brown rims, fungal fuzz, yellow veins).
+            Focus on the high-detail visual decay patterns tailored to the environment.
             """
-            # NEW SYNTAX
-            response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash", 
-                contents=gemini_prompt
-            )
-            visual_descriptors = response.text.strip()
-            final_prompt = f"close up photo of a {disease_name} leaf, {visual_descriptors}, realistic, 8k, highly detailed"
+            try:
+                response = gemini_client.models.generate_content(
+                    model="gemini-2.5-flash", 
+                    contents=gemini_prompt
+                )
+                visual_descriptors = response.text.strip()
+                final_prompt = f"close up photo of a {disease_name} leaf on {user_name}'s farm, {visual_descriptors}, realistic, 8k, macro photography"
+            except Exception as e:
+                print(f"⚠️ Gemini Prompt Error: {e}")
+                final_prompt = f"close up photo of a {disease_name} leaf, severe decay, necrotic spots, realistic texture, 8k"
         else:
-            final_prompt = f"close up photo of a {disease_name} leaf, much worse, severe damage, rotting, realistic texture, 8k"
+            final_prompt = f"close up photo of a {disease_name} leaf, severe damage, rotting, realistic texture, 8k"
 
         print(f"🎨 Generating: {final_prompt}")
 
@@ -203,11 +262,7 @@ async def simulate_progression(
             data=image_bytes, 
             params={
                 "inputs": final_prompt,
-                "parameters": {
-                    "strength": 0.75,
-                    "guidance_scale": 8.0,
-                    "negative_prompt": "cartoon, drawing, blur, healthy, green"
-                }
+                "parameters": {"strength": 0.75, "guidance_scale": 8.0}
             }
         )
         
@@ -226,37 +281,98 @@ async def get_expert_plan(
     file: UploadFile = File(...),
     disease: str = Form(...),
     location: str = Form(...),
-    context: str = Form(...)
+    context: str = Form(...),
+    # RESTORED: Context Fields
+    user_name: str = Form("Farmer"),
+    latitude: str = Form(None),
+    longitude: str = Form(None)
 ):
-    """Module 3: Expert Plan (Gemini)"""
+    """Module 3: Expert Plan (Context Aware)"""
     if not gemini_client:
-        return {"error": "Gemini API Key missing or Client Failed!"}
+        return {"error": "Gemini Client Failed"}
 
     try:
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes))
 
+        # Build precise location string
+        loc_str = location
+        if latitude and longitude:
+            loc_str = f"{location} (GPS: {latitude}, {longitude})"
+
         prompt = f"""
-        Act as a senior agricultural expert.
+        Act as a senior agricultural expert advising {user_name}.
         
-        DIAGNOSIS: '{disease}'.
-        LOCATION: {location}
-        CONTEXT: {context}
+        **CASE FILE:**
+        - Diagnosis: {disease}
+        - Location: {loc_str}
+        - User Context: {context}
         
-        Task:
-        1. Confirm if the visual symptoms in the image match {disease}.
-        2. Provide a specific 3-step action plan considering the '{context}'.
-           - (e.g., if Raining -> stickers/drainage. If Drought -> mulching).
-        3. List Immediate Action, Chemical (if safe), and Organic options.
-        4. Keep it concise and formatted in Markdown.
+        **TASK:**
+        1. Confirm the diagnosis from the image.
+        2. Provide a localized 3-step action plan (Immediate, Chemical, Organic).
+           - Consider the specific climate/soil of {loc_str}.
+           - If context mentions '{context}', adjust advice (e.g., rain-fast chemicals).
+        3. Format in clear Markdown.
         """
 
-        # NEW SYNTAX FOR IMAGES
+        # FIXED: Model Name 'gemini-1.5-flash'
         response = gemini_client.models.generate_content(
             model="gemini-2.5-flash",
             contents=[prompt, image]
         )
         return {"plan": response.text}
+
+    except Exception as e:
+        traceback.print_exc()
+        return {"error": str(e)}
+
+# --- Follow-Up Request Model ---
+class FollowUpRequest(BaseModel):
+    question: str
+    disease: str
+    conversation_history: List[dict] = []
+    user_name: str = "Farmer"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+@app.post("/followup")
+async def followup(req: FollowUpRequest):
+    """Module 4: Follow-Up Questions (Context-Aware)"""
+    if not gemini_client:
+        return {"error": "Gemini Client Failed"}
+
+    try:
+        loc_str = f"GPS: {req.latitude}, {req.longitude}" if req.latitude and req.longitude else "unknown location"
+
+        # Build conversation context from history
+        history_text = "\n".join(
+            [f"{'USER' if h.get('role') == 'user' else 'AI'}: {h.get('text', '')}" for h in req.conversation_history[-6:]]
+        )
+
+        prompt = f"""
+        You are FoliageCare AI, a plant pathology expert consulting with {req.user_name}.
+        
+        **CASE FILE:**
+        - Current Diagnosis: {req.disease}
+        - Location: {loc_str}
+        
+        **CONVERSATION SO FAR:**
+        {history_text}
+        
+        **USER'S NEW QUESTION:**
+        {req.question}
+        
+        Provide a helpful, concise answer. Be specific to the diagnosed disease and the user's context.
+        If the question is unrelated to plant care, gently redirect them.
+        Use Markdown formatting for readability.
+        """
+
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        return {"reply": response.text.strip()}
 
     except Exception as e:
         traceback.print_exc()

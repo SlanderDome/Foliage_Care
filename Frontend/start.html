@@ -143,7 +143,7 @@
     <!-- Main Diagnosis Container (Vertical Flow) -->
     <div class="diagnosis-container">
 
-      <!-- STEP 1: Upload Card (First) -->
+      <!-- STEP 1: Upload Card -->
       <div class="upload-card reveal" id="detection-form">
         <div class="card-tag"><i class="fas fa-upload"></i> Upload Section</div>
         <form id="form">
@@ -171,6 +171,13 @@
             </div>
           </div>
 
+          <!-- Field Note Input (Pre-Analysis Context) -->
+          <div class="field-note-bar" id="field-note-bar">
+            <i class="fas fa-pen-nib field-note-icon"></i>
+            <input type="text" id="field-note-input"
+              placeholder="Add a field note... (e.g. 'Planted 2 weeks ago, heavy monsoon rain')" />
+          </div>
+
           <!-- Action Buttons -->
           <div class="action-buttons">
             <button class="cta-button cta-secondary" type="button" id="upload-photo"
@@ -185,9 +192,9 @@
         </form>
       </div>
 
-      <!-- STEP 2: Reply Container (Second - AI Response) -->
+      <!-- STEP 2: Consultation Thread -->
       <div class="reply-container reveal" id="results-card">
-        <div class="card-tag"><i class="fas fa-robot"></i> AI Response</div>
+        <div class="card-tag"><i class="fas fa-scroll"></i> Consultation Thread</div>
 
         <!-- Default empty state -->
         <div class="results-empty" id="results-empty">
@@ -195,55 +202,17 @@
             <i class="fas fa-seedling"></i>
           </div>
           <h3>Awaiting Analysis</h3>
-          <p>Upload a plant image above and click <strong>Analyze</strong> to receive the AI reply.</p>
+          <p>Upload a plant image above and click <strong>Analyze</strong> to start a consultation.</p>
         </div>
 
-        <!-- AI CONTENT WRAPPER (Shown after analysis) -->
-        <div class="ai-reply-content" id="ai-reply-content" style="display: none;">
-
-          <div class="reply-header">
-            <div class="ai-avatar">AI</div>
-            <div class="ai-status">Diagnosis Complete</div>
+        <!-- Thread Entries Container (Scrollable) -->
+        <div class="thread-container" id="thread-container" style="display: none;">
+          <div class="thread-entries" id="thread-entries">
+            <!-- Entries appended dynamically by JS -->
           </div>
 
-          <div class="reply-grid">
-            <!-- Left: Confidence & Heatmap -->
-            <div class="reply-visuals">
-              <!-- Confidence Gauge -->
-              <div class="confidence-gauge" id="confidence-gauge">
-                <svg class="gauge-svg" viewBox="0 0 120 120">
-                  <circle class="gauge-track" cx="60" cy="60" r="52" />
-                  <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="52" />
-                </svg>
-                <div class="gauge-center">
-                  <span class="gauge-value" id="gauge-value">0%</span>
-                  <span class="gauge-label">Confidence</span>
-                </div>
-              </div>
-
-              <!-- Grad-CAM Visual -->
-              <div id="visual-result">
-                <div class="gradcam-header">
-                  <i class="fas fa-eye"></i>
-                  <h3>Visual Diagnosis</h3>
-                </div>
-                <div class="gradcam-wrapper">
-                  <img id="gradcam-image" src="" alt="AI Heatmap">
-                </div>
-              </div>
-            </div>
-
-            <!-- Right: Diagnosis Text -->
-            <div class="reply-text">
-              <div class="form-group" id="disease-info-group">
-                <label for="disease-info"><i class="fas fa-stethoscope"></i> Analysis Report</label>
-                <textarea id="disease-info" rows="8" readonly placeholder="AI Analysis will appear here..."></textarea>
-              </div>
-            </div>
-          </div>
-
-          <!-- Environment Context & Future Simulation (Section 3 & 4) -->
-          <div id="unified-section" class="expert-section">
+          <!-- Environment Context & Actions (Shown after diagnosis) -->
+          <div id="unified-section" class="expert-section" style="display: none;">
             <div class="context-panel">
               <h4><i class="fas fa-sliders-h"></i> Environment Context</h4>
               <p>Tell the AI about your local conditions to refine the cure plan.</p>
@@ -285,12 +254,21 @@
             <div id="expert-result" class="expert-markdown" style="display:none;"></div>
           </div>
 
-        </div> <!-- End ai-reply-content -->
+          <!-- Follow-Up Bar (Pinned at bottom of thread) -->
+          <div class="followup-bar" id="followup-bar" style="display: none;">
+            <i class="fas fa-leaf followup-icon"></i>
+            <input type="text" id="followup-input" placeholder="Ask a follow-up question about the diagnosis..." />
+            <button type="button" id="followup-send" class="followup-send-btn" title="Send">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
 
       </div> <!-- End reply-container -->
 
     </div> <!-- End diagnosis-container -->
   </section>
+
 
   <!-- ═══════════ HOW IT WORKS ═══════════ -->
   <section class="how-it-works">

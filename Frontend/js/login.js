@@ -37,25 +37,35 @@ function getUserLocation() {
 // 3. HELPER: Save User to Firestore (Using window globals)
 async function saveUserToDB(user, location, fullName = "") {
   try {
-    // Use the global window functions
     const userRef = window.doc(window.db, "users", user.uid);
     const userSnap = await window.getDoc(userRef);
 
     if (!userSnap.exists()) {
+      // 1. NEW USER: Create Profile
       await window.setDoc(userRef, {
         uid: user.uid,
         email: user.email,
         displayName: user.displayName || fullName || "Farmer",
-        location: location || { lat: null, lng: null },
+        location: location || { lat: null, lng: null }, // Store initial location
         createdAt: new Date(),
         role: "user"
       });
-      console.log("User successfully saved to DB!");
+      console.log("✅ New User saved to DB!");
     } else {
-      console.log("User already exists in DB.");
+      // 2. EXISTING USER: Update Location if provided
+      // This is the magic fix for your Contextual AI
+      if (location && location.lat && location.lng) {
+        await window.updateDoc(userRef, {
+          location: location,
+          lastLogin: new Date() // Useful to know when they were last active
+        });
+        console.log("📍 User location updated for AI Context!");
+      } else {
+        console.log("User exists, no new location to update.");
+      }
     }
   } catch (e) {
-    console.error("Database Error:", e);
+    console.error("Error saving user:", e);
   }
 }
 
