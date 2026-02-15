@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Garden — Foliage Care</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Cormorant+Garamond:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Devanagari:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/start.css">
+    <link rel="stylesheet" href="css/playbook.css">
+    <link rel="stylesheet" href="css/cursor.css">
+    <link rel="icon" href="assets/892926.png" type="image/png">
+
+    <!-- Icons & Charts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <canvas id="leaf-canvas"></canvas>
+    <div class="ambient-bg"></div>
+
+    <!-- NAVBAR (from start.html) -->
+    <nav class="navbar">
+        <div class="logo">
+            <span class="logo-icon">🌱</span>FOLIAGE CARE
+            <span class="deva-inline">फोलिएज केयर</span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-skeleton"></li>
+            <li class="nav-skeleton"></li>
+            <li class="nav-skeleton"></li>
+            <li class="nav-real hidden"><a href="index.html">Home <span class="deva-inline">मुख्य पृष्ठ</span></a></li>
+            <li class="nav-real hidden"><a href="playbook.html" class="active">My Garden <span class="deva-inline">मेरा
+                        बगीचा</span></a></li>
+            <li class="nav-real hidden"><a href="start.html">Diagnose <span class="deva-inline">जांच करें</span></a>
+            </li>
+            <li class="nav-real hidden"><a href="about.html">About <span class="deva-inline">हमारे बारे में</span></a>
+            </li>
+            <li class="nav-real hidden"><a href="login.html" id="auth-link">Login</a></li>
+            <li class="nav-real hidden"><a href="contact.html">Connect</a></li>
+        </ul>
+    </nav>
+
+    <main class="garden-container">
+
+        <!-- GARDEN OVERVIEW BANNER -->
+        <header class="garden-overview reveal">
+            <div class="overview-greeting">
+                <h1><span id="greeting-time">Good Day</span>, Gardener 👋</h1>
+                <p>Your digital greenhouse is thriving</p>
+            </div>
+
+            <div class="overview-metrics">
+                <div class="metric-pill" data-filter="all">
+                    <div class="metric-icon"><i class="fas fa-seedling"></i></div>
+                    <div class="metric-data">
+                        <span class="metric-value counter" data-target="12">0</span>
+                        <span class="metric-label">Total Plants</span>
+                    </div>
+                </div>
+
+                <div class="metric-pill healthy">
+                    <div class="metric-icon"><i class="fas fa-heart"></i></div>
+                    <div class="metric-data">
+                        <span class="metric-value counter" data-target="8">0</span>
+                        <span class="metric-label">Thriving</span>
+                    </div>
+                </div>
+
+                <div class="metric-pill warning">
+                    <div class="metric-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="metric-data">
+                        <span class="metric-value counter" data-target="4">0</span>
+                        <span class="metric-label">Needs Care</span>
+                    </div>
+                </div>
+
+                <div class="metric-pill activity">
+                    <div class="metric-icon"><i class="fas fa-calendar-check"></i></div>
+                    <div class="metric-data">
+                        <span class="metric-value counter" data-target="23">0</span>
+                        <span class="metric-label">This Week</span>
+                    </div>
+                </div>
+
+                <div class="metric-pill score">
+                    <div class="metric-icon"><i class="fas fa-chart-line"></i></div>
+                    <div class="metric-data">
+                        <span class="metric-value">84<small>%</small></span>
+                        <span class="metric-label">Health Score</span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill" style="width: 84%;"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 3-COLUMN LAYOUT -->
+        <div class="garden-layout">
+
+            <!-- LEFT SIDEBAR -->
+            <aside class="garden-sidebar left-sidebar reveal" data-delay="100">
+
+                <section class="sidebar-section">
+                    <h3><i class="fas fa-clock"></i> Recent Activity</h3>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon watered"><i class="fas fa-tint"></i></div>
+                            <div class="activity-content">
+                                <p>Watered Monstera</p>
+                                <span>2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon diagnosed"><i class="fas fa-search-plus"></i></div>
+                            <div class="activity-content">
+                                <p>Scanned Snake Plant</p>
+                                <span>Yesterday</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="sidebar-section">
+                    <h3><i class="fas fa-tasks"></i> Upcoming Care</h3>
+                    <div class="care-calendar">
+                        <div class="care-day today">
+                            <div class="day-header">
+                                <span class="day-num">15</span>
+                                <span class="day-name">Today</span>
+                            </div>
+                            <ul>
+                                <li><i class="fas fa-tint"></i> Water Tomato</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="sidebar-section">
+                    <h3><i class="fas fa-trophy"></i> Achievements</h3>
+                    <div class="achievement-badges">
+                        <div class="achievement-badge earned"><i class="fas fa-seedling"></i></div>
+                        <div class="achievement-badge earned"><i class="fas fa-fire"></i></div>
+                        <div class="achievement-badge locked"><i class="fas fa-lock"></i></div>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- MAIN: PLANT GRID -->
+            <section class="garden-main reveal" data-delay="200">
+
+                <div class="grid-controls">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search plants..." id="plant-search">
+                    </div>
+
+                    <select id="sort-filter">
+                        <option value="recent">Recent Activity</option>
+                        <option value="health">Health Score</option>
+                        <option value="name">Name (A-Z)</option>
+                    </select>
+
+                    <button class="btn-add-plant" onclick="alert('Add plant modal')">
+                        <i class="fas fa-plus"></i> Add Plant
+                    </button>
+                </div>
+
+                <div class="plants-grid" id="plants-grid">
+                    <!-- Dynamic content loaded by JS -->
+                </div>
+            </section>
+
+            <!-- RIGHT SIDEBAR: AI INSIGHTS -->
+            <aside class="garden-sidebar right-sidebar reveal" data-delay="300">
+
+                <div class="insights-container">
+                    <div class="insights-header">
+                        <i class="fas fa-brain"></i>
+                        <h3>Smart Insights</h3>
+                    </div>
+
+                    <div class="insight-card alert-critical">
+                        <div class="insight-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="insight-content">
+                            <h4>Overdue Watering</h4>
+                            <p><strong>Tomato Plant</strong> hasn't been watered in <strong>8 days</strong></p>
+                            <button class="insight-btn">Water Now</button>
+                        </div>
+                    </div>
+
+                    <div class="insight-card alert-pattern">
+                        <div class="insight-icon"><i class="fas fa-lightbulb"></i></div>
+                        <div class="insight-content">
+                            <h4>Pattern Detected</h4>
+                            <p>Monstera shows leaf spot twice this month.</p>
+                        </div>
+                    </div>
+
+                    <div class="insight-card alert-progress">
+                        <div class="insight-icon"><i class="fas fa-chart-line"></i></div>
+                        <div class="insight-content">
+                            <h4>Garden Improving!</h4>
+                            <p>Health increased <strong>12%</strong> this week! 🎉</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <!-- PLANT DETAIL MODAL -->
+    <div id="plant-detail-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">×</button>
+
+            <div class="plant-detail-header">
+                <img id="detail-image" src="" alt="Plant">
+                <div>
+                    <h2 id="detail-name">Plant Name</h2>
+                    <p id="detail-meta">Added: Jan 2026</p>
+                </div>
+            </div>
+
+            <div class="detail-tabs">
+                <button class="tab-btn active" data-tab="timeline">Timeline</button>
+                <button class="tab-btn" data-tab="analytics">Analytics</button>
+                <button class="tab-btn" data-tab="notes">Notes & Care</button>
+            </div>
+
+            <div id="timeline" class="tab-content active">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-card">
+                            <span class="date">Feb 14, 2026</span>
+                            <h4>Watered Plant</h4>
+                            <p>Gave 200ml of water</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="analytics" class="tab-content">
+                <canvas id="healthChart"></canvas>
+            </div>
+
+            <div id="notes" class="tab-content">
+                <textarea placeholder="Add note..."></textarea>
+                <button>Save Note</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER (from start.html) -->
+    <footer class="footer">
+        <p>&copy; 2025 Foliage Care. Growing together.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="js/leaf-particles.js"></script>
+    <script src="js/scroll-reveal.js"></script>
+    <script src="js/navbar-auth.js"></script>
+    <script src="js/playbook.js"></script>
+    <script src="js/cursor.js"></script>
+</body>
+
+</html>

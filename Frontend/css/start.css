@@ -570,41 +570,289 @@ img {
   margin: 0 auto;
 }
 
-/* — Grid — */
-.diagnosis-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
-  max-width: 1160px;
-  margin: 0 auto;
-  align-items: stretch;
-  /* ← SYMM: both cards same height */
-}
-
-/* ═══════════════════════════════════════════════════
-   § 6  CARD SYSTEM
-   ═══════════════════════════════════════════════════ */
-.upload-card,
-.results-card {
+/* — Layout Container (Vertical) — */
+.diagnosis-container {
   display: flex;
   flex-direction: column;
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+}
 
+.card-tag {
+  position: absolute;
+  top: 0;
+  right: 32px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 6px 16px;
+  border-radius: 0 0 12px 12px;
+  border: 1px solid var(--border-accent);
+  border-top: none;
+}
+
+/* — Reply Container — */
+.reply-container {
+  display: flex;
+  flex-direction: column;
   background: var(--bg-card);
   border-radius: var(--r-xl);
   border: 1px solid var(--border-card);
-  padding: 36px 32px;
+  padding: 48px 40px;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-md);
+  min-height: 400px;
+  transition: all var(--t-med) var(--ease-out);
+}
 
-  /* Multi-layer shadow for depth */
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, .03) inset,
-    var(--shadow-md);
+.reply-container:hover {
+  border-color: rgba(124, 179, 66, 0.2);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
 
-  transition:
-    border-color var(--t-med),
-    box-shadow var(--t-med),
-    transform var(--t-med) var(--ease-out);
+/* AI Header */
+.reply-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ai-avatar {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  color: var(--text-on-accent);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(124, 179, 66, 0.3);
+}
+
+.ai-status {
+  font-family: var(--ff-body);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Reply Grid (Visuals + Text) */
+.reply-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+  .reply-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reply-visuals {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* GradCAM in vertical flow */
+.gradcam-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.gradcam-header h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.gradcam-header i {
+  color: var(--accent);
+}
+
+.gradcam-wrapper {
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid var(--border-card);
+  background: #000;
+}
+
+.gradcam-wrapper img {
+  width: 100%;
+  display: block;
+}
+
+/* Reply Textarea Styling */
+.reply-text .form-group textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  padding: 20px;
+  color: var(--text-primary);
+  font-family: var(--ff-body);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  resize: none;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Expert Section */
+.expert-section {
+  margin-top: 20px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.context-panel {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-card);
+  border-radius: var(--r-lg);
+  padding: 28px;
+  margin-bottom: 32px;
+}
+
+.context-panel h4 {
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+}
+
+.context-panel p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 20px;
+}
+
+.context-inputs {
+  display: flex;
+  gap: 20px;
+}
+
+.input-group {
+  flex: 1;
+}
+
+.input-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.input-group input {
+  width: 100%;
+  background: var(--bg-deepest);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #fff;
+  transition: border-color var(--t-fast);
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+}
+
+/* Action Grid */
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.action-box {
+  background: var(--bg-card-hover);
+  border-radius: var(--r-lg);
+  padding: 32px 24px;
+  text-align: center;
+  border: 1px solid var(--border-card);
+  transition: transform 0.3s var(--ease-out);
+}
+
+.action-box:hover {
+  transform: translateY(-5px);
+}
+
+.simulation-box {
+  border-style: dashed;
+  border-color: var(--ember-deep);
+}
+
+.expert-box {
+  border-color: var(--accent-dim);
+}
+
+.action-box i {
+  font-size: 2rem;
+  margin-bottom: 16px;
+}
+
+.simulation-box i {
+  color: var(--ember);
+}
+
+.expert-box i {
+  color: var(--accent);
+}
+
+.action-box h5 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.action-box p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.output-img {
+  width: 100%;
+  margin-top: 20px;
+  border-radius: 8px;
+}
+
+/* Loader */
+.ai-loader {
+  text-align: center;
+  margin: 32px 0;
+  color: var(--accent);
+}
+
+.ai-loader i {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+/* Markdown Result */
+.expert-markdown {
+  margin-top: 32px;
+  padding: 32px;
+  background: #fff;
+  color: #111;
+  border-left: 6px solid var(--accent);
+  border-radius: 8px;
+  font-family: var(--ff-body);
+  line-height: 1.8;
 }
 
 /* Animated gradient border on hover — the premium touch */

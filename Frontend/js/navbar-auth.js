@@ -13,10 +13,10 @@ waitForFirebase(() => {
   window.onAuthStateChanged(auth, (user) => {
     if (authLink) {
       if (user) {
-        authLink.textContent = "Profile";
+        authLink.innerHTML = `Profile <span class="deva-inline">प्रोफ़ाइल</span>`;
         authLink.href = "profile.html";
       } else {
-        authLink.textContent = "Login / Signup";
+        authLink.innerHTML = `Login / Signup <span class="deva-inline">प्रवेश</span>`;
         authLink.href = "login.html";
       }
     }

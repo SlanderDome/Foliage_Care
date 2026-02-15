@@ -42,9 +42,13 @@
       <li class="nav-skeleton"></li>
       <li class="nav-skeleton"></li>
       <li class="nav-skeleton"></li>
+      <li class="nav-skeleton"></li>
+      <li class="nav-skeleton"></li>
+      <li class="nav-skeleton"></li>
 
       <!-- REAL LINKS (hidden initially) -->
       <li class="nav-real hidden"><a href="index.html">Home <span class="deva-inline">मुख्य पृष्ठ</span></a></li>
+      <li class="nav-real hidden"><a href="playbook.html">Playbook <span class="deva-inline">प्लेबुक</span></a></li>
       <li class="nav-real hidden"><a href="start.html" class="active">Diagnose <span class="deva-inline">जांच
             करें</span></a></li>
       <li class="nav-real hidden"><a href="about.html">About <span class="deva-inline">हमारे बारे में</span></a></li>
@@ -136,18 +140,19 @@
       </div>
     </div>
 
-    <!-- Main Diagnosis Grid -->
-    <div class="diagnosis-grid">
+    <!-- Main Diagnosis Container (Vertical Flow) -->
+    <div class="diagnosis-container">
 
-      <!-- LEFT: Upload Card -->
+      <!-- STEP 1: Upload Card (First) -->
       <div class="upload-card reveal" id="detection-form">
+        <div class="card-tag"><i class="fas fa-upload"></i> Upload Section</div>
         <form id="form">
 
           <!-- Drag & Drop Zone -->
           <div class="drop-zone" id="drop-zone">
             <input type="file" id="photo" accept="image/*" />
 
-            <!-- Empty State (shown when no image is selected) -->
+            <!-- Empty State -->
             <div class="drop-zone-prompt" id="drop-zone-prompt">
               <div class="drop-zone-icon-ring">
                 <i class="fas fa-cloud-upload-alt"></i>
@@ -157,7 +162,7 @@
               <span class="drop-zone-formats">Supports: JPG, PNG, WEBP</span>
             </div>
 
-            <!-- Preview State (shown after image is selected) -->
+            <!-- Preview State -->
             <div class="drop-zone-preview" id="drop-zone-preview">
               <img id="preview-image" src="#" alt="Photo Preview" />
               <button type="button" class="remove-image-btn" id="remove-image-btn" title="Remove image">
@@ -180,8 +185,9 @@
         </form>
       </div>
 
-      <!-- RIGHT: Results Card -->
-      <div class="results-card" id="results-card">
+      <!-- STEP 2: Reply Container (Second - AI Response) -->
+      <div class="reply-container reveal" id="results-card">
+        <div class="card-tag"><i class="fas fa-robot"></i> AI Response</div>
 
         <!-- Default empty state -->
         <div class="results-empty" id="results-empty">
@@ -189,67 +195,101 @@
             <i class="fas fa-seedling"></i>
           </div>
           <h3>Awaiting Analysis</h3>
-          <p>Upload a plant image and click <strong>Analyze</strong> to see AI-powered results here.</p>
+          <p>Upload a plant image above and click <strong>Analyze</strong> to receive the AI reply.</p>
         </div>
 
-        <!-- Confidence Gauge -->
-        <div class="confidence-gauge" id="confidence-gauge" style="display:none;">
-          <svg class="gauge-svg" viewBox="0 0 120 120">
-            <circle class="gauge-track" cx="60" cy="60" r="52" />
-            <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="52" />
-          </svg>
-          <div class="gauge-center">
-            <span class="gauge-value" id="gauge-value">0%</span>
-            <span class="gauge-label">Confidence</span>
-          </div>
-        </div>
+        <!-- AI CONTENT WRAPPER (Shown after analysis) -->
+        <div class="ai-reply-content" id="ai-reply-content" style="display: none;">
 
-        <!-- Disease Info -->
-        <div class="form-group" id="disease-info-group" style="display: none;">
-          <label for="disease-info"><i class="fas fa-stethoscope"></i> Diagnosis Result</label>
-          <textarea id="disease-info" rows="5" readonly placeholder="AI Analysis will appear here..."></textarea>
-        </div>
-
-        <!-- Grad-CAM Visual -->
-        <div id="visual-result" style="display: none;">
-          <div class="gradcam-header">
-            <i class="fas fa-eye"></i>
-            <h3>AI Visual Diagnosis</h3>
-          </div>
-          <div class="gradcam-wrapper">
-            <img id="gradcam-image" src="" alt="AI Heatmap">
-          </div>
-          <p class="gradcam-caption">
-            <i class="fas fa-info-circle"></i> The colored areas indicate where the AI detected the disease.
-          </p>
-        </div>
-
-        <!-- Future Simulation -->
-        <div id="simulation-section" style="display:none;">
-          <div class="simulation-header">
-            <i class="fas fa-hourglass-half"></i>
-            <h3>Future Prediction <span>(5 Days Later)</span></h3>
-          </div>
-          <p class="simulation-desc">See how the disease will spread if left untreated.</p>
-
-          <button id="simulate-btn" class="cta-button cta-danger">
-            <i class="fas fa-biohazard"></i> Simulate Progression
-          </button>
-
-          <div id="sim-loader" style="display:none;" class="sim-loader">
-            <div class="loader-spinner"></div>
-            <span>Generating timeline…</span>
+          <div class="reply-header">
+            <div class="ai-avatar">AI</div>
+            <div class="ai-status">Diagnosis Complete</div>
           </div>
 
-          <div id="future-container" style="display:none;" class="future-container">
-            <img id="future-image" src="" alt="Future Prediction">
-            <p class="future-caption">AI Generated Prediction using Stable Diffusion</p>
+          <div class="reply-grid">
+            <!-- Left: Confidence & Heatmap -->
+            <div class="reply-visuals">
+              <!-- Confidence Gauge -->
+              <div class="confidence-gauge" id="confidence-gauge">
+                <svg class="gauge-svg" viewBox="0 0 120 120">
+                  <circle class="gauge-track" cx="60" cy="60" r="52" />
+                  <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="52" />
+                </svg>
+                <div class="gauge-center">
+                  <span class="gauge-value" id="gauge-value">0%</span>
+                  <span class="gauge-label">Confidence</span>
+                </div>
+              </div>
+
+              <!-- Grad-CAM Visual -->
+              <div id="visual-result">
+                <div class="gradcam-header">
+                  <i class="fas fa-eye"></i>
+                  <h3>Visual Diagnosis</h3>
+                </div>
+                <div class="gradcam-wrapper">
+                  <img id="gradcam-image" src="" alt="AI Heatmap">
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Diagnosis Text -->
+            <div class="reply-text">
+              <div class="form-group" id="disease-info-group">
+                <label for="disease-info"><i class="fas fa-stethoscope"></i> Analysis Report</label>
+                <textarea id="disease-info" rows="8" readonly placeholder="AI Analysis will appear here..."></textarea>
+              </div>
+            </div>
           </div>
-        </div>
 
-      </div>
+          <!-- Environment Context & Future Simulation (Section 3 & 4) -->
+          <div id="unified-section" class="expert-section">
+            <div class="context-panel">
+              <h4><i class="fas fa-sliders-h"></i> Environment Context</h4>
+              <p>Tell the AI about your local conditions to refine the cure plan.</p>
 
-    </div>
+              <div class="context-inputs">
+                <div class="input-group">
+                  <label>Location</label>
+                  <input type="text" id="user-location" placeholder="e.g. Pune, India">
+                </div>
+                <div class="input-group">
+                  <label>Weather/Soil</label>
+                  <input type="text" id="user-context" placeholder="e.g. High Humidity">
+                </div>
+              </div>
+            </div>
+
+            <div class="action-grid">
+              <div class="action-box simulation-box">
+                <i class="fas fa-biohazard"></i>
+                <h5>Future Progression</h5>
+                <p>Simulate disease spread in 5 days.</p>
+                <button id="simulate-btn" class="cta-button">Simulate Visuals</button>
+                <img id="future-image" src="" class="output-img">
+              </div>
+
+              <div class="action-box expert-box">
+                <i class="fas fa-user-md"></i>
+                <h5>Expert Cure Plan</h5>
+                <p>Get a tailored remedy for your context.</p>
+                <button id="get-plan-btn" class="cta-button">Generate Plan</button>
+              </div>
+            </div>
+
+            <div id="global-loader" class="ai-loader" style="display:none;">
+              <i class="fas fa-circle-notch fa-spin"></i>
+              <p>AI is analyzing your context...</p>
+            </div>
+
+            <div id="expert-result" class="expert-markdown" style="display:none;"></div>
+          </div>
+
+        </div> <!-- End ai-reply-content -->
+
+      </div> <!-- End reply-container -->
+
+    </div> <!-- End diagnosis-container -->
   </section>
 
   <!-- ═══════════ HOW IT WORKS ═══════════ -->

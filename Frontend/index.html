@@ -4,20 +4,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Foliage Care</title>
+  <title>Foliage Care — Because Every Leaf Tells a Story</title>
+  <meta name="description"
+    content="Immersive plant care experience for the modern gardener. Care for your plants, smarter.">
+
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&family=Noto+Serif+Devanagari:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Devanagari:wght@300;400;500;600&display=swap"
     rel="stylesheet">
+
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/cursor.css">
   <link rel="icon" href="assets/892926.png" type="image/png">
-  <link rel="stylesheet" href="css/svg.css">
-  <link rel="stylesheet" href="css/svg2.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 
 <body>
 
+  <!-- ═══════════ NAVBAR ═══════════ -->
   <nav class="navbar">
     <div class="logo">
       <span class="logo-icon">🌱</span>FOLIAGE CARE
@@ -25,14 +34,18 @@
     </div>
 
     <ul class="nav-links">
-      <!-- Skeleton placeholder -->
+      <!-- Skeleton placeholder (managed by navbar-auth.js) -->
+      <li class="nav-skeleton"></li>
+      <li class="nav-skeleton"></li>
+      <li class="nav-skeleton"></li>
       <li class="nav-skeleton"></li>
       <li class="nav-skeleton"></li>
       <li class="nav-skeleton"></li>
 
-      <!-- REAL LINKS (hidden initially) -->
+      <!-- REAL LINKS -->
       <li class="nav-real hidden"><a href="index.html" class="active">Home <span class="deva-inline">मुख्य
             पृष्ठ</span></a></li>
+      <li class="nav-real hidden"><a href="playbook.html">Playbook <span class="deva-inline">प्लेबुक</span></a></li>
       <li class="nav-real hidden"><a href="start.html">Diagnose <span class="deva-inline">जांच करें</span></a></li>
       <li class="nav-real hidden"><a href="about.html">About <span class="deva-inline">हमारे बारे में</span></a></li>
       <li class="nav-real hidden"><a href="login.html" id="auth-link">Login / Signup <span
@@ -40,55 +53,100 @@
       <li class="nav-real hidden"><a href="contact.html">Connect <span class="deva-inline">संपर्क</span></a></li>
     </ul>
   </nav>
-  <main>
-    <section id="home" class="abt">
-      <?xml version="1.0" ?>
-      <svg fill="#000000" width="100px" height="100px" viewBox="0 0 96 96" id="Layer_1_1_" version="1.1"
-        xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-        <path class="face"
-          d="M48.05,81H47.95C47.435,73.737,41.394,68,34,68c0,7.394,5.737,13.435,13,13.95V94h2V81.95c7.263-0.515,13-6.555,13-13.95   C54.606,68,48.565,73.737,48.05,81z" />
-        <path class="man"
-          d="M17.05,86H16.95C16.435,78.737,10.394,73,3,73c0,7.394,5.737,13.435,13,13.95V94h2v-7.05c7.263-0.515,13-6.555,13-13.95   C23.606,73,17.565,78.737,17.05,86z" />
-        <path
-          d="M80,94v-7.05c7.263-0.515,13-6.555,13-13.95c-7.394,0-13.435,5.737-13.95,13H78.95C78.435,78.737,72.394,73,65,73   c0,7.394,5.737,13.435,13,13.95V94H80z" />
-        <path
-          d="M78,40c2.209,0,4-1.791,4-4c0-1.862-1.278-3.413-3-3.859V16h-2v16.141c-1.722,0.446-3,1.997-3,3.859   C74,38.209,75.791,40,78,40z" />
-        <path
-          d="M57,16h8c1.104,0,2,0.896,2,2v30h27V2H57V16z M74,29.079V8h8v21.079c2.389,1.384,4,3.962,4,6.921c0,4.418-3.582,8-8,8   s-8-3.582-8-8C70,33.041,71.611,30.463,74,29.079z" />
-        <path
-          d="M29,18c0-1.104,0.896-2,2-2h8V2H2v46h27V18z M11.224,38c-2.177,0-3.504-2.394-2.35-4.24l2.35-3.76l2.35,3.76   C14.728,35.606,13.401,38,11.224,38z M21.776,33c-2.177,0-3.504-2.394-2.35-4.24l2.35-3.76l2.35,3.76   C25.279,30.606,23.952,33,21.776,33z M25,20H11c-2.209,0-4-1.791-4-4c0-2.209,1.791-4,4-4c0.353,0,0.689,0.06,1.015,0.146   C12.013,12.096,12,12.05,12,12c0-2.761,2.239-5,5-5s5,2.239,5,5c0,0.047-0.013,0.091-0.014,0.137   c1.071,0.273,1.959,0.975,2.488,1.916C24.645,14.023,24.82,14,25,14c1.657,0,3,1.343,3,3S26.657,20,25,20z" />
-        <path
-          d="M31,60h34V18H31V60z M39,56h-2v-2h2V56z M49,56h-2v-2h2V56z M59,56h-2v-2h2V56z M55,28h6v21h-6V28z M45,37h6v12h-6V37z   M35,32h6v17h-6V32z" />
-      </svg>
 
-      <div class="abt-content">
-        <h1>Go Organic</h1>
-        <h2 align="center">It's always better when it's natural.</h2>
-        <p class="description">Explore, diagnose, and improve your crop health with advanced detection tools.</p>
-        <button><a href="start.html">Get Started!</a></button>
+  <main>
+    <!-- ═══════════ HERO SECTION ═══════════ -->
+    <section class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <h1>Smarter Plant Care<br>for Homes and Farms.</h1>
+        <p>Upload a plant image and receive instant disease diagnosis<br>with AI-powered insights.</p>
+        <div class="cta-group">
+          <a href="start.html" class="btn btn-primary">Diagnose Your Plant</a>
+          <a href="about.html" class="btn btn-secondary">Learn More</a>
+        </div>
       </div>
-      <br><br>
-      <img src="assets/crop.jpg" alt="Placeholed\\">
+    </section>
+
+    <!-- ═══════════ DESIGNED FOR EVERY GROWER ═══════════ -->
+    <section class="grower-section">
+      <div class="section-header">
+        <h2>Designed for Every Grower</h2>
+        <p>A reliable companion for balcony gardens and industrial fields alike.</p>
+      </div>
+
+      <div class="grower-grid">
+        <!-- Gardeners -->
+        <article class="grower-card">
+          <div class="card-image-wrap">
+            <img src="https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?q=80&w=800&auto=format&fit=crop"
+              alt="Home Gardener Close-up">
+          </div>
+          <div class="card-text">
+            <h3>For Home Gardeners</h3>
+            <p>Simple plant care support for indoor and balcony plants. Diagnose issues early and keep your greenery
+              thriving.</p>
+          </div>
+        </article>
+
+        <!-- Farmers -->
+        <article class="grower-card">
+          <div class="card-image-wrap">
+            <img src="https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=800&auto=format&fit=crop"
+              alt="Large Scale Farming">
+          </div>
+          <div class="card-text">
+            <h3>For Farmers</h3>
+            <p>Fast crop disease detection to reduce loss, improve yield, and make informed decisions in the field.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ═══════════ HOW IT WORKS ═══════════ -->
+    <section class="process-section">
+      <div class="section-header">
+        <h2>Simplicity in Action</h2>
+        <p>Efficiency meets accuracy in three clear steps.</p>
+      </div>
+
+      <div class="process-grid">
+        <div class="process-step">
+          <div class="step-icon"><i class="fas fa-upload"></i></div>
+          <h4>Upload</h4>
+          <p>Provide a clear image of the affected plant or crop.</p>
+        </div>
+        <div class="process-arrow"><i class="fas fa-chevron-right"></i></div>
+        <div class="process-step">
+          <div class="step-icon"><i class="fas fa-microchip"></i></div>
+          <h4>Analyze</h4>
+          <p>Our AI processes the image for known disease patterns.</p>
+        </div>
+        <div class="process-arrow"><i class="fas fa-chevron-right"></i></div>
+        <div class="process-step">
+          <div class="step-icon"><i class="fas fa-file-medical-alt"></i></div>
+          <h4>Act</h4>
+          <p>Receive immediate diagnosis and actionable results.</p>
+        </div>
       </div>
     </section>
   </main>
 
+  <!-- ═══════════ FOOTER ═══════════ -->
   <footer class="footer">
-    <p><a href="contact.html">Connect with us</a></p>
-    <div class="social-icons">
-      <a href="#"><i class="fab fa-facebook"></i></a>
-      <a href="#"><i class="fab fa-instagram"></i></a>
-      <a href="#"><i class="fab fa-youtube"></i></a>
-
+    <a href="index.html" class="footer-logo logo">🌱 FOLIAGE CARE</a>
+    <div class="social-links">
+      <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+      <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+      <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
     </div>
-    <p>&copy; 2025 Foliage Care. All rights reserved.</p>
+    <p class="copy">&copy; 2025 Foliage Care. All rights reserved.</p>
   </footer>
 
+  <!-- Scripts -->
   <script type="module" src="js/firebase.js"></script>
   <script src="js/navbar-auth.js"></script>
   <script src="js/cursor.js"></script>
-  <!-- <script src="main.js"></script> -->
-
 </body>
 
 </html>
