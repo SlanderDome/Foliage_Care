@@ -3,7 +3,6 @@
 #  M1: Detection | M2: Smart Sim | M3: Expert
 # ==========================================
 import os
-import re
 from datetime import datetime
 import io
 import json
@@ -107,69 +106,6 @@ def generate_gradcam_heatmap(img_array, pred_index):
     heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-10)
     return heatmap.numpy()
 
-# --- 3.5 AI VISION HELPERS (Gemini Detection) ---
-def _build_jet_lut():
-    """Pre-compute a 256x3 Jet colormap lookup table."""
-    t = np.linspace(0, 1, 256)
-    r = np.clip(1.5 - np.abs(t - 0.75) * 4, 0, 1)
-    g = np.clip(1.5 - np.abs(t - 0.50) * 4, 0, 1)
-    b = np.clip(1.5 - np.abs(t - 0.25) * 4, 0, 1)
-    return np.stack([r, g, b], axis=-1)
-
-JET_LUT = _build_jet_lut()
-
-def apply_jet_colormap(heatmap_np):
-    """Convert 0-1 float heatmap to RGB using Jet LUT."""
-    indices = np.uint8(np.clip(heatmap_np, 0, 1) * 255)
-    colored = JET_LUT[indices]
-    return (colored * 255).astype(np.uint8)
-
-def generate_ai_mask(original_img, boxes):
-    """Draw soft, glowing hotspots based on bounding boxes."""
-    width, height = original_img.size
-    # Create black mask
-    mask_array = np.zeros((height, width), dtype=np.float32)
-    
-    from PIL import ImageDraw, ImageFilter
-    mask_img = Image.new('L', (width, height), 0)
-    draw = ImageDraw.Draw(mask_img)
-    
-    for box in boxes:
-        # Standard Gemini order [ymin, xmin, ymax, xmax] (normalized 0-1000)
-        ymin, xmin, ymax, xmax = box
-        left = xmin * width / 1000
-        top = ymin * height / 1000
-        right = xmax * width / 1000
-        bottom = ymax * height / 1000
-        
-        # Draw soft oval for each symptom
-        draw.ellipse([left, top, right, bottom], fill=255)
-    
-    # Blur mask for that "heatmap" glow
-    mask_img = mask_img.filter(ImageFilter.GaussianBlur(radius=max(width, height)//20))
-    return np.array(mask_img).astype(np.float32) / 255.0
-
-def overlay_ai_mask(original_img, boxes):
-    """Apply Gemini-detected boxes as a professional heatmap overlay."""
-    if not boxes:
-        return None
-        
-    mask_np = generate_ai_mask(original_img, boxes)
-    colored_heatmap = apply_jet_colormap(mask_np)
-    
-    heatmap_pil = Image.fromarray(colored_heatmap)
-    
-    # Weighted Alpha Blend: High activation = 0.5 opacity, Low = 0.0
-    # We'll use the mask itself as the alpha channel for a "clean" look
-    mask_pil = Image.fromarray((mask_np * 140).astype(np.uint8)) # Max 0.55 opacity
-    
-    final_image = original_img.copy()
-    final_image.paste(heatmap_pil, (0, 0), mask_pil)
-    
-    buffered = io.BytesIO()
-    final_image.save(buffered, format="JPEG", quality=90)
-    return base64.b64encode(buffered.getvalue()).decode("utf-8")
-
 def overlay_heatmap_turbo(original_bytes, heatmap):
     heatmap = np.clip(heatmap, 0, 1)
     r = np.clip((heatmap - 0.5) * 2, 0, 1) * 255
@@ -238,67 +174,49 @@ async def predict(
     class_name = CLASS_NAMES.get(idx, "Unknown")
     
     heatmap_base64 = None
-    
-    # --- 1. Diagnosis Report & Precision Highlight (Gemini) ---
+    try:
+        heatmap = generate_gradcam_heatmap(processed_image, idx)
+        heatmap_base64 = overlay_heatmap_turbo(image_bytes, heatmap)
+    except Exception as e:
+        print(f"⚠️ Grad-CAM Warning: {e}")
+
+    # Generate Tailored Analysis Report with Gemini
     if gemini_client:
         loc_str = f"{location} (GPS: {latitude}, {longitude})" if latitude and longitude else (location or "remote field")
+        report_prompt = f"""
+        Act as a senior plant pathologist delivering a diagnosis to {user_name}.
         
-        # We'll ask Gemini for BOTH the report and the bounding boxes in one go to save API calls
-        # (Or two calls if needed for better reliability, but let's try one first)
-        combined_prompt = f"""
-        Act as a senior plant pathologist. 
-        USER: {user_name}
-        DIAGNOSIS: {class_name}
+        DETECTED: {class_name} ({confidence*100:.1f}% confidence)
         LOCATION: {loc_str}
         DATE: {datetime.now().strftime('%B %d, %Y')}
+        CONDITIONS: {context}
 
-        TASK 1: Write a professional 2-sentence report. 1. Direct cause/effect. 2. Immediate action for {loc_str} in February.
-        TASK 2: Detect all distinct lesions/spots for '{class_name}'. 
+        Write a brief, professional report (2-3 sentences max):
+        1. State what the disease does to the plant (direct, no qualifiers like "likely" or "may")
+        2. Give ONE immediate action for {loc_str} in mid-February
         
-        OUTPUT FORMAT:
-        REPORT: [Your text]
-        BOXES: [[ymin, xmin, ymax, xmax], ...] (Normalized 0-1000)
+        CRITICAL: Use active voice. Be concise. No filler words. Sound like an expert, not a chatbot.
         """
-        
         try:
-            pil_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
             response = gemini_client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=[combined_prompt, pil_img]
+                model="gemini-2.5-flash",
+                contents=report_prompt
             )
-            raw_text = response.text
-            
-            # Extract Report
-            report_match = re.search(r'REPORT:\s*(.*?)(?=BOXES:|$)', raw_text, re.DOTALL)
-            report_text = report_match.group(1).strip() if report_match else "Consult an expert."
-            
-            # Extract Boxes and generate AI Highlight
-            boxes = []
-            box_matches = re.findall(r'\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\]', raw_text)
-            boxes = [[int(v) for v in m] for m in box_matches]
-            
-            if boxes:
-                print(f"🎯 Gemini detected {len(boxes)} symptoms for {class_name}")
-                heatmap_base64 = overlay_ai_mask(pil_img, boxes)
-            
-        except Exception as e:
-            print(f"⚠️ Gemini Precision Highlight failed: {e}")
+            report_text = response.text.strip()
+        except:
             report_text = PREVENTION_TIPS.get(class_name, "Consult an expert.")
-
-    # FALLBACK: Traditional Grad-CAM if AI highlight failed or Gemini is unavailable
-    if heatmap_base64 is None:
-        try:
-            heatmap = generate_gradcam_heatmap(processed_image, idx)
-            heatmap_base64 = overlay_heatmap_turbo(image_bytes, heatmap)
-        except Exception as e:
-            print(f"⚠️ Grad-CAM Fallback Warning: {e}")
+    else:
+        report_text = PREVENTION_TIPS.get(class_name, "Consult an expert.")
 
     return {
         "class": class_name,
         "confidence": confidence,
-        "prevention_measures": report_text if gemini_client else PREVENTION_TIPS.get(class_name, "Consult an expert."),
+        "prevention_measures": report_text,
         "explanation_image": heatmap_base64
     }
+
+# Add this to your imports at the top
+from huggingface_hub import InferenceClient
 
 @app.post("/simulate")
 async def simulate_progression(
@@ -309,63 +227,62 @@ async def simulate_progression(
     latitude: str = Form(None),
     longitude: str = Form(None)
 ):
-    """Module 2: Smart Simulation"""
-    SD_API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    """Module 2: Smart Simulation (Fixed for Production)"""
+    
+    # 1. Initialize the Client with the specific Edit Model
+    # 'timbrooks/instruct-pix2pix' is best for modifying existing images
+    client = InferenceClient(model="timbrooks/instruct-pix2pix", token=HF_TOKEN)
 
     try:
         image_bytes = await file.read()
+        original_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         
-        # Build precise location string
-        loc_str = f"GPS: {latitude}, {longitude}" if latitude and longitude else "remote field"
-
-        # 1. Ask Gemini for Prompt
+        # 2. Refine the Prompt with Gemini (Keep this logic, it's good!)
         if gemini_client:
+            loc_str = f"GPS: {latitude}, {longitude}" if latitude and longitude else "remote field"
             print(f"🧠 Gemini Context for {user_name}: {context} @ {loc_str}")
-            gemini_prompt = f"""
-            Act as a visual strategist for {user_name}'s farm located at {loc_str}.
-            Current date: {datetime.now().strftime('%B %d, %Y')}.
-            Describe the visual appearance of a plant leaf with '{disease_name}' 
-            after 5 days of untreated progression in these exact conditions: '{context}'.
             
-            Return ONLY a comma-separated list of visual keywords (e.g., soggy brown rims, fungal fuzz, yellow veins).
-            Focus on the high-detail visual decay patterns tailored to the environment and current season.
+            gemini_prompt = f"""
+            Act as a visual strategist. 
+            Describe the VISUAL symptoms of '{disease_name}' on a plant leaf after 5 days.
+            Context: {context}.
+            Return ONLY a short command for an image editor. 
+            Examples: "make the leaves yellow and spotty", "add brown fungal patches", "wither the edges".
             """
             try:
                 response = gemini_client.models.generate_content(
                     model="gemini-2.5-flash", 
                     contents=gemini_prompt
                 )
-                visual_descriptors = response.text.strip()
-                final_prompt = f"close up photo of a {disease_name} leaf on {user_name}'s farm, {visual_descriptors}, realistic, 8k, macro photography"
+                edit_instruction = response.text.strip()
             except Exception as e:
                 print(f"⚠️ Gemini Prompt Error: {e}")
-                final_prompt = f"close up photo of a {disease_name} leaf, severe decay, necrotic spots, realistic texture, 8k"
+                edit_instruction = f"add {disease_name} symptoms, necrotic spots, rot"
         else:
-            final_prompt = f"close up photo of a {disease_name} leaf, severe damage, rotting, realistic texture, 8k"
+            edit_instruction = f"make the leaf look like it has {disease_name}, rotten, damaged"
 
-        print(f"🎨 Generating: {final_prompt}")
+        print(f"🎨 Instruction: {edit_instruction}")
 
-        # 2. Call Stable Diffusion
-        response = requests.post(
-            SD_API_URL,
-            headers=headers,
-            data=image_bytes, 
-            params={
-                "inputs": final_prompt,
-                "parameters": {"strength": 0.75, "guidance_scale": 8.0}
-            }
+        # 3. Call Hugging Face (The Correct Way)
+        # image_to_image is the specific function for this workflow
+        generated_image = client.image_to_image(
+            image=original_image,
+            prompt=edit_instruction,
+            negative_prompt="blur, low quality, distortion, text, watermark",
+            strength=1.5, # Higher strength = more editing power for Pix2Pix
+            guidance_scale=7.5
         )
+
+        # 4. Convert output back to Base64 for your Frontend
+        buffered = io.BytesIO()
+        generated_image.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
         
-        if response.status_code == 200:
-            img_str = base64.b64encode(response.content).decode("utf-8")
-            return {"future_image": img_str}
-        else:
-            return {"error": f"HF Error: {response.text}"}
+        return {"future_image": img_str}
 
     except Exception as e:
         traceback.print_exc()
-        return {"error": str(e)}
+        return {"error": f"Simulation Failed: {str(e)}"}
 
 @app.post("/get_expert_plan")
 async def get_expert_plan(

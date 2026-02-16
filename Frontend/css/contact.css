@@ -6,10 +6,11 @@
 }
 
 body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     line-height: 1.6;
-    color: #090909;
-    background-color: #ffffff;
+    color: #e8e6dc;
+    background-color: #020302;
+    -webkit-font-smoothing: antialiased;
 }
 
 
@@ -25,12 +26,11 @@ body {
     align-items: center;
     padding: 0 48px;
     height: 64px;
-    background: rgba(5, 6, 4, .9);
+    background: rgba(5, 6, 4, .95);
     backdrop-filter: blur(20px) saturate(1.6);
     -webkit-backdrop-filter: blur(20px) saturate(1.6);
-    border-bottom: 1px solid var(--border-subtle);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, .03);
-    color: var(--text-primary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e8e6dc;
 }
 
 /* Logo */
@@ -38,34 +38,14 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: var(--ff-display);
-    font-size: 1.65rem;
+    font-size: 1.4rem;
     font-weight: 500;
-    letter-spacing: 3px;
-    color: var(--text-primary);
-    cursor: default;
-    transition: letter-spacing var(--t-med) var(--ease-out);
+    letter-spacing: 2px;
+    color: #e8e6dc;
 }
 
 .logo-icon {
     font-size: 1.4rem;
-    animation: breathe 4s ease-in-out infinite;
-}
-
-@keyframes breathe {
-
-    0%,
-    100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.15);
-    }
-}
-
-.logo:hover {
-    letter-spacing: 4.5px;
 }
 
 /* Nav links */
@@ -73,221 +53,148 @@ body {
     display: flex;
     list-style: none;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
 }
 
 .nav-links a {
-    display: flex;
-    align-items: center;
     text-decoration: none;
-    font-family: var(--ff-body);
-    font-size: .8rem;
+    font-size: .75rem;
     font-weight: 600;
-    letter-spacing: 1.4px;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    color: var(--text-secondary);
+    color: #a0a090;
     padding: 8px 16px;
-    border-radius: var(--r-sm);
-    position: relative;
-    transition: color var(--t-fast), background var(--t-fast);
-}
-
-.nav-links a::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    transform: translateX(-50%);
-    background: var(--accent);
-    border-radius: 2px;
-    transition: width var(--t-med) var(--ease-out);
+    border-radius: 8px;
+    transition: all 0.3s;
 }
 
 .nav-links a:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, .04);
-}
-
-.nav-links a:hover::after {
-    width: 50%;
+    color: #e8e6dc;
+    background: rgba(255, 255, 255, .05);
 }
 
 .nav-links a.active {
-    color: var(--accent);
-    font-weight: 700;
-}
-
-.nav-links a.active::after {
-    width: 50%;
+    color: #7cb342;
 }
 
 .deva-inline {
-    display: inline;
     font-size: .68rem;
-    font-weight: 400;
-    opacity: .55;
+    opacity: .5;
     margin-left: 4px;
-    font-family: var(--ff-deva);
+    font-family: 'Noto Serif Devanagari', serif;
 }
 
-
-
-
-/* --- Feedback / About Section Wrapper --- */
+/* --- Feedback Section Wrapper --- */
 .abt {
     position: relative;
     text-align: center;
-    padding: 80px 20px;
-    /* Increased padding for breathing room */
-    background: linear-gradient(135deg, #afdc82 0%, #e3ffdc 50%, #afdc82 100%);
-    overflow: hidden;
-    /* Keeps animations contained */
-}
-
-/* Decorative background leaf/circle (Optional - adds depth) */
-.abt::before {
-    content: '';
-    position: absolute;
-    top: -50px;
-    left: -50px;
-    width: 200px;
-    height: 200px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    z-index: 0;
+    padding: 100px 24px;
+    background: radial-gradient(circle at top, #080a08, #020302);
+    min-height: 80vh;
 }
 
 .abt-content {
-    position: relative;
-    z-index: 1;
     max-width: 800px;
     margin: 0 auto;
 }
 
 /* --- Typography --- */
 .abt h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-    color: #1a3c1a;
-    /* Darker green for better contrast */
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.abt h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.4 rem;
-    margin-bottom: 10px;
-    color: #1a3c1a;
-    /* Darker green for better contrast */
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    font-family: 'Outfit', sans-serif;
+    font-size: 4rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #e8e6dc;
+    letter-spacing: -2px;
 }
 
 .abt p {
-    font-family: 'DM Sans', sans-serif;
-    /* Switched to DM Sans for readability */
-    font-style: normal;
-    font-size: 1.1rem;
-    color: #3c5e3c;
-    margin-bottom: 30px;
-}
-
-/* --- The Robot/Plant Icon Animation --- */
-.abt svg {
-    margin-bottom: 20px;
-    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.abt svg:hover {
-    transform: scale(1.1) rotate(5deg);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 1.25rem;
+    color: #a0a090;
+    margin-bottom: 60px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* --- Glassmorphic Form Container --- */
 .contact-form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    background: rgba(255, 255, 255, 0.6);
-    /* Semi-transparent white */
-    backdrop-filter: blur(12px);
-    /* The frosted glass effect */
-    -webkit-backdrop-filter: blur(12px);
-    padding: 40px;
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 15px 35px rgba(0, 50, 0, 0.1);
-    /* Soft green shadow */
-    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 48px;
+    border-radius: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
+    margin: 40px auto;
+    max-width: 800px;
 }
 
 /* --- Input Fields --- */
 .contact-form input,
 .contact-form textarea {
-    flex: 1 1 calc(50% - 20px);
-    padding: 15px 20px;
-    font-family: 'DM Sans', sans-serif;
+    width: 100%;
+    padding: 20px;
+    font-family: 'Outfit', sans-serif;
     font-size: 1rem;
-    color: #2d5d2d;
-    background-color: rgba(255, 255, 255, 0.9);
-    border: 2px solid transparent;
-    /* Prepare for hover state */
-    border-radius: 12px;
-    transition: all 0.3s ease;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    color: #e8e6dc;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    transition: all 0.3s;
 }
 
-/* Make textarea full width */
-.contact-form textarea {
-    flex: 1 1 100%;
-    min-height: 120px;
-    resize: vertical;
-}
-
-/* Input Focus States */
 .contact-form input:focus,
 .contact-form textarea:focus {
     outline: none;
-    background-color: #ffffff;
-    border-color: #4ca052;
-    box-shadow: 0 0 0 4px rgba(76, 160, 82, 0.2);
-    /* Green glow ring */
+    background: rgba(255, 255, 255, 0.06);
+    border-color: #7cb342;
+    box-shadow: 0 0 0 4px rgba(124, 179, 66, 0.1);
     transform: translateY(-2px);
 }
 
-.contact-form input::placeholder,
-.contact-form textarea::placeholder {
-    color: #8da38d;
+.contact-form textarea {
+    grid-column: span 2;
+    min-height: 150px;
+}
+
+@media (max-width: 700px) {
+    .contact-form input {
+        grid-column: span 2;
+    }
+
+    .abt h1 {
+        font-size: 2.8rem;
+    }
 }
 
 /* --- Submit Button --- */
 .cta-button {
-    font-family: 'Playfair Display', serif;
-    font-weight: bold;
-    letter-spacing: 1px;
-    background: linear-gradient(90deg, #2d5d2d 0%, #0a823c 100%);
+    grid-column: span 2;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: #7cb342;
     border: none;
-    color: rgb(252, 235, 212);
-    padding: 15px 40px;
-    font-size: 1.1rem;
+    color: #111310;
+    padding: 22px;
+    font-size: 0.9rem;
     cursor: pointer;
-    border-radius: 50px;
-    /* Pill shape */
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(10, 130, 60, 0.3);
-    margin: 10px auto 0;
-    /* Center the button */
-    display: block;
-    width: auto;
-    min-width: 200px;
+    border-radius: 16px;
+    transition: all 0.3s;
+    margin-top: 10px;
 }
 
 .cta-button:hover {
-    background: linear-gradient(90deg, #0a823c 0%, #2d5d2d 100%);
+    background: #5a8a2f;
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(10, 130, 60, 0.4);
+    box-shadow: 0 10px 30px rgba(124, 179, 66, 0.2);
 }
 
 .cta-button:active {
