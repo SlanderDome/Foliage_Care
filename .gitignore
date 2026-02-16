@@ -13,7 +13,7 @@ new_potato_disease_dataset/
 .vscode/
 .idea/
 .env
-
+docs/
 
 backup/
 Backend/tests/test_gradcam.py
