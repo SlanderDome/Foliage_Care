@@ -494,22 +494,12 @@ simulateBtn.addEventListener("click", async () => {
 
 planBtn.addEventListener("click", async () => {
     const file = fileInput.files[0];
-    const loc = locationInput.value;
-    const ctx = contextInput.value;
+    // Use defaults if empty — don't block the user
+    const loc = locationInput.value || "General Region";
+    const ctx = contextInput.value || "General Context";
     const userName = getUserName();
 
     if (!detectedDiseaseName) return;
-
-    if (!loc || !ctx) {
-        if (window.toast) window.toast.warning('Please enter Location and Weather Context.');
-        locationInput.style.borderColor = "#e74c3c";
-        contextInput.style.borderColor = "#e74c3c";
-        setTimeout(() => {
-            locationInput.style.borderColor = "#ddd";
-            contextInput.style.borderColor = "#ddd";
-        }, 2000);
-        return;
-    }
 
     planBtn.disabled = true;
     planBtn.innerText = "Consulting...";

@@ -3,6 +3,7 @@
 #  M1: Detection | M2: Smart Sim | M3: Expert
 # ==========================================
 import os
+from datetime import datetime
 import io
 import json
 import base64
@@ -186,11 +187,13 @@ async def predict(
         Act as an AI Plant Pathologist.
         USER: {user_name}
         LOCATION: {loc_str}
+        CURRENT DATE: {datetime.now().strftime('%B %d, %Y')}
         DETECTED DISEASE: {class_name} ({confidence*100:.1f}% confidence)
         ENVIRONMENT: {context}
 
         Provide a concise 2-3 sentence analysis report specifically for {user_name}. 
         Briefly explain what this disease does to the plant and give one immediate 'first-aid' tip tailored to {loc_str}.
+        Consider the CURRENT DATE when discussing seasonal advice.
         """
         try:
             response = gemini_client.models.generate_content(
@@ -234,11 +237,12 @@ async def simulate_progression(
             print(f"🧠 Gemini Context for {user_name}: {context} @ {loc_str}")
             gemini_prompt = f"""
             Act as a visual strategist for {user_name}'s farm located at {loc_str}.
+            Current date: {datetime.now().strftime('%B %d, %Y')}.
             Describe the visual appearance of a plant leaf with '{disease_name}' 
             after 5 days of untreated progression in these exact conditions: '{context}'.
             
             Return ONLY a comma-separated list of visual keywords (e.g., soggy brown rims, fungal fuzz, yellow veins).
-            Focus on the high-detail visual decay patterns tailored to the environment.
+            Focus on the high-detail visual decay patterns tailored to the environment and current season.
             """
             try:
                 response = gemini_client.models.generate_content(
@@ -306,12 +310,13 @@ async def get_expert_plan(
         **CASE FILE:**
         - Diagnosis: {disease}
         - Location: {loc_str}
+        - Current Date: {datetime.now().strftime('%B %d, %Y')}
         - User Context: {context}
         
         **TASK:**
         1. Confirm the diagnosis from the image.
         2. Provide a localized 3-step action plan (Immediate, Chemical, Organic).
-           - Consider the specific climate/soil of {loc_str}.
+           - Consider the specific climate/soil of {loc_str} and the CURRENT SEASON based on the date above.
            - If context mentions '{context}', adjust advice (e.g., rain-fast chemicals).
         3. Format in clear Markdown.
         """
@@ -356,6 +361,7 @@ async def followup(req: FollowUpRequest):
         **CASE FILE:**
         - Current Diagnosis: {req.disease}
         - Location: {loc_str}
+        - Current Date: {datetime.now().strftime('%B %d, %Y')}
         
         **CONVERSATION SO FAR:**
         {history_text}

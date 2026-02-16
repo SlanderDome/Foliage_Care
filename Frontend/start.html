@@ -312,7 +312,16 @@
             <!-- Entries appended dynamically by JS -->
           </div>
 
-          <!-- Environment Context & Actions (Shown after diagnosis) -->
+          <!-- Follow-Up Bar (Moved below diagnosis) -->
+          <div class="followup-bar" id="followup-bar" style="display: none;">
+            <i class="fas fa-leaf followup-icon"></i>
+            <input type="text" id="followup-input" placeholder="Ask a follow-up about your plant's health..." />
+            <button type="button" id="followup-send" class="followup-send-btn" title="Send">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+
+          <!-- Environment Context & Actions -->
           <div id="unified-section" class="expert-section" style="display: none;">
             <div class="context-panel">
               <h4><i class="fas fa-sliders-h"></i> Environment Context</h4>
@@ -355,14 +364,7 @@
             <div id="expert-result" class="expert-markdown" style="display:none;"></div>
           </div>
 
-          <!-- Follow-Up Bar (Pinned at bottom of thread) -->
-          <div class="followup-bar" id="followup-bar" style="display: none;">
-            <i class="fas fa-leaf followup-icon"></i>
-            <input type="text" id="followup-input" placeholder="Ask a follow-up about your plant's health..." />
-            <button type="button" id="followup-send" class="followup-send-btn" title="Send">
-              <i class="fas fa-paper-plane"></i>
-            </button>
-          </div>
+
         </div>
 
       </div> <!-- End reply-container -->
