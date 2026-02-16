@@ -72,6 +72,35 @@ function getUserName() {
     return user ? (user.displayName || "Farmer") : "Farmer";
 }
 
+function formatDiseaseName(rawName) {
+    // Convert "Apple___Apple_scab" → "Apple Scab"
+    // Convert "Potato___healthy" → "Potato (Healthy)"
+    if (!rawName) return "Unknown";
+
+    // Split by triple underscore if present
+    const parts = rawName.split('___');
+
+    if (parts.length === 2) {
+        const plant = parts[0].replace(/_/g, ' ');
+        const condition = parts[1].replace(/_/g, ' ');
+
+        // Special case for "healthy"
+        if (condition.toLowerCase() === 'healthy') {
+            return `${plant} (Healthy)`;
+        }
+
+        // Otherwise: "Apple Scab" instead of "Apple Apple Scab"
+        if (condition.toLowerCase().startsWith(plant.toLowerCase())) {
+            return condition;
+        }
+
+        return `${plant} ${condition}`;
+    }
+
+    // Fallback: just replace underscores
+    return rawName.replace(/_/g, ' ');
+}
+
 // --- Stepper Control ---
 function setStep(stepNum) {
     stepperSteps.forEach((s, i) => {
@@ -316,9 +345,10 @@ analyzeButton.addEventListener("click", async (event) => {
 
             setStep(3);
             const confidencePercent = (result.confidence * 100).toFixed(2);
+            const cleanName = formatDiseaseName(result.class);
 
             // Build the diagnosis entry with inline visuals
-            const diagText = `<strong>🌿 ${result.class}</strong> detected with <strong>${confidencePercent}%</strong> confidence.`;
+            const diagText = `<strong>🌿 ${cleanName}</strong> detected with <strong>${confidencePercent}%</strong> confidence.`;
             const reportText = result.prevention_measures || "";
 
             const visualsHTML = `
@@ -335,7 +365,7 @@ analyzeButton.addEventListener("click", async (event) => {
                             </div>
                         </div>
                         ${result.explanation_image ? `
-                        <div class="gradcam-wrapper" style="border-radius:10px;overflow:hidden;">
+                        <div class="gradcam-wrapper" style="border-radius:12px;overflow:hidden;border:1px solid var(--border-card);box-shadow:0 2px 8px rgba(0,0,0,0.15);">
                             <img src="data:image/jpeg;base64,${result.explanation_image}" alt="AI Heatmap" style="width:100%;display:block;" id="gradcam-image">
                         </div>` : ''}
                     </div>

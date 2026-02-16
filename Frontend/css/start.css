@@ -1248,11 +1248,12 @@ img {
 
 .entry-meta .entry-time {
   color: var(--text-muted);
-  font-weight: 500;
+  font-weight: 400;
   margin-left: auto;
-  font-size: 0.65rem;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 0.62rem;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  opacity: 0.6;
 }
 
 /* --- User Entry --- */
@@ -1305,9 +1306,9 @@ img {
 /* --- Diagnosis Entry (Special AI entry with visuals) --- */
 .diagnosis-visuals {
   display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 24px;
-  margin-top: 16px;
+  grid-template-columns: 200px 1fr;
+  gap: 32px;
+  margin-top: 20px;
 }
 
 @media (max-width: 640px) {
@@ -1325,12 +1326,19 @@ img {
 .diagnosis-report {
   background: var(--bg-input);
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  padding: 16px 20px;
+  border-radius: 12px;
+  padding: 20px 24px;
   color: var(--text-primary);
-  font-size: 0.88rem;
-  line-height: 1.7;
+  font-size: 0.92rem;
+  line-height: 1.8;
   white-space: pre-wrap;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+.diagnosis-report strong {
+  font-weight: 600;
+  color: var(--accent);
 }
 
 /* ═══════════ TYPING INDICATOR ═══════════ */

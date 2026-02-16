@@ -3,6 +3,7 @@
 #  M1: Detection | M2: Smart Sim | M3: Expert
 # ==========================================
 import os
+import re
 from datetime import datetime
 import io
 import json
@@ -106,6 +107,69 @@ def generate_gradcam_heatmap(img_array, pred_index):
     heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-10)
     return heatmap.numpy()
 
+# --- 3.5 AI VISION HELPERS (Gemini Detection) ---
+def _build_jet_lut():
+    """Pre-compute a 256x3 Jet colormap lookup table."""
+    t = np.linspace(0, 1, 256)
+    r = np.clip(1.5 - np.abs(t - 0.75) * 4, 0, 1)
+    g = np.clip(1.5 - np.abs(t - 0.50) * 4, 0, 1)
+    b = np.clip(1.5 - np.abs(t - 0.25) * 4, 0, 1)
+    return np.stack([r, g, b], axis=-1)
+
+JET_LUT = _build_jet_lut()
+
+def apply_jet_colormap(heatmap_np):
+    """Convert 0-1 float heatmap to RGB using Jet LUT."""
+    indices = np.uint8(np.clip(heatmap_np, 0, 1) * 255)
+    colored = JET_LUT[indices]
+    return (colored * 255).astype(np.uint8)
+
+def generate_ai_mask(original_img, boxes):
+    """Draw soft, glowing hotspots based on bounding boxes."""
+    width, height = original_img.size
+    # Create black mask
+    mask_array = np.zeros((height, width), dtype=np.float32)
+    
+    from PIL import ImageDraw, ImageFilter
+    mask_img = Image.new('L', (width, height), 0)
+    draw = ImageDraw.Draw(mask_img)
+    
+    for box in boxes:
+        # Standard Gemini order [ymin, xmin, ymax, xmax] (normalized 0-1000)
+        ymin, xmin, ymax, xmax = box
+        left = xmin * width / 1000
+        top = ymin * height / 1000
+        right = xmax * width / 1000
+        bottom = ymax * height / 1000
+        
+        # Draw soft oval for each symptom
+        draw.ellipse([left, top, right, bottom], fill=255)
+    
+    # Blur mask for that "heatmap" glow
+    mask_img = mask_img.filter(ImageFilter.GaussianBlur(radius=max(width, height)//20))
+    return np.array(mask_img).astype(np.float32) / 255.0
+
+def overlay_ai_mask(original_img, boxes):
+    """Apply Gemini-detected boxes as a professional heatmap overlay."""
+    if not boxes:
+        return None
+        
+    mask_np = generate_ai_mask(original_img, boxes)
+    colored_heatmap = apply_jet_colormap(mask_np)
+    
+    heatmap_pil = Image.fromarray(colored_heatmap)
+    
+    # Weighted Alpha Blend: High activation = 0.5 opacity, Low = 0.0
+    # We'll use the mask itself as the alpha channel for a "clean" look
+    mask_pil = Image.fromarray((mask_np * 140).astype(np.uint8)) # Max 0.55 opacity
+    
+    final_image = original_img.copy()
+    final_image.paste(heatmap_pil, (0, 0), mask_pil)
+    
+    buffered = io.BytesIO()
+    final_image.save(buffered, format="JPEG", quality=90)
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
 def overlay_heatmap_turbo(original_bytes, heatmap):
     heatmap = np.clip(heatmap, 0, 1)
     r = np.clip((heatmap - 0.5) * 2, 0, 1) * 255
@@ -174,42 +238,65 @@ async def predict(
     class_name = CLASS_NAMES.get(idx, "Unknown")
     
     heatmap_base64 = None
-    try:
-        heatmap = generate_gradcam_heatmap(processed_image, idx)
-        heatmap_base64 = overlay_heatmap_turbo(image_bytes, heatmap)
-    except Exception as e:
-        print(f"⚠️ Grad-CAM Warning: {e}")
-
-    # Generate Tailored Analysis Report with Gemini
+    
+    # --- 1. Diagnosis Report & Precision Highlight (Gemini) ---
     if gemini_client:
         loc_str = f"{location} (GPS: {latitude}, {longitude})" if latitude and longitude else (location or "remote field")
-        report_prompt = f"""
-        Act as an AI Plant Pathologist.
+        
+        # We'll ask Gemini for BOTH the report and the bounding boxes in one go to save API calls
+        # (Or two calls if needed for better reliability, but let's try one first)
+        combined_prompt = f"""
+        Act as a senior plant pathologist. 
         USER: {user_name}
+        DIAGNOSIS: {class_name}
         LOCATION: {loc_str}
-        CURRENT DATE: {datetime.now().strftime('%B %d, %Y')}
-        DETECTED DISEASE: {class_name} ({confidence*100:.1f}% confidence)
-        ENVIRONMENT: {context}
+        DATE: {datetime.now().strftime('%B %d, %Y')}
 
-        Provide a concise 2-3 sentence analysis report specifically for {user_name}. 
-        Briefly explain what this disease does to the plant and give one immediate 'first-aid' tip tailored to {loc_str}.
-        Consider the CURRENT DATE when discussing seasonal advice.
+        TASK 1: Write a professional 2-sentence report. 1. Direct cause/effect. 2. Immediate action for {loc_str} in February.
+        TASK 2: Detect all distinct lesions/spots for '{class_name}'. 
+        
+        OUTPUT FORMAT:
+        REPORT: [Your text]
+        BOXES: [[ymin, xmin, ymax, xmax], ...] (Normalized 0-1000)
         """
+        
         try:
+            pil_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
             response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=report_prompt
+                model="gemini-2.0-flash",
+                contents=[combined_prompt, pil_img]
             )
-            report_text = response.text.strip()
-        except:
+            raw_text = response.text
+            
+            # Extract Report
+            report_match = re.search(r'REPORT:\s*(.*?)(?=BOXES:|$)', raw_text, re.DOTALL)
+            report_text = report_match.group(1).strip() if report_match else "Consult an expert."
+            
+            # Extract Boxes and generate AI Highlight
+            boxes = []
+            box_matches = re.findall(r'\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\]', raw_text)
+            boxes = [[int(v) for v in m] for m in box_matches]
+            
+            if boxes:
+                print(f"🎯 Gemini detected {len(boxes)} symptoms for {class_name}")
+                heatmap_base64 = overlay_ai_mask(pil_img, boxes)
+            
+        except Exception as e:
+            print(f"⚠️ Gemini Precision Highlight failed: {e}")
             report_text = PREVENTION_TIPS.get(class_name, "Consult an expert.")
-    else:
-        report_text = PREVENTION_TIPS.get(class_name, "Consult an expert.")
+
+    # FALLBACK: Traditional Grad-CAM if AI highlight failed or Gemini is unavailable
+    if heatmap_base64 is None:
+        try:
+            heatmap = generate_gradcam_heatmap(processed_image, idx)
+            heatmap_base64 = overlay_heatmap_turbo(image_bytes, heatmap)
+        except Exception as e:
+            print(f"⚠️ Grad-CAM Fallback Warning: {e}")
 
     return {
         "class": class_name,
         "confidence": confidence,
-        "prevention_measures": report_text,
+        "prevention_measures": report_text if gemini_client else PREVENTION_TIPS.get(class_name, "Consult an expert."),
         "explanation_image": heatmap_base64
     }
 

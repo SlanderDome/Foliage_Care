@@ -108,39 +108,54 @@ def apply_jet_colormap(heatmap):
 def generate_gradcam_heatmap(img_array, pred_index):
     """
     Generates a Grad-CAM heatmap for the given class index.
-    The grad_cam_model outputs [conv_layer_output, final_predictions]
-    from a single forward pass through the full model.
+    Uses percentile-based normalization for better contrast.
     """
     img_tensor = tf.cast(img_array, tf.float32)
 
     with tf.GradientTape() as tape:
-        # Single forward pass through the full model
         conv_outputs, predictions = grad_cam_model(img_tensor)
         tape.watch(conv_outputs)
         class_score = predictions[:, pred_index]
 
-    # Compute gradients of class score w.r.t. conv outputs
     grads = tape.gradient(class_score, conv_outputs)
 
     if grads is None:
         print("⚠️ Grad-CAM: gradients are None, returning blank heatmap")
         return np.zeros(conv_outputs.shape[1:3], dtype=np.float32)
 
-    # Global average pooling of gradients → channel importance weights
     pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
 
-    # Weighted combination of feature maps
     conv_outputs = conv_outputs[0]
     heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
     heatmap = tf.squeeze(heatmap)
 
-    # ReLU + normalize to 0-1
+    # ReLU — only positive contributions
     heatmap = tf.maximum(heatmap, 0)
-    max_val = tf.reduce_max(heatmap)
-    if max_val > 0:
-        heatmap = heatmap / max_val
+    heatmap_np = heatmap.numpy()
 
-    return heatmap.numpy()
+    # Percentile-based normalization for better contrast
+    # Prevents one bright pixel from washing out the rest
+    if heatmap_np.max() > 0:
+        p95 = np.percentile(heatmap_np, 95)
+        if p95 > 0:
+            heatmap_np = np.clip(heatmap_np, 0, p95) / p95
+        else:
+            heatmap_np = heatmap_np / heatmap_np.max()
+
+    return heatmap_np
+
+
+def _smooth_heatmap(heatmap, kernel_size=3):
+    """Apply simple box-blur smoothing to remove blocky artifacts (no scipy needed)."""
+    pad = kernel_size // 2
+    padded = np.pad(heatmap, pad, mode='reflect')
+    kernel = np.ones((kernel_size, kernel_size)) / (kernel_size ** 2)
+    h, w = heatmap.shape
+    smoothed = np.zeros_like(heatmap)
+    for i in range(h):
+        for j in range(w):
+            smoothed[i, j] = np.sum(padded[i:i+kernel_size, j:j+kernel_size] * kernel)
+    return smoothed
 
 # ================================
 # PREDICTION + GRAD-CAM OVERLAY
@@ -171,13 +186,29 @@ def process_image(input_image):
         # --- Grad-CAM ---
         heatmap = generate_gradcam_heatmap(img_array, class_idx)
 
+        # Smooth the raw heatmap (typically 7×7) before upscaling
+        heatmap = _smooth_heatmap(heatmap, kernel_size=3)
+
         colored_heatmap = apply_jet_colormap(heatmap)
         colored_heatmap = Image.fromarray(colored_heatmap)
         colored_heatmap = colored_heatmap.resize(
-            original_img.size, resample=Image.BILINEAR
+            original_img.size, resample=Image.LANCZOS
         )
 
-        final_image = Image.blend(original_img, colored_heatmap, alpha=0.4)
+        # Intensity-weighted alpha: only overlay where activation exists
+        heatmap_upscaled = np.array(
+            Image.fromarray(np.uint8(heatmap * 255)).resize(
+                original_img.size, resample=Image.LANCZOS
+            )
+        ).astype(np.float32) / 255.0
+
+        # Alpha ranges from 0.0 (no activation) to 0.55 (strong activation)
+        alpha_mask = np.expand_dims(heatmap_upscaled * 0.55, axis=-1)
+        orig_np = np.array(original_img).astype(np.float32)
+        heat_np = np.array(colored_heatmap).astype(np.float32)
+
+        blended = orig_np * (1 - alpha_mask) + heat_np * alpha_mask
+        final_image = Image.fromarray(np.uint8(np.clip(blended, 0, 255)))
 
         return result_text, final_image
 
