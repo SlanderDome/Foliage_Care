@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Foliage Care — Plant Diagnosis</title>
+  <title>Foliage Care — Plant Wellness</title>
   <meta name="description"
-    content="Upload or photograph your plant and get instant AI-powered disease detection with visual heatmaps and prevention tips.">
+    content="Your plant's wellness companion. Upload a photo, see exactly what our AI detects with visual proof heatmaps, and get personalized care advice through a live consultation.">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -61,48 +61,149 @@
   <!-- ═══════════ HERO ═══════════ -->
   <section id="home" class="hero">
     <div class="hero-content">
-      <p class="hero-eyebrow"><i class="fas fa-leaf"></i> AI-Powered Diagnostics</p>
-      <h1>Plant Disease<br>Detection</h1>
-      <span class="deva hero-deva">पौधों के रोगों की पहचान</span>
-      <p class="hero-desc">Upload or photograph your plant and let our AI instantly identify diseases,
-        generate visual heatmaps, and suggest prevention measures.</p>
-      <a href="#diagnosis-section" class="hero-cta">
-        <span>Start Diagnosis</span>
-        <span class="deva-inline">जांच शुरू करें</span>
-        <i class="fas fa-arrow-down"></i>
-      </a>
+      <p class="hero-eyebrow"><span class="pulse-dot"></span> AI-Powered Plant Intelligence</p>
+      <h1>Plant <span class="hero-accent">Wellness</span><br>Companion</h1>
+      <span class="deva hero-deva">पौधों की संपूर्ण देखभाल</span>
+      <p class="hero-desc">Upload a photo. See exactly where the AI looks. Ask follow-up questions.
+        Get a care plan tailored to your soil, season, and region — not generic advice.</p>
+      <div class="hero-actions">
+        <a href="#diagnosis-section" class="hero-cta">
+          <span>Start Consultation</span>
+          <span class="deva-inline">परामर्श शुरू करें</span>
+          <i class="fas fa-arrow-down"></i>
+        </a>
+      </div>
     </div>
-    <div class="hero-image">
-      <div class="hero-image-frame">
-        <img src="assets/wheat.jpg" alt="Plant Disease Detection" />
-        <div class="hero-image-glow"></div>
+
+    <!-- Floating Glass Preview Cards -->
+    <div class="hero-visual">
+      <div class="hero-glow-orb"></div>
+
+      <!-- Card 1: Heatmap / Visual Proof -->
+      <div class="hero-preview-card hero-card-1">
+        <div class="hero-card-header">
+          <i class="fas fa-eye"></i>
+          <span>Visual Proof</span>
+        </div>
+        <div class="hero-card-body heatmap-body">
+          <div class="heatmap-grid">
+            <div class="heatmap-cell hot"></div>
+            <div class="heatmap-cell warm"></div>
+            <div class="heatmap-cell cool"></div>
+            <div class="heatmap-cell warm"></div>
+            <div class="heatmap-cell hot"></div>
+            <div class="heatmap-cell cool"></div>
+            <div class="heatmap-cell cool"></div>
+            <div class="heatmap-cell warm"></div>
+            <div class="heatmap-cell hot"></div>
+          </div>
+          <p class="hero-card-caption">AI focus regions highlighted</p>
+        </div>
+      </div>
+
+      <!-- Card 2: Live Consultation -->
+      <div class="hero-preview-card hero-card-2">
+        <div class="hero-card-header">
+          <i class="fas fa-comments"></i>
+          <span>Live Consultation</span>
+        </div>
+        <div class="hero-card-body chat-body">
+          <div class="chat-bubble user-bubble">My tomato has brown spots</div>
+          <div class="chat-bubble ai-bubble">Late blight detected — 92% confidence. Here's your care plan…</div>
+        </div>
+      </div>
+
+      <!-- Card 3: Care Plan -->
+      <div class="hero-preview-card hero-card-3">
+        <div class="hero-card-header">
+          <i class="fas fa-clipboard-check"></i>
+          <span>Care Plan</span>
+        </div>
+        <div class="hero-card-body plan-body">
+          <div class="plan-item"><i class="fas fa-check-circle"></i> Remove infected leaves</div>
+          <div class="plan-item"><i class="fas fa-check-circle"></i> Apply Trichoderma viride</div>
+          <div class="plan-item"><i class="fas fa-check-circle"></i> Monitor in 5 days</div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════ STATS BAR ═══════════ -->
-  <section class="stats-bar">
-    <div class="stats-grid">
-      <div class="stat-item reveal" data-delay="0">
-        <div class="stat-icon"><i class="fas fa-leaf"></i></div>
-        <span class="stat-number" data-target="38" data-suffix="">38</span>
-        <p class="stat-label">Disease Classes<br><span class="deva-sm">रोगों के वर्ग</span></p>
+  <!-- ═══════════ FEATURE SHOWCASE ═══════════ -->
+  <section class="feature-showcase">
+    <div class="showcase-grid">
+
+      <!-- Card 1: Visual Proof -->
+      <div class="showcase-card reveal" data-delay="0">
+        <div class="showcase-card-inner">
+          <div class="showcase-front">
+            <div class="showcase-icon-ring">
+              <i class="fas fa-eye"></i>
+            </div>
+            <h3>Visual Proof</h3>
+            <span class="deva-sm">दृश्य प्रमाण</span>
+          </div>
+          <div class="showcase-back">
+            <i class="fas fa-eye showcase-back-icon"></i>
+            <p>We don't just diagnose — we <strong>show you</strong> exactly where the AI is looking with heatmap
+              overlays. No black-box guessing.</p>
+          </div>
+        </div>
       </div>
-      <div class="stat-item reveal" data-delay="100">
-        <div class="stat-icon"><i class="fas fa-brain"></i></div>
-        <span class="stat-number" data-target="96" data-suffix="%">96%</span>
-        <p class="stat-label">Model Accuracy<br><span class="deva-sm">सटीकता</span></p>
+
+      <!-- Card 2: Live Consultation -->
+      <div class="showcase-card reveal" data-delay="120">
+        <div class="showcase-card-inner">
+          <div class="showcase-front">
+            <div class="showcase-icon-ring">
+              <i class="fas fa-comments"></i>
+            </div>
+            <h3>Live Consultation</h3>
+            <span class="deva-sm">लाइव परामर्श</span>
+          </div>
+          <div class="showcase-back">
+            <i class="fas fa-comments showcase-back-icon"></i>
+            <p>Ask follow-up questions, get contextual answers. Not a one-shot label — a <strong>conversation</strong>
+              that adapts to your situation.</p>
+          </div>
+        </div>
       </div>
-      <div class="stat-item reveal" data-delay="200">
-        <div class="stat-icon"><i class="fas fa-bolt"></i></div>
-        <span class="stat-number" data-target="3" data-suffix="s">3s</span>
-        <p class="stat-label">Avg. Analysis Time<br><span class="deva-sm">विश्लेषण समय</span></p>
+
+      <!-- Card 3: Unbiased Advice -->
+      <div class="showcase-card reveal" data-delay="240">
+        <div class="showcase-card-inner">
+          <div class="showcase-front">
+            <div class="showcase-icon-ring">
+              <i class="fas fa-balance-scale"></i>
+            </div>
+            <h3>Unbiased Advice</h3>
+            <span class="deva-sm">निष्पक्ष सलाह</span>
+          </div>
+          <div class="showcase-back">
+            <i class="fas fa-balance-scale showcase-back-icon"></i>
+            <p>No products to sell. We recommend organic, chemical, <em>or</em> home remedies — whatever actually works
+              for <strong>your</strong> context.</p>
+          </div>
+        </div>
       </div>
-      <div class="stat-item reveal" data-delay="300">
-        <div class="stat-icon"><i class="fas fa-shield-alt"></i></div>
-        <span class="stat-number" data-target="14" data-suffix="">14</span>
-        <p class="stat-label">Crop Species<br><span class="deva-sm">फसल प्रजातियां</span></p>
+
+      <!-- Card 4: India-Aware -->
+      <div class="showcase-card reveal" data-delay="360">
+        <div class="showcase-card-inner">
+          <div class="showcase-front">
+            <div class="showcase-icon-ring">
+              <i class="fas fa-map-marked-alt"></i>
+            </div>
+            <h3>India-Aware</h3>
+            <span class="deva-sm">भारत-जागरूक</span>
+          </div>
+          <div class="showcase-back">
+            <i class="fas fa-map-marked-alt showcase-back-icon"></i>
+            <p>GPS location, local weather, Kharif/Rabi season — advice tailored to <strong>your region</strong>, not
+              generic templates.</p>
+          </div>
+        </div>
       </div>
+
     </div>
   </section>
 
@@ -111,10 +212,10 @@
 
     <!-- Section Header -->
     <div class="section-header reveal">
-      <span class="section-badge"><i class="fas fa-microscope"></i> AI Analysis</span>
-      <h2>Upload &amp; Diagnose</h2>
-      <span class="deva section-deva">अपलोड और जांच</span>
-      <p>Drag and drop your plant image or click to browse. Our model will analyze it in seconds.</p>
+      <span class="section-badge"><i class="fas fa-microscope"></i> AI Wellness Check</span>
+      <h2>Upload &amp; Consult</h2>
+      <span class="deva section-deva">अपलोड और परामर्श</span>
+      <p>Drag and drop your plant image or click to browse. Our AI will assess its health in seconds.</p>
     </div>
 
     <!-- Progress Stepper -->
@@ -185,7 +286,7 @@
               <i class="fas fa-folder-open"></i> Browse Files
             </button>
             <button class="cta-button cta-primary" type="button" id="analyze-button">
-              <i class="fas fa-search-plus"></i> Analyze Disease
+              <i class="fas fa-heartbeat"></i> Check My Plant
             </button>
           </div>
 
@@ -201,8 +302,8 @@
           <div class="results-empty-icon">
             <i class="fas fa-seedling"></i>
           </div>
-          <h3>Awaiting Analysis</h3>
-          <p>Upload a plant image above and click <strong>Analyze</strong> to start a consultation.</p>
+          <h3>Ready When You Are</h3>
+          <p>Upload a plant image above and click <strong>Check My Plant</strong> to begin your consultation.</p>
         </div>
 
         <!-- Thread Entries Container (Scrollable) -->
@@ -215,7 +316,7 @@
           <div id="unified-section" class="expert-section" style="display: none;">
             <div class="context-panel">
               <h4><i class="fas fa-sliders-h"></i> Environment Context</h4>
-              <p>Tell the AI about your local conditions to refine the cure plan.</p>
+              <p>Tell the AI about your local conditions to personalize your care advice.</p>
 
               <div class="context-inputs">
                 <div class="input-group">
@@ -231,17 +332,17 @@
 
             <div class="action-grid">
               <div class="action-box simulation-box">
-                <i class="fas fa-biohazard"></i>
-                <h5>Future Progression</h5>
-                <p>Simulate disease spread in 5 days.</p>
-                <button id="simulate-btn" class="cta-button">Simulate Visuals</button>
+                <i class="fas fa-chart-line"></i>
+                <h5>Health Forecast</h5>
+                <p>Visualize how your plant may change in 5 days.</p>
+                <button id="simulate-btn" class="cta-button">Forecast Visuals</button>
                 <img id="future-image" src="" class="output-img">
               </div>
 
               <div class="action-box expert-box">
                 <i class="fas fa-user-md"></i>
-                <h5>Expert Cure Plan</h5>
-                <p>Get a tailored remedy for your context.</p>
+                <h5>Expert Care Plan</h5>
+                <p>Get a personalized care plan for your context.</p>
                 <button id="get-plan-btn" class="cta-button">Generate Plan</button>
               </div>
             </div>
@@ -257,7 +358,7 @@
           <!-- Follow-Up Bar (Pinned at bottom of thread) -->
           <div class="followup-bar" id="followup-bar" style="display: none;">
             <i class="fas fa-leaf followup-icon"></i>
-            <input type="text" id="followup-input" placeholder="Ask a follow-up question about the diagnosis..." />
+            <input type="text" id="followup-input" placeholder="Ask a follow-up about your plant's health..." />
             <button type="button" id="followup-send" class="followup-send-btn" title="Send">
               <i class="fas fa-paper-plane"></i>
             </button>
@@ -284,21 +385,22 @@
         <div class="step-icon"><i class="fas fa-camera"></i></div>
         <h3>Capture or Upload</h3>
         <span class="deva-card">तस्वीर लें या अपलोड करें</span>
-        <p>Take a photo of the affected leaf or upload an existing image from your device.</p>
+        <p>Take a photo of your plant — leaf, stem, or fruit — and upload it from your device.</p>
       </div>
       <div class="step-card reveal" data-delay="150">
         <div class="step-number">02</div>
         <div class="step-icon"><i class="fas fa-microchip"></i></div>
         <h3>AI Analysis</h3>
         <span class="deva-card">एआई विश्लेषण</span>
-        <p>Our deep learning model scans the image, identifies patterns, and generates a Grad-CAM heatmap.</p>
+        <p>Our AI assesses plant health, identifies patterns, and generates a visual proof heatmap showing where it's
+          looking.</p>
       </div>
       <div class="step-card reveal" data-delay="300">
         <div class="step-number">03</div>
         <div class="step-icon"><i class="fas fa-notes-medical"></i></div>
-        <h3>Get Results</h3>
-        <span class="deva-card">परिणाम देखें</span>
-        <p>Receive the disease name, confidence score, prevention tips, and a future progression simulation.</p>
+        <h3>Get Insights</h3>
+        <span class="deva-card">जानकारी पाएं</span>
+        <p>Receive health insights, visual proof, a personalized care plan, and an ongoing consultation thread.</p>
       </div>
     </div>
   </section>
