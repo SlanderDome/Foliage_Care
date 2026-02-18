@@ -8,8 +8,6 @@ transformers
 accelerate
 opencv-python-headless
 matplotlib
-google-genai
-huggingface_hub
-pillow
+google-generativeai
 httpx
 python-dotenv

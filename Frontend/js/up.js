@@ -40,14 +40,6 @@ const followupBar = document.getElementById("followup-bar");
 const followupInput = document.getElementById("followup-input");
 const followupSend = document.getElementById("followup-send");
 
-// API base URL (local dev vs deployed backend)
-const DEFAULT_API_BASE_URL = (["localhost", "127.0.0.1"].includes(window.location.hostname))
-    ? "http://127.0.0.1:8000"
-    : "https://foliage-care-backend.onrender.com";
-
-// Optional override: set `window.FOLIAGE_API_BASE_URL = "https://your-backend"` before loading this script
-const API_BASE_URL = (window.FOLIAGE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/+$/, "");
-
 // ═══════════ GLOBAL STATE ═══════════
 let detectedDiseaseName = "";
 let userCoordinates = null;
@@ -332,7 +324,7 @@ analyzeButton.addEventListener("click", async (event) => {
 
     try {
         console.log("🌿 Sending to Backend...");
-        const response = await fetch(`${API_BASE_URL}/predict`, {
+        const response = await fetch("http://127.0.0.1:8000/predict", {
             method: "POST",
             body: formData
         });
@@ -428,7 +420,7 @@ async function sendFollowUp() {
     followupSend.disabled = true;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/followup`, {
+        const response = await fetch("http://127.0.0.1:8000/followup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -497,7 +489,7 @@ simulateBtn.addEventListener("click", async () => {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/simulate`, {
+        const response = await fetch("http://127.0.0.1:8000/simulate", {
             method: "POST",
             body: formData
         });
@@ -557,7 +549,7 @@ planBtn.addEventListener("click", async () => {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/get_expert_plan`, {
+        const response = await fetch("http://127.0.0.1:8000/get_expert_plan", {
             method: "POST",
             body: formData
         });
