@@ -26,7 +26,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -184,18 +184,19 @@ async def predict(
     if gemini_client:
         loc_str = f"{location} (GPS: {latitude}, {longitude})" if latitude and longitude else (location or "remote field")
         report_prompt = f"""
-        Act as a senior plant pathologist delivering a diagnosis to {user_name}.
+        Act as a friendly village agricultural guide talking to {user_name}, a local farmer.
         
         DETECTED: {class_name} ({confidence*100:.1f}% confidence)
         LOCATION: {loc_str}
         DATE: {datetime.now().strftime('%B %d, %Y')}
         CONDITIONS: {context}
 
-        Write a brief, professional report (2-3 sentences max):
-        1. State what the disease does to the plant (direct, no qualifiers like "likely" or "may")
-        2. Give ONE immediate action for {loc_str} in mid-February
+        Write a very short, extremely simple explanation (2 sentences max).
+        DO NOT use scientific jargons like "necrotic lesions", "inoculum", or "chlorosis". 
+        Speak in plain, simple English that a farmer with no formal education can easily understand.
         
-        CRITICAL: Use active voice. Be concise. No filler words. Sound like an expert, not a chatbot.
+        1. Simply say what the disease is doing to the plant.
+        2. Give ONE easy, immediately actionable step they can do today.
         """
         try:
             response = gemini_client.models.generate_content(
@@ -227,27 +228,25 @@ async def simulate_progression(
     latitude: str = Form(None),
     longitude: str = Form(None)
 ):
-    """Module 2: Smart Simulation (Fixed for Production)"""
+    """Module 2: Smart Simulation (Contextually Enriched & Fixed)"""
     
-    # 1. Initialize the Client with the specific Edit Model
-    # 'timbrooks/instruct-pix2pix' is best for modifying existing images
+    # Initialize the primary client for Instruct Pix2Pix
     client = InferenceClient(model="timbrooks/instruct-pix2pix", token=HF_TOKEN)
 
     try:
         image_bytes = await file.read()
         original_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        original_image = original_image.resize((512, 512))
         
-        # 2. Refine the Prompt with Gemini (Keep this logic, it's good!)
         if gemini_client:
             loc_str = f"GPS: {latitude}, {longitude}" if latitude and longitude else "remote field"
-            print(f"🧠 Gemini Context for {user_name}: {context} @ {loc_str}")
             
             gemini_prompt = f"""
-            Act as a visual strategist. 
-            Describe the VISUAL symptoms of '{disease_name}' on a plant leaf after 5 days.
-            Context: {context}.
-            Return ONLY a short command for an image editor. 
-            Examples: "make the leaves yellow and spotty", "add brown fungal patches", "wither the edges".
+            The plant has '{disease_name}'. The farmer's context is: "{context}". Location/Weather: {loc_str}.
+            How would this disease look on the leaf 7 days from now if left untreated?
+            Return ONLY a comma-separated prompt for an image generator.
+            Example: "severe rot, completely yellow leaf, prominent holes, highly damaged plant leaf, photorealistic"
+            NO markdown, NO intro text.
             """
             try:
                 response = gemini_client.models.generate_content(
@@ -257,28 +256,46 @@ async def simulate_progression(
                 edit_instruction = response.text.strip()
             except Exception as e:
                 print(f"⚠️ Gemini Prompt Error: {e}")
-                edit_instruction = f"add {disease_name} symptoms, necrotic spots, rot"
+                edit_instruction = f"make it look severely damaged by {disease_name}, rotten, yellowing"
         else:
-            edit_instruction = f"make the leaf look like it has {disease_name}, rotten, damaged"
+            edit_instruction = f"make it look severely damaged by {disease_name}, rotten, yellowing"
 
-        print(f"🎨 Instruction: {edit_instruction}")
+        print(f"🎨 Visual Prompt: {edit_instruction}")
 
-        # 3. Call Hugging Face (The Correct Way)
-        # image_to_image is the specific function for this workflow
-        generated_image = client.image_to_image(
-            image=original_image,
-            prompt=edit_instruction,
-            negative_prompt="blur, low quality, distortion, text, watermark",
-            strength=1.5, # Higher strength = more editing power for Pix2Pix
-            guidance_scale=7.5
-        )
+        try:
+            # First attempt: stable-diffusion-v1-5 image-to-image (very reliable on free tier)
+            client = InferenceClient(model="runwayml/stable-diffusion-v1-5", token=HF_TOKEN)
+            generated_image = client.image_to_image(
+                image=original_image,
+                prompt=edit_instruction,
+                negative_prompt="blurry, abstract, watermark",
+                strength=0.85, 
+                guidance_scale=8.0
+            )
+        except Exception as provider_err:
+            print(f"⚠️ Image-to-Image Provider failed: {provider_err}. Falling back to Text-to-Image.")
+            # Fallback 1: FLUX.1-schnell (Extremely fast and usually available)
+            try:
+                fallback_client = InferenceClient(model="black-forest-labs/FLUX.1-schnell", token=HF_TOKEN)
+                generated_image = fallback_client.text_to_image(
+                    prompt=f"extreme close up of a plant leaf showing: {edit_instruction}, photorealistic, nature photography",
+                    width=512, height=512
+                )
+            except Exception as fallback_err:
+                print(f"⚠️ FLUX failed: {fallback_err}. Second fallback to SD 1.5 Text-to-Image.")
+                # Fallback 2: The ultimate fallback, SD 1.5 Text-to-Image
+                fallback_client_2 = InferenceClient(model="runwayml/stable-diffusion-v1-5", token=HF_TOKEN)
+                generated_image = fallback_client_2.text_to_image(
+                    prompt=f"extreme close up of a plant leaf showing: {edit_instruction}, photorealistic",
+                    negative_prompt="blurry",
+                    width=512, height=512
+                )
 
-        # 4. Convert output back to Base64 for your Frontend
         buffered = io.BytesIO()
         generated_image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
         
-        return {"future_image": img_str}
+        return {"future_image": img_str, "prompt_used": edit_instruction}
 
     except Exception as e:
         traceback.print_exc()
@@ -309,7 +326,7 @@ async def get_expert_plan(
             loc_str = f"{location} (GPS: {latitude}, {longitude})"
 
         prompt = f"""
-        Act as a senior agricultural expert advising {user_name}.
+        Act as a friendly, helpful agricultural advisor explaining things to a local farmer ({user_name}).
         
         **CASE FILE:**
         - Diagnosis: {disease}
@@ -318,11 +335,11 @@ async def get_expert_plan(
         - User Context: {context}
         
         **TASK:**
-        1. Confirm the diagnosis from the image.
-        2. Provide a localized 3-step action plan (Immediate, Chemical, Organic).
-           - Consider the specific climate/soil of {loc_str} and the CURRENT SEASON based on the date above.
-           - If context mentions '{context}', adjust advice (e.g., rain-fast chemicals).
-        3. Format in clear Markdown.
+        1. Confirm what is wrong in very simple, plain English (no scientific jargon).
+        2. Give a simple 3-step action plan using easy-to-find items (Immediate, Chemical, Organic).
+           - Base it on {loc_str} and {context}.
+        3. DO NOT use big words or complex science terms. Keep the language basic and encouraging.
+        Format in clear Markdown.
         """
 
         # FIXED: Model Name 'gemini-1.5-flash'

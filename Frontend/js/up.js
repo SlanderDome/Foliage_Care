@@ -324,7 +324,7 @@ analyzeButton.addEventListener("click", async (event) => {
 
     try {
         console.log("🌿 Sending to Backend...");
-        const response = await fetch("http://127.0.0.1:8000/predict", {
+        const response = await fetch("http://localhost:8000/predict", {
             method: "POST",
             body: formData
         });
@@ -420,7 +420,7 @@ async function sendFollowUp() {
     followupSend.disabled = true;
 
     try {
-        const response = await fetch("http://127.0.0.1:8000/followup", {
+        const response = await fetch("http://localhost:8000/followup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -489,7 +489,7 @@ simulateBtn.addEventListener("click", async () => {
     }
 
     try {
-        const response = await fetch("http://127.0.0.1:8000/simulate", {
+        const response = await fetch("http://localhost:8000/simulate", {
             method: "POST",
             body: formData
         });
@@ -499,14 +499,22 @@ simulateBtn.addEventListener("click", async () => {
             futureImg.src = "data:image/jpeg;base64," + data.future_image;
             futureImg.style.display = "block";
 
-            // Also add to thread
-            addThreadEntry('ai', '<strong>🔬 Future Progression Simulation</strong><br>Here is what the leaf may look like after 5 days of untreated progression:',
+            // Also add to thread - include the generative prompt if available to show the "intelligence"
+            let promptText = "";
+            if (data.prompt_used) {
+                promptText = `<div style="font-size:0.85em;color:var(--text-muted);margin-top:8px;font-style:italic;">
+                                <strong>Contextual Simulation Factors:</strong> ${data.prompt_used}
+                              </div>`;
+            }
+
+            addThreadEntry('ai', '<strong>🔬 Contextual Progression Simulation</strong><br>Based on your field conditions, here is the projected visual progression if left untreated:',
                 `<div style="margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid var(--border-card);">
                     <img src="data:image/jpeg;base64,${data.future_image}" style="width:100%;display:block;" alt="Simulation">
-                </div>`
+                </div>
+                ${promptText}`
             );
 
-            if (window.toast) window.toast.success('Visual simulation generated!');
+            if (window.toast) window.toast.success('Contextual simulation generated!');
         } else {
             if (window.toast) window.toast.error("Simulation failed: " + (data.error || "Unknown error"));
         }
@@ -549,7 +557,7 @@ planBtn.addEventListener("click", async () => {
     }
 
     try {
-        const response = await fetch("http://127.0.0.1:8000/get_expert_plan", {
+        const response = await fetch("http://localhost:8000/get_expert_plan", {
             method: "POST",
             body: formData
         });
