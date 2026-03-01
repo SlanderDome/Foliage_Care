@@ -4,20 +4,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile | Foliage Care</title>
+    <title>My Profile — Foliage Care</title>
+    <meta name="description"
+        content="Your plant pathology command center. Track diagnoses, monitor your garden, and review your plant health analytics.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;700&family=Noto+Serif+Devanagari:wght@400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Devanagari:wght@300;400;500;600&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/start.css">
     <link rel="stylesheet" href="css/profile.css">
-    <link rel="icon" href="assets/892926.png" type="image/png">
     <link rel="stylesheet" href="css/cursor.css">
+    <link rel="icon" href="assets/892926.png" type="image/png">
+
+    <!-- Icons & Charts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
+    <canvas id="leaf-canvas"></canvas>
+    <div class="ambient-bg"></div>
 
-    <!-- NAVBAR -->
+    <!-- ═══════════ NAVBAR ═══════════ -->
     <nav class="navbar">
         <div class="logo">
             <span class="logo-icon">🌱</span>FOLIAGE CARE
@@ -30,7 +43,6 @@
             <li class="nav-skeleton"></li>
             <li class="nav-skeleton"></li>
             <li class="nav-skeleton"></li>
-
             <li class="nav-real hidden"><a href="index.html">Home <span class="deva-inline">मुख्य पृष्ठ</span></a></li>
             <li class="nav-real hidden"><a href="playbook.html">Playbook <span class="deva-inline">प्लेबुक</span></a>
             </li>
@@ -43,431 +55,323 @@
             <li class="nav-real hidden"><a href="contact.html">Connect <span class="deva-inline">संपर्क</span></a></li>
         </ul>
     </nav>
-    <canvas id="leaf-canvas"></canvas>
-    <div class="ambient-bg"></div>
-    <!-- <section class="profile-hero">
-        <h1>Welcome back, Gardener!</h1>
-        <p>Your plant health dashboard</p>
-    </section> -->
-    <!-- Profile Container -->
-    <div class="profile-container">
 
-        <!-- Left Sidebar -->
-        <aside class="profile-sidebar">
-            <!-- Profile Card -->
-            <div class="profile-card glass-card">
-                <div class="profile-header">
-                    <div class="profile-avatar-wrapper">
-                        <img id="profile-pic" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Avatar"
-                            class="profile-avatar">
-                        <label for="avatar-upload" class="avatar-upload-overlay">
-                            <i class="fas fa-camera"></i>
-                        </label>
-                        <input type="file" id="avatar-upload" accept="image/*" hidden>
-                        <div class="status-indicator online"></div>
-                        <div class="verification-badge">
-                            <i class="fas fa-check-circle"></i>
+    <!-- ═══════════ TOAST CONTAINER ═══════════ -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <main class="profile-page">
+
+        <!-- ═══════════ PROFILE HERO BAND ═══════════ -->
+        <section class="profile-hero reveal">
+            <div class="hero-identity">
+                <!-- Avatar -->
+                <div class="avatar-wrapper">
+                    <div class="avatar-ring"></div>
+                    <img id="profile-pic" class="avatar-img" src="assets/default-avatar.png" alt="Profile">
+                    <label class="avatar-upload-btn" for="avatar-upload" title="Change photo">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input type="file" id="avatar-upload" accept="image/*" hidden>
+                    <span class="status-dot online"></span>
+                </div>
+
+                <!-- Identity -->
+                <div class="identity-info">
+                    <div class="name-row" id="name-display-area">
+                        <h1 id="profile-name" class="profile-name">Gardener</h1>
+                        <button class="edit-name-btn" id="edit-name-btn" title="Edit name">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                    </div>
+                    <div class="name-edit-row" id="edit-name-ui" style="display:none;">
+                        <input type="text" id="new-name-input" class="name-input" placeholder="Your name"
+                            maxlength="30">
+                        <button class="icon-btn save" id="save-name-btn"><i class="fas fa-check"></i></button>
+                        <button class="icon-btn cancel" id="cancel-name-btn"><i class="fas fa-times"></i></button>
+                    </div>
+                    <p class="profile-email" id="profile-email">user@email.com</p>
+                    <p class="profile-bio" id="profile-bio">Plant health enthusiast</p>
+                    <span class="member-badge" id="member-since">Member since 2025</span>
+                </div>
+            </div>
+
+            <!-- Hero Stats -->
+            <div class="hero-stats">
+                <div class="hero-stat" data-tooltip="All pathology analyses performed">
+                    <div class="stat-icon-ring"><i class="fas fa-microscope"></i></div>
+                    <span class="stat-number" id="total-diagnoses">0</span>
+                    <span class="stat-name">Diagnoses</span>
+                </div>
+
+                <div class="hero-stat pathology-index-stat" data-tooltip="Overall plant health ratio">
+                    <div class="index-ring-wrapper">
+                        <svg class="index-ring" viewBox="0 0 80 80">
+                            <circle class="index-ring-bg" cx="40" cy="40" r="34"></circle>
+                            <circle class="index-ring-fill" id="index-ring-fill" cx="40" cy="40" r="34"></circle>
+                        </svg>
+                        <span class="index-value" id="pathology-index">—</span>
+                    </div>
+                    <span class="stat-name">Pathology Index</span>
+                </div>
+
+                <div class="hero-stat" data-tooltip="Unique plant species analyzed">
+                    <div class="stat-icon-ring species"><i class="fas fa-leaf"></i></div>
+                    <span class="stat-number" id="species-count">0</span>
+                    <span class="stat-name">Species</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════ TAB NAVIGATION ═══════════ -->
+        <nav class="profile-tabs reveal" data-delay="100">
+            <button class="tab-btn active" data-tab="overview">
+                <i class="fas fa-chart-pie"></i> Overview
+            </button>
+            <button class="tab-btn" data-tab="garden">
+                <i class="fas fa-seedling"></i> My Garden
+            </button>
+            <button class="tab-btn" data-tab="records">
+                <i class="fas fa-scroll"></i> Records
+            </button>
+            <button class="tab-btn" data-tab="settings">
+                <i class="fas fa-sliders-h"></i> Settings
+            </button>
+            <div class="tab-indicator"></div>
+        </nav>
+
+        <!-- ═══════════ TAB CONTENT ═══════════ -->
+        <div class="tab-panels">
+
+            <!-- ────── TAB 1: OVERVIEW ────── -->
+            <section class="tab-panel active" id="panel-overview">
+                <div class="overview-grid">
+
+                    <!-- Pathology Trend Chart -->
+                    <div class="card chart-card reveal" data-delay="150">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <i class="fas fa-chart-line card-icon"></i>
+                                <h3>Pathology Trend</h3>
+                            </div>
+                            <div class="time-range">
+                                <button class="range-btn active" data-range="week">Week</button>
+                                <button class="range-btn" data-range="month">Month</button>
+                                <button class="range-btn" data-range="all">All</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="healthChart"></canvas>
                         </div>
                     </div>
 
-                    <div class="profile-identity">
-                        <div class="name-wrapper" id="name-display-area">
-                            <h1 id="profile-name" class="profile-name">Gardener</h1>
-                            <button id="edit-name-btn" class="edit-icon-btn">
-                                <i class="fas fa-pen"></i>
+                    <!-- Climate Intelligence -->
+                    <div class="card climate-card reveal" data-delay="200">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <i class="fas fa-cloud-sun card-icon climate-icon"></i>
+                                <h3>Climate Intelligence</h3>
+                            </div>
+                        </div>
+                        <div class="climate-body">
+                            <div class="climate-main">
+                                <span class="climate-temp" id="climate-temp">—°C</span>
+                                <span class="climate-location" id="climate-location">Locating…</span>
+                            </div>
+                            <div class="climate-metrics">
+                                <div class="climate-metric">
+                                    <i class="fas fa-tint"></i>
+                                    <span id="climate-humidity">—%</span>
+                                    <small>Humidity</small>
+                                </div>
+                                <div class="climate-metric">
+                                    <i class="fas fa-wind"></i>
+                                    <span id="climate-wind">— km/h</span>
+                                    <small>Wind</small>
+                                </div>
+                            </div>
+                            <p class="climate-note"><i class="fas fa-info-circle"></i> High humidity increases fungal
+                                pathology risk</p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Diagnoses -->
+                    <div class="card diagnoses-card reveal" data-delay="250">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <i class="fas fa-stethoscope card-icon"></i>
+                                <h3>Recent Diagnoses</h3>
+                            </div>
+                            <a href="#" class="view-all-link" id="view-all-records">
+                                View All <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                        <div class="diagnoses-list" id="diagnoses-list">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div class="empty-state" id="diagnoses-empty" style="display:none;">
+                            <i class="fas fa-seedling"></i>
+                            <p>No diagnoses yet</p>
+                            <span>Upload your first plant image to begin</span>
+                            <a href="start.html" class="empty-cta">
+                                <i class="fas fa-microscope"></i> Start Diagnosis
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Pathologist's Note -->
+                    <div class="card tip-card reveal" data-delay="300">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <i class="fas fa-lightbulb card-icon tip-icon"></i>
+                                <h3>Pathologist's Note</h3>
+                            </div>
+                            <button class="bookmark-btn" id="bookmark-tip-btn" title="Bookmark this tip">
+                                <i class="far fa-bookmark"></i>
                             </button>
                         </div>
-                        <div id="edit-name-ui" class="edit-name-form" style="display: none;">
-                            <input type="text" id="new-name-input" class="name-input" placeholder="Enter your name">
-                            <div class="edit-actions">
-                                <button id="save-name-btn" class="icon-btn success"><i
-                                        class="fas fa-check"></i></button>
-                                <button id="cancel-name-btn" class="icon-btn danger"><i
-                                        class="fas fa-times"></i></button>
-                            </div>
+                        <blockquote class="tip-text" id="tip-text">
+                            "Inspect the undersides of leaves regularly — many pathogens hide there."
+                        </blockquote>
+                        <div class="tip-footer">
+                            <span class="tip-category" id="tip-category"><i class="fas fa-tag"></i> Observation</span>
+                            <span class="tip-date" id="tip-date"></span>
                         </div>
-                        <p id="profile-email" class="profile-email">loading...</p>
-                        <span class="member-since" id="member-since">Member since Jan 2025</span>
                     </div>
-                </div>
 
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <i class="fas fa-leaf stat-icon"></i>
-                        <div class="stat-content">
-                            <span class="stat-value" id="total-scans">12</span>
-                            <span class="stat-label">Total Scans</span>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <i class="fas fa-seedling stat-icon"></i>
-                        <div class="stat-content">
-                            <span class="stat-value" id="plants-tracked">8</span>
-                            <span class="stat-label">Plants</span>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <i class="fas fa-heart stat-icon"></i>
-                        <div class="stat-content">
-                            <span class="stat-value" id="health-score">82%</span>
-                            <span class="stat-label">Health Score</span>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <i class="fas fa-trophy stat-icon"></i>
-                        <div class="stat-content">
-                            <span class="stat-value" id="achievements">5</span>
-                            <span class="stat-label">Achievements</span>
-                        </div>
-                    </div>
                 </div>
+            </section>
 
-                <!-- Quick Actions -->
-                <div class="quick-actions">
-                    <button class="action-btn primary" onclick="location.href='start.html'">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>New Scan</span>
-                    </button>
-                    <button class="action-btn secondary" id="settingsBtn">
-                        <i class="fas fa-cog"></i>
-                        <span>Settings</span>
+            <!-- ────── TAB 2: MY GARDEN ────── -->
+            <section class="tab-panel" id="panel-garden">
+                <div class="garden-controls">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="garden-search" placeholder="Search plants…">
+                    </div>
+                    <select id="garden-sort" class="sort-select">
+                        <option value="recent">Recent</option>
+                        <option value="health">Health</option>
+                        <option value="name">Name (A-Z)</option>
+                    </select>
+                    <a href="start.html" class="add-plant-btn">
+                        <i class="fas fa-plus"></i> New Diagnosis
+                    </a>
+                </div>
+                <div class="garden-grid" id="garden-grid">
+                    <!-- Populated by JS -->
+                </div>
+                <div class="empty-state" id="garden-empty" style="display:none;">
+                    <i class="fas fa-leaf"></i>
+                    <p>Your garden is empty</p>
+                    <span>Diagnose your first plant to start building your collection</span>
+                    <a href="start.html" class="empty-cta">
+                        <i class="fas fa-microscope"></i> Diagnose Now
+                    </a>
+                </div>
+            </section>
+
+            <!-- ────── TAB 3: RECORDS ────── -->
+            <section class="tab-panel" id="panel-records">
+                <div class="records-header">
+                    <h3><i class="fas fa-scroll"></i> Diagnosis Records</h3>
+                    <button class="export-btn" id="export-records" title="Export as CSV">
+                        <i class="fas fa-download"></i> Export
                     </button>
                 </div>
-
-                <button class="logout-btn" id="logoutBtn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sign Out</span>
-                </button>
-            </div>
-
-            <!-- Achievements Card -->
-            <div class="achievements-card glass-card">
-                <div class="card-header">
-                    <i class="fas fa-trophy header-icon"></i>
-                    <h3>Achievements</h3>
+                <div class="records-timeline" id="records-timeline">
+                    <!-- Populated by JS -->
                 </div>
-                <div class="achievements-grid">
-                    <div class="achievement-badge earned">
-                        <i class="fas fa-star"></i>
-                        <span class="badge-label">First Scan</span>
-                    </div>
-                    <div class="achievement-badge earned">
-                        <i class="fas fa-microscope"></i>
-                        <span class="badge-label">Expert</span>
-                    </div>
-                    <div class="achievement-badge earned">
-                        <i class="fas fa-seedling"></i>
-                        <span class="badge-label">Green Thumb</span>
-                    </div>
-                    <div class="achievement-badge locked">
-                        <i class="fas fa-crown"></i>
-                        <span class="badge-label">Master</span>
-                    </div>
-                    <div class="achievement-badge locked">
-                        <i class="fas fa-heart"></i>
-                        <span class="badge-label">Saver</span>
-                    </div>
-                    <div class="achievement-badge locked">
-                        <i class="fas fa-fire"></i>
-                        <span class="badge-label">Century</span>
-                    </div>
+                <div class="empty-state" id="records-empty" style="display:none;">
+                    <i class="fas fa-clipboard-list"></i>
+                    <p>No records found</p>
+                    <span>Your diagnosis history will appear here</span>
+                    <a href="start.html" class="empty-cta">
+                        <i class="fas fa-microscope"></i> Start Diagnosis
+                    </a>
                 </div>
-            </div>
-        </aside>
+            </section>
 
-        <!-- Main Content -->
-        <main class="profile-main">
+            <!-- ────── TAB 4: SETTINGS ────── -->
+            <section class="tab-panel" id="panel-settings">
+                <div class="settings-grid">
 
-            <!-- Header with Climate -->
-            <div class="main-header">
-                <div class="greeting-section">
-                    <h2 class="greeting-title">Dashboard Overview</h2>
-                    <p class="greeting-subtitle" id="current-date">Friday, February 13, 2026</p>
-                </div>
-
-                <div class="climate-widget glass-card">
-                    <div class="climate-icon">
-                        <i class="fas fa-cloud-sun"></i>
-                    </div>
-                    <div class="climate-info">
-                        <span class="climate-temp" id="climate-temp">24°C</span>
-                        <span class="climate-location">Pune, IN</span>
-                    </div>
-                    <div class="climate-details">
-                        <div class="climate-detail">
-                            <i class="fas fa-tint"></i>
-                            <span id="climate-humidity">64%</span>
+                    <!-- Profile Settings -->
+                    <div class="settings-section">
+                        <h3><i class="fas fa-user-circle"></i> Profile</h3>
+                        <div class="setting-field">
+                            <label for="settings-name">Display Name</label>
+                            <input type="text" id="settings-name" placeholder="Your name" maxlength="30">
                         </div>
-                        <div class="climate-detail">
-                            <i class="fas fa-wind"></i>
-                            <span id="climate-wind">12km/h</span>
+                        <div class="setting-field">
+                            <label for="settings-bio">Bio</label>
+                            <textarea id="settings-bio" placeholder="A short bio…" maxlength="120" rows="2"></textarea>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Health Analytics -->
-            <div class="analytics-section glass-card">
-                <div class="section-header">
-                    <div class="header-left">
-                        <i class="fas fa-chart-line header-icon"></i>
-                        <h3>Plant Health Analytics</h3>
-                    </div>
-                    <div class="time-range-selector">
-                        <button class="time-btn active" data-range="week">Week</button>
-                        <button class="time-btn" data-range="month">Month</button>
-                        <button class="time-btn" data-range="year">Year</button>
-                    </div>
-                </div>
-
-                <div class="analytics-content">
-                    <div class="chart-container">
-                        <canvas id="healthChart"></canvas>
-                    </div>
-                    <div class="analytics-summary">
-                        <div class="summary-item healthy">
-                            <div class="summary-icon">
-                                <i class="fas fa-check-circle"></i>
+                    <!-- Notification Settings -->
+                    <div class="settings-section">
+                        <h3><i class="fas fa-bell"></i> Notifications</h3>
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <span>Email Notifications</span>
+                                <small>Receive diagnosis summaries via email</small>
                             </div>
-                            <div class="summary-content">
-                                <span class="summary-label">Healthy Plants</span>
-                                <span class="summary-value" id="stat-healthy">0</span>
-                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="notif-email" checked>
+                                <span class="toggle-track"></span>
+                            </label>
                         </div>
-                        <div class="summary-item warning">
-                            <div class="summary-icon">
-                                <i class="fas fa-exclamation-triangle"></i>
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <span>Health Alerts</span>
+                                <small>Get notified when plant health declines</small>
                             </div>
-                            <div class="summary-content">
-                                <span class="summary-label">Needs Attention</span>
-                                <span class="summary-value" id="stat-risk">0</span>
-                            </div>
-                        </div>
-                        <div class="summary-item info">
-                            <div class="summary-icon">
-                                <i class="fas fa-leaf"></i>
-                            </div>
-                            <div class="summary-content">
-                                <span class="summary-label">Active Monitoring</span>
-                                <span class="summary-value" id="stat-monitoring">0</span>
-                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="notif-health" checked>
+                                <span class="toggle-track"></span>
+                            </label>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Two Column Layout -->
-            <div class="two-column-layout">
-
-                <!-- Recent Activity -->
-                <div class="activity-card glass-card">
-                    <div class="section-header">
-                        <div class="header-left">
-                            <i class="fas fa-history header-icon"></i>
-                            <h3>Recent Scans</h3>
-                        </div>
-                        <a href="#" class="view-all-link">View All <i class="fas fa-arrow-right"></i></a>
-                    </div>
-
-                    <div class="scan-history-list">
-                        <p class="loading-text">Loading history...</p>
-                    </div>
-                </div>
-
-                <!-- Daily Insight -->
-                <div class="insight-card glass-card">
-                    <div class="insight-header">
-                        <div class="insight-icon-wrapper">
-                            <i class="fas fa-lightbulb"></i>
-                        </div>
-                        <div class="insight-title-group">
-                            <h4>Expert Tip of the Day</h4>
-                            <span class="insight-date" id="insight-date">Today</span>
+                    <!-- Preferences -->
+                    <div class="settings-section">
+                        <h3><i class="fas fa-palette"></i> Preferences</h3>
+                        <div class="setting-field">
+                            <label for="pref-language">Language</label>
+                            <select id="pref-language">
+                                <option value="en">English</option>
+                                <option value="hi">हिन्दी</option>
+                                <option value="mr">मराठी</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="insight-content">
-                        <p class="insight-text">"Inspect the undersides of leaves regularly. Many pests hide there to
-                            avoid sunlight and can cause significant damage if left unchecked."</p>
-                        <div class="insight-footer">
-                            <span class="insight-category"><i class="fas fa-tag"></i> Pest Prevention</span>
-                            <button class="insight-action-btn">
-                                <i class="fas fa-bookmark"></i>
+
+                    <!-- Account Actions -->
+                    <div class="settings-section">
+                        <h3><i class="fas fa-shield-alt"></i> Account</h3>
+                        <div class="account-actions">
+                            <button class="settings-btn secondary" id="export-data-btn">
+                                <i class="fas fa-download"></i> Export My Data
+                            </button>
+                            <button class="settings-btn danger" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i> Sign Out
                             </button>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Plant Collection -->
-            <div class="collection-card glass-card">
-                <div class="section-header">
-                    <div class="header-left">
-                        <i class="fas fa-layer-group header-icon"></i>
-                        <h3>My Plant Collection</h3>
-                    </div>
-                    <button class="add-plant-btn">
-                        <i class="fas fa-plus"></i>
-                        <span>Add Plant</span>
+                    <!-- Save -->
+                    <button class="save-settings-btn" id="save-settings-btn">
+                        <i class="fas fa-check"></i> Save Changes
                     </button>
+
                 </div>
+            </section>
 
-                <div class="plants-grid">
-                    <div class="plant-card">
-                        <div class="plant-image">
-                            <img src="https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400" alt="Tomato">
-                            <div class="plant-status healthy">
-                                <i class="fas fa-heart"></i>
-                            </div>
-                        </div>
-                        <div class="plant-info">
-                            <h4 class="plant-name">Tomato</h4>
-                            <p class="plant-meta">Last checked: 2 days ago</p>
-                            <div class="plant-health-bar">
-                                <div class="health-fill" style="width: 85%;"></div>
-                            </div>
-                        </div>
-                    </div>
+        </div><!-- end tab-panels -->
 
-                    <div class="plant-card">
-                        <div class="plant-image">
-                            <img src="https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400" alt="Potato">
-                            <div class="plant-status warning">
-                                <i class="fas fa-exclamation"></i>
-                            </div>
-                        </div>
-                        <div class="plant-info">
-                            <h4 class="plant-name">Potato</h4>
-                            <p class="plant-meta">Last checked: 5 hours ago</p>
-                            <div class="plant-health-bar">
-                                <div class="health-fill warning" style="width: 45%;"></div>
-                            </div>
-                        </div>
-                    </div>
+    </main>
 
-                    <div class="plant-card">
-                        <div class="plant-image">
-                            <img src="https://images.unsplash.com/photo-1592150621744-aca64f48394a?w=400" alt="Apple">
-                            <div class="plant-status healthy">
-                                <i class="fas fa-heart"></i>
-                            </div>
-                        </div>
-                        <div class="plant-info">
-                            <h4 class="plant-name">Apple</h4>
-                            <p class="plant-meta">Last checked: 1 day ago</p>
-                            <div class="plant-health-bar">
-                                <div class="health-fill" style="width: 92%;"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="plant-card add-new">
-                        <div class="add-new-content">
-                            <i class="fas fa-plus-circle"></i>
-                            <span>Add New Plant</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content glass-card">
-            <div class="modal-header">
-                <h2><i class="fas fa-cog"></i> Account Settings</h2>
-                <button class="modal-close" id="closeSettings">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-
-            <div class="modal-body">
-                <div class="settings-section">
-                    <h3><i class="fas fa-user-circle"></i> Profile Settings</h3>
-                    <div class="setting-item">
-                        <label for="display-name">Display Name</label>
-                        <input type="text" id="display-name" placeholder="Your name">
-                    </div>
-                    <div class="setting-item">
-                        <label for="user-bio">Bio</label>
-                        <textarea id="user-bio" rows="3"
-                            placeholder="Tell us about your gardening journey..."></textarea>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3><i class="fas fa-bell"></i> Notifications</h3>
-                    <div class="setting-item toggle-item">
-                        <label>
-                            <span>Email Notifications</span>
-                            <small>Receive updates about your plants</small>
-                        </label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="email-notif" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item toggle-item">
-                        <label>
-                            <span>Plant Health Alerts</span>
-                            <small>Get notified when attention is needed</small>
-                        </label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="health-alerts" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3><i class="fas fa-palette"></i> Preferences</h3>
-                    <div class="setting-item">
-                        <label for="theme-select">Theme</label>
-                        <select id="theme-select">
-                            <option value="dark">Dark Mode</option>
-                            <option value="light">Light Mode</option>
-                            <option value="auto">Auto (System)</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="language-select">Language</label>
-                        <select id="language-select">
-                            <option value="en">English</option>
-                            <option value="hi">हिन्दी (Hindi)</option>
-                            <option value="mr">मराठी (Marathi)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3><i class="fas fa-shield-alt"></i> Privacy & Security</h3>
-                    <div class="setting-item">
-                        <button class="settings-action-btn secondary">
-                            <i class="fas fa-key"></i> Change Password
-                        </button>
-                    </div>
-                    <div class="setting-item">
-                        <button class="settings-action-btn secondary">
-                            <i class="fas fa-download"></i> Export My Data
-                        </button>
-                    </div>
-                    <div class="setting-item">
-                        <button class="settings-action-btn danger">
-                            <i class="fas fa-trash-alt"></i> Delete Account
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button class="modal-btn secondary" id="cancelSettings">Cancel</button>
-                <button class="modal-btn primary" id="saveSettings">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- ═══════════ FOOTER ═══════════ -->
     <footer class="footer">
         <p><a href="contact.html">Connect with us</a></p>
         <div class="social-icons">
@@ -475,15 +379,17 @@
             <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
             <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
         </div>
-        <p>&copy; 2025 Foliage Care. All rights reserved.</p>
+        <p>&copy; 2026 Foliage Care. All rights reserved.</p>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Scripts -->
     <script type="module" src="js/leaf-particles.js"></script>
-    <script type="module" src="js/firebase.js"></script>
-    <script type="module" src="js/profile.js"></script>
+    <script src="js/scroll-reveal.js"></script>
     <script src="js/navbar-auth.js"></script>
+    <script type="module" src="js/firebase.js"></script>
     <script src="js/cursor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/profile.js"></script>
 </body>
 
 </html>
