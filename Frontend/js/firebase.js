@@ -15,14 +15,16 @@ import {
   getFirestore,
   collection,
   addDoc,
-  doc,       // <--- ADDED THIS
-  setDoc,    // <--- ADDED THIS
-  getDoc,    // <--- ADDED THIS
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
   query,
   where,
   orderBy,
   limit,
   getDocs,
+  onSnapshot,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -58,11 +60,13 @@ window.addDoc = addDoc;
 window.doc = doc;         // <--- EXPORTED HERE
 window.setDoc = setDoc;   // <--- EXPORTED HERE
 window.getDoc = getDoc;   // <--- EXPORTED HERE
+window.updateDoc = updateDoc;
 window.query = query;
 window.where = where;
 window.orderBy = orderBy;
 window.limit = limit;
 window.getDocs = getDocs;
+window.onSnapshot = onSnapshot;
 window.serverTimestamp = serverTimestamp;
 
 // Ready Flag

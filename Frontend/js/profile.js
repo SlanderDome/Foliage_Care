@@ -21,26 +21,41 @@ function waitForFirebase(cb) {
   else setTimeout(() => waitForFirebase(cb), 80);
 }
 
+let tabsInitialized = false;
+let chartInitialized = false;
+let climateInitialized = false;
+let tipsInitialized = false;
+let bookmarkInitialized = false;
+let timeRangeInitialized = false;
+let profileAuthBound = false;
+
 // ═══════════════════════════════════════════════════
 // TAB SYSTEM
 // ═══════════════════════════════════════════════════
 function initTabs() {
+  if (tabsInitialized) return;
+  tabsInitialized = true;
+
   const buttons = document.querySelectorAll('.tab-btn');
   const panels = document.querySelectorAll('.tab-panel');
   const indicator = document.querySelector('.tab-indicator');
-
   function activateTab(tabName) {
-    buttons.forEach((btn, i) => {
+    buttons.forEach((btn) => {
       const isActive = btn.dataset.tab === tabName;
       btn.classList.toggle('active', isActive);
       if (isActive && indicator) {
-        indicator.style.transform = `translateX(${i * 100}%)`;
+        indicator.style.width = `${btn.offsetWidth}px`;
+        indicator.style.transform = `translateX(${btn.offsetLeft}px)`;
       }
     });
     panels.forEach(p => {
       const isActive = p.id === `panel-${tabName}`;
       p.classList.toggle('active', isActive);
     });
+
+    document.dispatchEvent(new CustomEvent('profile:tab-change', {
+      detail: { tabName }
+    }));
   }
 
   buttons.forEach(btn => {
@@ -55,6 +70,14 @@ function initTabs() {
       activateTab('records');
     });
   }
+
+  const activeButton = document.querySelector('.tab-btn.active');
+  if (activeButton) activateTab(activeButton.dataset.tab);
+
+  window.addEventListener('resize', () => {
+    const current = document.querySelector('.tab-btn.active');
+    if (current) activateTab(current.dataset.tab);
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -79,6 +102,9 @@ async function fetchWeather(lat, lng) {
 }
 
 function initClimate() {
+  if (climateInitialized) return;
+  climateInitialized = true;
+
   if (!navigator.geolocation) {
     document.getElementById('climate-location').textContent = 'Location unavailable';
     return;
@@ -94,6 +120,9 @@ function initClimate() {
 // CHART.JS — Pathology Trend
 // ═══════════════════════════════════════════════════
 function initChart() {
+  if (chartInitialized) return;
+  chartInitialized = true;
+
   const ctx = document.getElementById('healthChart');
   if (!ctx) return;
   new Chart(ctx, {
@@ -154,6 +183,9 @@ const TIPS = [
 ];
 
 function initTips() {
+  if (tipsInitialized) return;
+  tipsInitialized = true;
+
   const tip = TIPS[new Date().getDay() % TIPS.length];
   const el = document.getElementById('tip-text');
   const cat = document.getElementById('tip-category');
@@ -164,6 +196,9 @@ function initTips() {
 }
 
 function initBookmark() {
+  if (bookmarkInitialized) return;
+  bookmarkInitialized = true;
+
   const btn = document.getElementById('bookmark-tip-btn');
   if (!btn) return;
   btn.addEventListener('click', () => {
@@ -498,6 +533,9 @@ function initExport(user) {
 // TIME RANGE BUTTONS
 // ═══════════════════════════════════════════════════
 function initTimeRange() {
+  if (timeRangeInitialized) return;
+  timeRangeInitialized = true;
+
   document.querySelectorAll('.range-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
@@ -506,10 +544,22 @@ function initTimeRange() {
   });
 }
 
+function initStaticProfileUI() {
+  initTabs();
+  initChart();
+  initClimate();
+  initTips();
+  initBookmark();
+  initTimeRange();
+}
+
 // ═══════════════════════════════════════════════════
 // MAIN INIT
 // ═══════════════════════════════════════════════════
-waitForFirebase(() => {
+function bindProfileAuth() {
+  if (profileAuthBound) return;
+  profileAuthBound = true;
+
   const auth = window.firebaseAuth;
 
   window.onAuthStateChanged(auth, async (user) => {
@@ -539,16 +589,11 @@ waitForFirebase(() => {
     } catch (e) { console.warn('Profile load:', e); }
 
     // Initialize all features
-    initTabs();
-    initChart();
-    initClimate();
-    initTips();
-    initBookmark();
+    initStaticProfileUI();
     initNameEdit(user);
     initAvatar(user);
     initSettings(user);
     initExport(user);
-    initTimeRange();
 
     // Load data
     loadDiagnoses(user);
@@ -565,4 +610,7 @@ waitForFirebase(() => {
       });
     }
   });
-});
+}
+
+document.addEventListener('DOMContentLoaded', initStaticProfileUI);
+waitForFirebase(bindProfileAuth);

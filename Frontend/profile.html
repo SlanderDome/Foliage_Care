@@ -23,6 +23,11 @@
 
     <!-- Icons & Charts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Leaflet (Intel Map tab) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="css/map.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -135,6 +140,9 @@
             </button>
             <button class="tab-btn" data-tab="settings">
                 <i class="fas fa-sliders-h"></i> Settings
+            </button>
+            <button class="tab-btn" data-tab="intel-map">
+                <i class="fas fa-satellite-dish"></i> Intel Map
             </button>
             <div class="tab-indicator"></div>
         </nav>
@@ -367,6 +375,91 @@
                 </div>
             </section>
 
+            <!-- ────── TAB 5: INTEL MAP ────── -->
+            <section class="tab-panel" id="panel-intel-map">
+
+                <!-- Map Header -->
+                <div class="intel-map-header">
+                    <div class="intel-map-header-left">
+                        <span class="intel-eyebrow">
+                            <span class="live-dot"></span>
+                            Community Intelligence
+                        </span>
+                        <h3 class="intel-map-title">Outbreak <em>Map</em></h3>
+                        <p class="intel-map-desc">Anonymous scan data from all users, live.</p>
+                    </div>
+                    <div class="intel-filters" id="profile-map-filters">
+                        <button class="filter-pill active" data-filter="all">
+                            <span class="pill-dot all"></span> All
+                        </button>
+                        <button class="filter-pill" data-filter="healthy">
+                            <span class="pill-dot healthy"></span> Healthy
+                        </button>
+                        <button class="filter-pill" data-filter="warning">
+                            <span class="pill-dot warning"></span> Warning
+                        </button>
+                        <button class="filter-pill" data-filter="critical">
+                            <span class="pill-dot critical"></span> Critical
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stat Bar -->
+                <div class="intel-stat-bar">
+                    <div class="intel-stat">
+                        <span class="intel-stat-val" id="intel-total">—</span>
+                        <span class="intel-stat-lbl">Total Scans</span>
+                    </div>
+                    <div class="intel-stat-divider"></div>
+                    <div class="intel-stat">
+                        <span class="intel-stat-val" id="intel-diseases">—</span>
+                        <span class="intel-stat-lbl">Unique Diseases</span>
+                    </div>
+                    <div class="intel-stat-divider"></div>
+                    <div class="intel-stat">
+                        <span class="intel-stat-val" id="intel-critical">—</span>
+                        <span class="intel-stat-lbl">Critical</span>
+                    </div>
+                    <div class="intel-stat-divider"></div>
+                    <div class="intel-stat">
+                        <span class="intel-stat-val" id="intel-today">—</span>
+                        <span class="intel-stat-lbl">Today</span>
+                    </div>
+                </div>
+
+                <!-- Map + Sidebar -->
+                <div class="intel-layout">
+                    <div class="intel-map-container" id="profile-map-container">
+                        <div id="profile-leaflet-map"></div>
+                        <div class="map-legend">
+                            <span class="legend-title">Severity</span>
+                            <div class="legend-item"><span class="legend-dot healthy"></span><span>Healthy</span></div>
+                            <div class="legend-item"><span class="legend-dot warning"></span><span>Warning</span></div>
+                            <div class="legend-item"><span class="legend-dot critical"></span><span>Critical</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="intel-sidebar">
+                        <div class="intel-sidebar-header">
+                            <h4><i class="fas fa-satellite-dish"></i> Live Intel</h4>
+                            <span class="intel-badge" id="intel-badge">0 scans</span>
+                        </div>
+                        <div class="intel-feed" id="intel-feed">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div class="intel-top-section">
+                            <h5><i class="fas fa-chart-bar"></i> Top Pathogens</h5>
+                            <div class="intel-top-diseases" id="intel-top-diseases"></div>
+                        </div>
+                        <a href="start.html" class="intel-cta">
+                            <i class="fas fa-plus"></i> Contribute a Scan
+                        </a>
+                    </aside>
+                </div>
+
+            </section>
+
         </div><!-- end tab-panels -->
 
     </main>
@@ -390,6 +483,7 @@
     <script src="js/cursor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/profile.js"></script>
+    <script src="js/map.js"></script>
 </body>
 
 </html>

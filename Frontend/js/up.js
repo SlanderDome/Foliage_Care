@@ -1,6 +1,12 @@
 // ═══════════════════════════════════════════════
-//  FOLIAGE CARE: CONSULTATION THREAD ENGINE
-//  Handles upload, diagnosis, and follow-up flow
+//  FOLIAGE CARE: CONSULTATION THREAD ENGINE v2.1
+//  Migrated for pure Gemini Vision backend.
+//  Breaking changes from v1:
+//    result.class              → result.diagnosis.disease
+//    result.confidence         → result.diagnosis.confidence
+//    result.prevention_measures→ result.action_plan (object)
+//    result.explanation_image  → result.visual_evidence.affected_regions (coords)
+//    result.message            → result.message (invalid image)
 // ═══════════════════════════════════════════════
 
 // --- DOM Elements ---
@@ -12,38 +18,35 @@ const threadContainer = document.getElementById("thread-container");
 const threadEntries = document.getElementById("thread-entries");
 const fieldNoteInput = document.getElementById("field-note-input");
 
-// Stepper elements
+// Stepper
 const stepperSteps = document.querySelectorAll('.stepper-step');
 const stepperLines = document.querySelectorAll('.stepper-line');
 
-// Confidence gauge elements
-const confidenceGauge = document.getElementById("confidence-gauge");
-const gaugeFill = document.getElementById("gauge-fill");
-const gaugeValue = document.getElementById("gauge-value");
-
-// Unified Section Elements
+// Unified section
 const unifiedSection = document.getElementById("unified-section");
 const locationInput = document.getElementById("user-location");
 const contextInput = document.getElementById("user-context");
 const globalLoader = document.getElementById("global-loader");
 
-// Simulation Elements
+// Simulation
 const simulateBtn = document.getElementById("simulate-btn");
 const futureImg = document.getElementById("future-image");
 
-// Expert Plan Elements
+// Expert plan
 const planBtn = document.getElementById("get-plan-btn");
 const expertResult = document.getElementById("expert-result");
 
-// Follow-Up Elements
+// Follow-up
 const followupBar = document.getElementById("followup-bar");
 const followupInput = document.getElementById("followup-input");
 const followupSend = document.getElementById("followup-send");
 
 // ═══════════ GLOBAL STATE ═══════════
 let detectedDiseaseName = "";
+let detectedPlantName = "";
 let userCoordinates = null;
-let conversationHistory = []; // Tracks thread for Gemini context
+let conversationHistory = [];
+let lastDiagnosisResult = null;
 
 // ═══════════ HELPERS ═══════════
 
@@ -52,13 +55,13 @@ function getUserLocation() {
     navigator.geolocation.getCurrentPosition(
         (pos) => {
             userCoordinates = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            console.log("📍 Location Captured:", userCoordinates);
+            console.log("📍 Location captured:", userCoordinates);
             const locInput = document.getElementById("user-location");
             if (locInput && !locInput.value) {
                 locInput.value = `${userCoordinates.lat.toFixed(4)}, ${userCoordinates.lng.toFixed(4)}`;
             }
         },
-        (err) => { console.warn("⚠️ Location access denied."); },
+        () => { console.warn("⚠️ Location access denied."); },
         { enableHighAccuracy: true, timeout: 5000 }
     );
 }
@@ -72,36 +75,40 @@ function getUserName() {
     return user ? (user.displayName || "Farmer") : "Farmer";
 }
 
-function formatDiseaseName(rawName) {
-    // Convert "Apple___Apple_scab" → "Apple Scab"
-    // Convert "Potato___healthy" → "Potato (Healthy)"
-    if (!rawName) return "Unknown";
-
-    // Split by triple underscore if present
-    const parts = rawName.split('___');
-
-    if (parts.length === 2) {
-        const plant = parts[0].replace(/_/g, ' ');
-        const condition = parts[1].replace(/_/g, ' ');
-
-        // Special case for "healthy"
-        if (condition.toLowerCase() === 'healthy') {
-            return `${plant} (Healthy)`;
-        }
-
-        // Otherwise: "Apple Scab" instead of "Apple Apple Scab"
-        if (condition.toLowerCase().startsWith(plant.toLowerCase())) {
-            return condition;
-        }
-
-        return `${plant} ${condition}`;
-    }
-
-    // Fallback: just replace underscores
-    return rawName.replace(/_/g, ' ');
+function getUserType() {
+    const selected = document.querySelector('.user-type-pill.selected');
+    return selected ? selected.dataset.value : "home_gardener";
 }
 
-// --- Stepper Control ---
+// --- Partial JSON Salvager ---
+function salvagePartialJSON(rawStr) {
+    console.warn("Attempting to salvage partial JSON stream...");
+
+    // Default fallback structure so the UI doesn't crash
+    const salvaged = {
+        diagnosis: { plant: 'Unknown', plant_hindi: '', disease: 'Unknown issue', severity: 'mild', confidence: 0.5 },
+        visual_evidence: {},
+        trust_signals: {},
+        action_plan: { immediate_action: "Keep the plant isolated until a full scan can be completed." }
+    };
+
+    // Regex out the critical fields if they managed to generate
+    const plantMatch = rawStr.match(/"plant":\s*"([^"]+)"/);
+    if (plantMatch) salvaged.diagnosis.plant = plantMatch[1];
+
+    const hindiMatch = rawStr.match(/"plant_hindi":\s*"([^"]+)"/);
+    if (hindiMatch) salvaged.diagnosis.plant_hindi = hindiMatch[1];
+
+    const diseaseMatch = rawStr.match(/"disease":\s*"([^"]+)"/);
+    if (diseaseMatch) salvaged.diagnosis.disease = diseaseMatch[1];
+
+    const severityMatch = rawStr.match(/"severity":\s*"([^"]+)"/);
+    if (severityMatch) salvaged.diagnosis.severity = severityMatch[1];
+
+    return salvaged;
+}
+
+// --- Stepper ---
 function setStep(stepNum) {
     stepperSteps.forEach((s, i) => {
         const n = i + 1;
@@ -113,7 +120,7 @@ function setStep(stepNum) {
     });
 }
 
-// --- Confidence Gauge Animation ---
+// --- Confidence gauge animation ---
 function animateGauge(gaugeContainer, percent) {
     gaugeContainer.style.display = 'flex';
     const fill = gaugeContainer.querySelector('.gauge-fill');
@@ -121,9 +128,9 @@ function animateGauge(gaugeContainer, percent) {
     const circumference = 2 * Math.PI * 52;
     const offset = circumference - (percent / 100) * circumference;
 
-    let color = '#7cb342';
-    if (percent < 50) color = '#c0543a';
-    else if (percent < 75) color = '#c9a84c';
+    let color = '#2D5016';
+    if (percent < 65) color = '#C0392B';
+    else if (percent < 85) color = '#D4A017';
 
     fill.style.stroke = color;
     fill.style.strokeDasharray = circumference;
@@ -134,18 +141,180 @@ function animateGauge(gaugeContainer, percent) {
         fill.style.strokeDashoffset = offset;
     });
 
-    let current = 0;
     const duration = 1500;
     const start = performance.now();
     function tick(now) {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
         const eased = 1 - Math.pow(1 - progress, 3);
-        current = (eased * percent).toFixed(1);
-        value.textContent = current + '%';
+        value.textContent = (eased * percent).toFixed(1) + '%';
         if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+}
+
+// --- Severity badge ---
+function buildSeverityBadge(severity) {
+    const map = {
+        none: { bg: '#EAF3DE', color: '#2D5016', label: 'Healthy ✓' },
+        mild: { bg: '#FDF3D0', color: '#854F0B', label: 'Mild issue' },
+        moderate: { bg: '#FAECE7', color: '#993C1D', label: 'Moderate' },
+        severe: { bg: '#FCEBEB', color: '#A32D2D', label: 'Severe — act now' },
+    };
+    const s = map[severity] || map['mild'];
+    return `<span style="
+        background:${s.bg};
+        color:${s.color};
+        font-size:11px;
+        font-weight:500;
+        padding:3px 10px;
+        border-radius:999px;
+        display:inline-block;
+        margin-left:8px;
+        vertical-align:middle;
+    ">${s.label}</span>`;
+}
+
+// --- Action plan renderer ---
+function buildActionPlanHTML(actionPlan) {
+    if (!actionPlan) return '';
+    const steps = [
+        { icon: '⚡', title: 'Do this today', body: actionPlan.immediate_action, borderColor: '#C0392B' },
+        { icon: '🌿', title: 'Desi / organic treatment', body: actionPlan.desi_remedy, borderColor: '#5C8A2E' },
+        {
+            icon: '⚗️', title: 'If it gets worse',
+            body: actionPlan.organic_option
+                ? actionPlan.organic_option + (actionPlan.chemical_option ? '<br><br>' + actionPlan.chemical_option : '')
+                : actionPlan.chemical_option,
+            borderColor: '#D4A017'
+        },
+    ];
+
+    const stepsHTML = steps.filter(s => s.body).map(s => `
+        <div style="border-left:3px solid ${s.borderColor};padding:10px 14px;margin-bottom:10px;background:var(--bg-card,#fff);border-radius:0 8px 8px 0;">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${s.icon} ${s.title}</div>
+            <div style="font-size:13px;line-height:1.6;color:var(--text-secondary,#555);">${s.body}</div>
+        </div>
+    `).join('');
+
+    const seasonTip = actionPlan.seasonal_tip
+        ? `<div style="background:#EAF3DE;border-radius:8px;padding:10px 14px;font-size:12px;color:#2D5016;margin-top:4px;">🌦️ <strong>Seasonal tip:</strong> ${actionPlan.seasonal_tip}</div>`
+        : '';
+
+    return `<div style="margin-top:12px;">${stepsHTML}${seasonTip}</div>`;
+}
+
+// --- Trust signals renderer ---
+function buildTrustSignalsHTML(trustSignals) {
+    if (!trustSignals) return '';
+    const items = [
+        { icon: '✓', color: '#5C8A2E', text: trustSignals.why_this_diagnosis },
+        { icon: '≈', color: '#888780', text: trustSignals.alternative_diagnosis },
+        { icon: 'ℹ', color: '#D4A017', text: trustSignals.confidence_explanation },
+    ].filter(i => i.text && i.text !== 'None');
+    if (!items.length) return '';
+
+    const rows = items.map(i => `
+        <div style="display:flex;gap:8px;margin-bottom:6px;font-size:12px;line-height:1.5;">
+            <span style="color:${i.color};font-weight:700;min-width:14px;">${i.icon}</span>
+            <span style="color:var(--text-secondary,#555);">${i.text}</span>
+        </div>
+    `).join('');
+
+    return `
+        <details style="margin-top:12px;">
+            <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted,#888);list-style:none;user-select:none;">Why we think this ▾</summary>
+            <div style="margin-top:8px;padding:10px 12px;background:var(--bg-surface,#F8F4EC);border-radius:8px;">${rows}</div>
+        </details>
+    `;
+}
+
+
+// --- Region overlay (replaces Grad-CAM) ---
+function drawRegionOverlay(imgElement, regions) {
+    if (!regions || !regions.length) return;
+
+    function draw() {
+        const wrapper = imgElement.parentElement;
+        if (!wrapper) return;
+        wrapper.style.position = 'relative';
+        wrapper.style.display = 'inline-block';
+
+        const existing = wrapper.querySelector('.region-overlay-canvas');
+        if (existing) existing.remove();
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'region-overlay-canvas';
+        canvas.width = imgElement.naturalWidth || imgElement.offsetWidth;
+        canvas.height = imgElement.naturalHeight || imgElement.offsetHeight;
+        canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;border-radius:inherit;';
+        wrapper.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width;
+        const H = canvas.height;
+
+        regions.forEach((region, idx) => {
+            setTimeout(() => {
+                const x = region.x_pct * W;
+                const y = region.y_pct * H;
+                const w = region.w_pct * W;
+                const h = region.h_pct * H;
+
+                ctx.fillStyle = 'rgba(212, 160, 23, 0.08)';
+                ctx.fillRect(x, y, w, h);
+
+                let progress = 0;
+                const perimeter = 2 * (w + h);
+                const duration = 600;
+                const startTime = performance.now();
+
+                function animateBox(now) {
+                    const elapsed = now - startTime;
+                    progress = Math.min(elapsed / duration, 1);
+                    const drawn = progress * perimeter;
+
+                    ctx.clearRect(x - 2, y - 2, w + 4, h + 4);
+                    ctx.fillStyle = 'rgba(212, 160, 23, 0.08)';
+                    ctx.fillRect(x, y, w, h);
+
+                    ctx.strokeStyle = '#D4A017';
+                    ctx.lineWidth = 2;
+                    ctx.lineJoin = 'round';
+                    ctx.lineCap = 'round';
+
+                    ctx.beginPath();
+                    let remaining = drawn;
+                    if (remaining > 0) { const seg = Math.min(remaining, w); ctx.moveTo(x, y); ctx.lineTo(x + seg, y); remaining -= seg; }
+                    if (remaining > 0) { const seg = Math.min(remaining, h); ctx.moveTo(x + w, y); ctx.lineTo(x + w, y + seg); remaining -= seg; }
+                    if (remaining > 0) { const seg = Math.min(remaining, w); ctx.moveTo(x + w, y + h); ctx.lineTo(x + w - seg, y + h); remaining -= seg; }
+                    if (remaining > 0) { const seg = Math.min(remaining, h); ctx.moveTo(x, y + h); ctx.lineTo(x, y + h - seg); }
+                    ctx.stroke();
+
+                    if (region.label) {
+                        ctx.globalAlpha = progress;
+                        ctx.fillStyle = 'rgba(212, 160, 23, 0.92)';
+                        const labelW = ctx.measureText(region.label).width + 12;
+                        const labelH = 18;
+                        const labelX = x;
+                        const labelY = y - labelH - 2 < 0 ? y + 2 : y - labelH - 2;
+                        ctx.fillRect(labelX, labelY, labelW, labelH);
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.font = '500 11px "DM Sans", sans-serif';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(region.label, labelX + 6, labelY + labelH / 2);
+                        ctx.globalAlpha = 1;
+                    }
+
+                    if (progress < 1) requestAnimationFrame(animateBox);
+                }
+                requestAnimationFrame(animateBox);
+            }, idx * 150);
+        });
+    }
+
+    if (imgElement.complete && imgElement.naturalWidth) { draw(); }
+    else { imgElement.addEventListener('load', draw, { once: true }); }
 }
 
 // ═══════════ THREAD ENTRY SYSTEM ═══════════
@@ -156,49 +325,19 @@ function addThreadEntry(type, content, extraHTML = '') {
 
     if (type === 'user') {
         entry.className = 'thread-entry user-entry';
-        entry.innerHTML = `
-            <div class="entry-meta">
-                <div class="entry-icon"><i class="fas fa-user"></i></div>
-                <span>Field Note</span>
-                <span class="entry-time">${time}</span>
-            </div>
-            <div class="entry-body">"${content}"</div>
-        `;
+        entry.innerHTML = `<div class="entry-meta"><div class="entry-icon"><i class="fas fa-user"></i></div><span>Field Note</span><span class="entry-time">${time}</span></div><div class="entry-body">"${content}"</div>`;
         conversationHistory.push({ role: 'user', text: content });
     } else if (type === 'ai') {
         entry.className = 'thread-entry ai-entry';
-        entry.innerHTML = `
-            <div class="entry-meta">
-                <div class="entry-icon">AI</div>
-                <span>FoliageCare AI</span>
-                <span class="entry-time">${time}</span>
-            </div>
-            <div class="entry-body">${content}</div>
-            ${extraHTML}
-        `;
+        entry.innerHTML = `<div class="entry-meta"><div class="entry-icon">AI</div><span>FoliageCare AI</span><span class="entry-time">${time}</span></div><div class="entry-body">${content}</div>${extraHTML}`;
         conversationHistory.push({ role: 'ai', text: content });
     } else if (type === 'diagnosis') {
         entry.className = 'thread-entry ai-entry';
-        entry.innerHTML = `
-            <div class="entry-meta">
-                <div class="entry-icon">AI</div>
-                <span>Diagnosis Report</span>
-                <span class="entry-time">${time}</span>
-            </div>
-            <div class="entry-body">${content}</div>
-            ${extraHTML}
-        `;
+        entry.innerHTML = `<div class="entry-meta"><div class="entry-icon">AI</div><span>Diagnosis Report</span><span class="entry-time">${time}</span></div><div class="entry-body">${content}</div>${extraHTML}`;
         conversationHistory.push({ role: 'ai', text: content });
     } else if (type === 'warning') {
         entry.className = 'thread-entry warning-entry';
-        entry.innerHTML = `
-            <div class="entry-meta">
-                <div class="entry-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                <span>Validation Warning</span>
-                <span class="entry-time">${time}</span>
-            </div>
-            <div class="entry-body">${content}</div>
-        `;
+        entry.innerHTML = `<div class="entry-meta"><div class="entry-icon"><i class="fas fa-exclamation-triangle"></i></div><span>Validation Warning</span><span class="entry-time">${time}</span></div><div class="entry-body">${content}</div>`;
     }
 
     threadEntries.appendChild(entry);
@@ -222,9 +361,15 @@ function removeTypingIndicator() {
 }
 
 function formatMarkdown(text) {
+    if (!text) return '';
     return text
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^### (.*)/gm, '<h4 style="margin:10px 0 4px;font-size:13px;">$1</h4>')
+        .replace(/^## (.*)/gm, '<h3 style="margin:12px 0 6px;font-size:14px;">$1</h3>')
+        .replace(/^# (.*)/gm, '<h2 style="margin:14px 0 6px;font-size:15px;">$1</h2>')
+        .replace(/^- (.*)/gm, '<li style="margin:3px 0;">$1</li>')
+        .replace(/(<li.*<\/li>)/s, '<ul style="padding-left:18px;margin:8px 0;">$1</ul>')
         .replace(/\n/g, '<br>');
 }
 
@@ -235,20 +380,25 @@ async function saveScanToHistory(diseaseResult, confidenceVal) {
     try {
         const user = window.firebaseAuth.currentUser;
         const db = window.db;
-        const confidenceStr = (typeof confidenceVal === 'number')
-            ? (confidenceVal * 100).toFixed(2) + "%" : confidenceVal;
+        const confidenceStr = (typeof confidenceVal === 'number') ? (confidenceVal * 100).toFixed(2) + '%' : confidenceVal;
 
-        await window.addDoc(window.collection(db, "scans"), {
-            userId: user.uid,
-            plantName: "Plant Scan",
-            disease: diseaseResult,
-            confidence: confidenceStr,
-            timestamp: window.serverTimestamp(),
-            icon: diseaseResult.toLowerCase().includes("healthy") ? "fas fa-seedling" : "fas fa-exclamation-triangle"
+        await window.addDoc(window.collection(db, 'scans'), {
+            userId: user.uid, plantName: detectedPlantName || 'Plant Scan',
+            disease: diseaseResult, confidence: confidenceStr, timestamp: window.serverTimestamp(),
+            icon: diseaseResult.toLowerCase().includes('healthy') ? 'fas fa-seedling' : 'fas fa-exclamation-triangle',
         });
-        console.log("✅ Scan saved to history!");
+
+        if (userCoordinates) {
+            const confNum = (typeof confidenceVal === 'number') ? confidenceVal : parseFloat(confidenceVal) / 100;
+            await window.addDoc(window.collection(db, 'community_scans'), {
+                disease: diseaseResult, confidence: confNum, latitude: userCoordinates.lat,
+                longitude: userCoordinates.lng, timestamp: window.serverTimestamp(),
+            });
+            console.log('🗺️ Community scan contributed.');
+        }
+        console.log('✅ Scan saved to history.');
     } catch (error) {
-        console.error("❌ Error saving scan:", error);
+        console.error('❌ Error saving scan:', error);
     }
 }
 
@@ -259,62 +409,57 @@ fileInput.addEventListener('change', () => {
         setStep(1);
         getUserLocation();
         if (window.toast) window.toast.success('Image loaded — ready to analyze!');
-
         const reader = new FileReader();
-        reader.onload = function (e) {
+        reader.onload = (e) => {
             previewImage.src = e.target.result;
-            document.getElementById('drop-zone-prompt').style.display = 'none';
-            document.getElementById('drop-zone-preview').style.display = 'flex';
-        }
+            const prompt = document.getElementById('drop-zone-prompt');
+            const preview = document.getElementById('drop-zone-preview');
+            if (prompt) prompt.style.display = 'none';
+            if (preview) preview.style.display = 'flex';
+        };
         reader.readAsDataURL(fileInput.files[0]);
     }
 });
 
-// ═══════════ MAIN ANALYSIS (Module 1) ═══════════
 
-analyzeButton.addEventListener("click", async (event) => {
+// ═══════════ MAIN ANALYSIS — MODULE 1 (/predict) ═══════════
+
+analyzeButton.addEventListener('click', async (event) => {
     event.preventDefault();
 
     const file = fileInput.files[0];
-    if (!file) {
-        if (window.toast) window.toast.warning('Please upload an image first.');
-        return;
-    }
+    if (!file) { if (window.toast) window.toast.warning('Please upload an image first.'); return; }
 
-    const loc = locationInput ? locationInput.value : "";
-    const ctx = contextInput ? contextInput.value : "";
+    const loc = locationInput ? locationInput.value.trim() : '';
+    const ctx = contextInput ? contextInput.value.trim() : '';
     const userName = getUserName();
-    const fieldNote = fieldNoteInput ? fieldNoteInput.value.trim() : "";
+    const userType = getUserType();
+    const fieldNote = fieldNoteInput ? fieldNoteInput.value.trim() : '';
 
-    // Show thread, hide empty
     if (resultsEmpty) resultsEmpty.style.display = 'none';
     if (threadContainer) threadContainer.style.display = 'flex';
-
-    // Clear previous thread
     threadEntries.innerHTML = '';
     conversationHistory = [];
-    if (unifiedSection) unifiedSection.style.display = "none";
-    if (followupBar) followupBar.style.display = "none";
+    detectedDiseaseName = '';
+    detectedPlantName = '';
+    lastDiagnosisResult = null;
+    if (unifiedSection) unifiedSection.style.display = 'none';
+    if (followupBar) followupBar.style.display = 'none';
 
-    // If user typed a field note, add it as the first entry
-    if (fieldNote) {
-        addThreadEntry('user', fieldNote);
-    }
-
-    // Show typing indicator
+    if (fieldNote) addThreadEntry('user', fieldNote);
     addTypingIndicator();
 
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("context", fieldNote || ctx);
-    formData.append("user_name", userName);
-
+    formData.append('file', file);
+    formData.append('user_name', userName);
+    formData.append('user_type', userType);
+    formData.append('context', fieldNote || ctx);
     if (userCoordinates) {
-        formData.append("latitude", userCoordinates.lat);
-        formData.append("longitude", userCoordinates.lng);
-        formData.append("location", "GPS Coordinates");
-    } else {
-        formData.append("location", loc);
+        formData.append('latitude', userCoordinates.lat);
+        formData.append('longitude', userCoordinates.lng);
+        formData.append('location', 'GPS Coordinates');
+    } else if (loc) {
+        formData.append('location', loc);
     }
 
     setStep(2);
@@ -323,80 +468,131 @@ analyzeButton.addEventListener("click", async (event) => {
     analyzeButton.disabled = true;
 
     try {
-        console.log("🌿 Sending to Backend...");
-        const response = await fetch("http://localhost:8000/predict", {
-            method: "POST",
-            body: formData
-        });
-
+        const response = await fetch('http://localhost:8000/predict', { method: 'POST', body: formData });
         removeTypingIndicator();
 
-        if (response.ok) {
-            const result = await response.json();
-            console.log("🌟 Result:", result);
-
-            // Check if it's a non-plant image warning
-            if (result.is_invalid_image) {
-                addThreadEntry('warning', result.prevention_measures || "⚠️ This doesn't appear to be a plant leaf image. Please upload a clear photo of a plant leaf for accurate diagnosis.");
-                setStep(1);
-                if (window.toast) window.toast.warning('Please upload a plant leaf image.');
-                return;
-            }
-
-            setStep(3);
-            const confidencePercent = (result.confidence * 100).toFixed(2);
-            const cleanName = formatDiseaseName(result.class);
-
-            // Build the diagnosis entry with inline visuals
-            const diagText = `<strong>🌿 ${cleanName}</strong> detected with <strong>${confidencePercent}%</strong> confidence.`;
-            const reportText = result.prevention_measures || "";
-
-            const visualsHTML = `
-                <div class="diagnosis-visuals">
-                    <div class="diag-left">
-                        <div class="confidence-gauge" id="thread-gauge">
-                            <svg class="gauge-svg" viewBox="0 0 120 120">
-                                <circle class="gauge-track" cx="60" cy="60" r="52" />
-                                <circle class="gauge-fill" cx="60" cy="60" r="52" />
-                            </svg>
-                            <div class="gauge-center">
-                                <span class="gauge-value">0%</span>
-                                <span class="gauge-label">Confidence</span>
-                            </div>
-                        </div>
-                        ${result.explanation_image ? `
-                        <div class="gradcam-wrapper" style="border-radius:12px;overflow:hidden;border:1px solid var(--border-card);box-shadow:0 2px 8px rgba(0,0,0,0.15);">
-                            <img src="data:image/jpeg;base64,${result.explanation_image}" alt="AI Heatmap" style="width:100%;display:block;" id="gradcam-image">
-                        </div>` : ''}
-                    </div>
-                    <div class="diagnosis-report">${formatMarkdown(reportText)}</div>
-                </div>
-            `;
-
-            addThreadEntry('diagnosis', diagText, visualsHTML);
-
-            // Animate the gauge inside the thread entry
-            const threadGauge = document.getElementById('thread-gauge');
-            if (threadGauge) animateGauge(threadGauge, parseFloat(confidencePercent));
-
-            // Save state
-            detectedDiseaseName = result.class;
-            saveScanToHistory(result.class, result.confidence);
-
-            // Show unified section and follow-up bar
-            if (unifiedSection) unifiedSection.style.display = "block";
-            if (followupBar) followupBar.style.display = "flex";
-
-            if (window.toast) window.toast.success(`Analysis Complete: ${result.class}`);
-        } else {
-            removeTypingIndicator();
+        if (!response.ok) {
             addThreadEntry('warning', '❌ Prediction failed. The server returned an error.');
             setStep(1);
+            return;
         }
+
+        const result = await response.json();
+        console.log('🌟 v2.1 result:', result);
+
+        if (result.error) {
+            removeTypingIndicator();
+
+            // NEW LOGIC: Try to salvage data if raw_response exists and contains at least the plant name
+            if (result.raw_response && result.raw_response.includes('"plant"')) {
+                const partialData = salvagePartialJSON(result.raw_response);
+
+                addThreadEntry('warning', '⚠️ The network connection interrupted the full report, but we salvaged the core diagnosis.');
+                if (window.toast) window.toast.warning('Partial data recovered.');
+
+                // Override the result with our salvaged data to let the UI continue
+                Object.assign(result, partialData);
+                delete result.error; // Clear the error so the script continues to the UI render
+            } else {
+                // OLD LOGIC: Failsafe if it's completely unreadable
+                let errTxt = result.error + (result.detail ? " | " + result.detail : "");
+                addThreadEntry("warning", "❌ API Error: " + errTxt);
+                if (result.raw_response) {
+                    addThreadEntry("user", "Raw response: " + result.raw_response.substring(0, 250) + "...");
+                }
+                setStep(1);
+                if (window.toast) window.toast.error("API Error: " + result.error);
+                return;
+            }
+        }
+
+        if (result.is_invalid_image) {
+            addThreadEntry('warning', result.message || '⚠️ This doesn\'t appear to be a plant leaf. Please upload a clear photo of a plant leaf.');
+            setStep(1);
+            if (window.toast) window.toast.warning('Please upload a plant leaf image.');
+            return;
+        }
+
+        const diagnosis = result.diagnosis || {};
+        const evidence = result.visual_evidence || {};
+        const trustSignals = result.trust_signals || {};
+        const actionPlan = result.action_plan || {};
+
+        const diseaseName = diagnosis.disease || 'Unknown';
+        const plantName = diagnosis.plant || '';
+        const plantHindi = diagnosis.plant_hindi || '';
+        const severity = diagnosis.severity || 'mild';
+        const confidence = diagnosis.confidence || 0;
+        const confidencePct = (confidence * 100);
+
+        detectedDiseaseName = diseaseName;
+        detectedPlantName = plantName;
+        lastDiagnosisResult = result;
+
+        setStep(3);
+
+        const plantLabel = plantHindi
+            ? `${plantName} <span style="color:var(--text-muted,#888);font-weight:400;">(${plantHindi})</span>`
+            : plantName;
+
+        const diagHeaderHTML = `
+            <strong>&#127807; ${plantLabel}</strong>${buildSeverityBadge(severity)}<br>
+            <span style="font-size:13px;color:var(--text-secondary,#555);margin-top:4px;display:block;">${diseaseName}</span>
+        `;
+
+        const evidenceHTML = evidence.description
+            ? `<div style="border-left:3px solid #5C8A2E;padding:8px 12px;margin:10px 0;font-size:13px;color:var(--text-secondary,#555);background:var(--bg-surface,#F8F4EC);border-radius:0 8px 8px 0;">${evidence.description}</div>`
+            : '';
+
+        const actionPlanHTML = buildActionPlanHTML(actionPlan);
+        const trustHTML = buildTrustSignalsHTML(trustSignals);
+
+        const visualsHTML = `
+            <div class="diagnosis-visuals">
+                <div class="diag-left">
+                    <div class="confidence-gauge" id="thread-gauge">
+                        <svg class="gauge-svg" viewBox="0 0 120 120">
+                            <circle class="gauge-track" cx="60" cy="60" r="52"/>
+                            <circle class="gauge-fill"  cx="60" cy="60" r="52"/>
+                        </svg>
+                        <div class="gauge-center">
+                            <span class="gauge-value">0%</span>
+                            <span class="gauge-label">Confidence</span>
+                        </div>
+                    </div>
+                    <div class="leaf-overlay-wrapper" style="margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid var(--border-card,#e0e0e0);position:relative;">
+                        <img id="overlay-leaf-img" src="${previewImage.src}" alt="Leaf with AI regions" style="width:100%;display:block;border-radius:12px;">
+                    </div>
+                </div>
+                <div class="diagnosis-report">
+                    ${evidenceHTML}
+                    ${actionPlanHTML}
+                    ${trustHTML}
+                </div>
+            </div>
+        `;
+
+        addThreadEntry('diagnosis', diagHeaderHTML, visualsHTML);
+
+        const threadGauge = document.getElementById('thread-gauge');
+        if (threadGauge) animateGauge(threadGauge, parseFloat(confidencePct.toFixed(1)));
+
+        const overlayLeaf = document.getElementById('overlay-leaf-img');
+        if (overlayLeaf && evidence.affected_regions && evidence.affected_regions.length) {
+            drawRegionOverlay(overlayLeaf, evidence.affected_regions);
+        }
+
+        saveScanToHistory(diseaseName, confidence);
+
+        if (unifiedSection) unifiedSection.style.display = 'block';
+        if (followupBar) followupBar.style.display = 'flex';
+
+        if (window.toast) window.toast.success(`Analysis complete: ${diseaseName}`);
+
     } catch (error) {
-        console.error("❌ Error:", error);
+        console.error('❌ Error:', error);
         removeTypingIndicator();
-        addThreadEntry('warning', '❌ Server Error. Is main.py running?');
+        addThreadEntry('warning', '❌ Server error. Is main.py running?');
         setStep(1);
     } finally {
         analyzeButton.innerHTML = originalBtnHTML;
@@ -404,37 +600,33 @@ analyzeButton.addEventListener("click", async (event) => {
     }
 });
 
-// ═══════════ FOLLOW-UP HANDLER ═══════════
+// ═══════════ FOLLOW-UP — MODULE 4 (/followup) ═══════════
 
 async function sendFollowUp() {
     const question = followupInput.value.trim();
     if (!question || !detectedDiseaseName) return;
 
     const userName = getUserName();
+    const userType = getUserType();
     followupInput.value = '';
 
-    // Add user entry
     addThreadEntry('user', question);
     addTypingIndicator();
-
     followupSend.disabled = true;
 
     try {
-        const response = await fetch("http://localhost:8000/followup", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+        const response = await fetch('http://localhost:8000/followup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                question: question,
-                disease: detectedDiseaseName,
+                question, disease: detectedDiseaseName,
                 conversation_history: conversationHistory,
-                user_name: userName,
+                user_name: userName, user_type: userType,
                 latitude: userCoordinates ? userCoordinates.lat : null,
-                longitude: userCoordinates ? userCoordinates.lng : null
-            })
+                longitude: userCoordinates ? userCoordinates.lng : null,
+            }),
         });
-
         removeTypingIndicator();
-
         if (response.ok) {
             const data = await response.json();
             addThreadEntry('ai', formatMarkdown(data.reply));
@@ -450,137 +642,127 @@ async function sendFollowUp() {
     }
 }
 
-if (followupSend) {
-    followupSend.addEventListener("click", sendFollowUp);
-}
+if (followupSend) followupSend.addEventListener('click', sendFollowUp);
+if (followupInput) followupInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendFollowUp(); });
 
-if (followupInput) {
-    followupInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendFollowUp();
+// ── Suggested follow-up chips ──
+function injectSuggestedQuestions() {
+    if (!detectedDiseaseName) return;
+    const questions = [
+        'How do I apply the neem oil remedy?',
+        'Is this safe around children and pets?',
+        'How long until my plant recovers?',
+        'Will this spread to other plants?',
+    ];
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;';
+    questions.forEach(q => {
+        const chip = document.createElement('button');
+        chip.textContent = q;
+        chip.style.cssText = 'background:transparent;border:1px solid #5C8A2E;color:#2D5016;border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;';
+        chip.addEventListener('click', () => { followupInput.value = q; sendFollowUp(); });
+        wrapper.appendChild(chip);
     });
+    threadEntries.appendChild(wrapper);
+    threadEntries.scrollTop = threadEntries.scrollHeight;
 }
 
-// ═══════════ VISUAL SIMULATION (Module 2) ═══════════
+// ═══════════ SIMULATION — MODULE 2 (/simulate) ═══════════
 
-simulateBtn.addEventListener("click", async () => {
-    if (!detectedDiseaseName) {
-        if (window.toast) window.toast.warning('Please analyze an image first!');
-        return;
-    }
+simulateBtn.addEventListener('click', async () => {
+    if (!detectedDiseaseName) { if (window.toast) window.toast.warning('Please analyze an image first!'); return; }
 
     const file = fileInput.files[0];
-    const context = contextInput.value;
+    const ctx = contextInput ? contextInput.value : '';
     const userName = getUserName();
+    const userType = getUserType();
 
     simulateBtn.disabled = true;
-    simulateBtn.innerText = "Simulating...";
-    globalLoader.style.display = "block";
-    futureImg.style.display = "none";
+    simulateBtn.innerText = 'Simulating...';
+    if (globalLoader) globalLoader.style.display = 'block';
+    if (futureImg) futureImg.style.display = 'none';
 
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("disease_name", detectedDiseaseName);
-    formData.append("context", context);
-    formData.append("user_name", userName);
-
-    if (userCoordinates) {
-        formData.append("latitude", userCoordinates.lat);
-        formData.append("longitude", userCoordinates.lng);
-    }
+    formData.append('file', file);
+    formData.append('disease_name', detectedDiseaseName);
+    formData.append('context', ctx);
+    formData.append('user_name', userName);
+    formData.append('user_type', userType);
+    if (userCoordinates) { formData.append('latitude', userCoordinates.lat); formData.append('longitude', userCoordinates.lng); }
 
     try {
-        const response = await fetch("http://localhost:8000/simulate", {
-            method: "POST",
-            body: formData
-        });
+        const response = await fetch('http://localhost:8000/simulate', { method: 'POST', body: formData });
         const data = await response.json();
 
         if (data.future_image) {
-            futureImg.src = "data:image/jpeg;base64," + data.future_image;
-            futureImg.style.display = "block";
+            if (futureImg) { futureImg.src = 'data:image/jpeg;base64,' + data.future_image; futureImg.style.display = 'block'; }
 
-            // Also add to thread - include the generative prompt if available to show the "intelligence"
-            let promptText = "";
-            if (data.prompt_used) {
-                promptText = `<div style="font-size:0.85em;color:var(--text-muted);margin-top:8px;font-style:italic;">
-                                <strong>Contextual Simulation Factors:</strong> ${data.prompt_used}
-                              </div>`;
-            }
+            const promptNote = data.prompt_used
+                ? `<div style="font-size:11px;color:var(--text-muted,#888);margin-top:8px;font-style:italic;"><strong>Simulation factors:</strong> ${data.prompt_used}</div>`
+                : '';
 
-            addThreadEntry('ai', '<strong>🔬 Contextual Progression Simulation</strong><br>Based on your field conditions, here is the projected visual progression if left untreated:',
-                `<div style="margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid var(--border-card);">
-                    <img src="data:image/jpeg;base64,${data.future_image}" style="width:100%;display:block;" alt="Simulation">
-                </div>
-                ${promptText}`
+            addThreadEntry('ai',
+                '<strong>🔬 7-day progression simulation</strong><br>Based on your conditions, here is the projected visual if left untreated:',
+                `<div style="margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid var(--border-card,#e0e0e0);"><img src="data:image/jpeg;base64,${data.future_image}" style="width:100%;display:block;" alt="Simulation"></div>
+                 <div style="margin-top:8px;font-size:12px;color:#C0392B;font-weight:500;">⚠️ Act now to prevent this — see your care plan below.</div>${promptNote}`
             );
-
-            if (window.toast) window.toast.success('Contextual simulation generated!');
+            if (window.toast) window.toast.success('Simulation generated!');
         } else {
-            if (window.toast) window.toast.error("Simulation failed: " + (data.error || "Unknown error"));
+            if (window.toast) window.toast.error('Simulation failed: ' + (data.error || 'Unknown error'));
         }
     } catch (e) {
         console.error(e);
         if (window.toast) window.toast.error('Error connecting to server.');
     } finally {
         simulateBtn.disabled = false;
-        simulateBtn.innerText = "Simulate Visuals";
-        globalLoader.style.display = "none";
+        simulateBtn.innerText = 'Simulate Visuals';
+        if (globalLoader) globalLoader.style.display = 'none';
     }
 });
 
-// ═══════════ EXPERT CURE PLAN (Module 3) ═══════════
+// ═══════════ EXPERT PLAN — MODULE 3 (/get_expert_plan) ═══════════
 
-planBtn.addEventListener("click", async () => {
-    const file = fileInput.files[0];
-    // Use defaults if empty — don't block the user
-    const loc = locationInput.value || "General Region";
-    const ctx = contextInput.value || "General Context";
-    const userName = getUserName();
-
+planBtn.addEventListener('click', async () => {
     if (!detectedDiseaseName) return;
 
+    const file = fileInput.files[0];
+    const loc = locationInput ? (locationInput.value || 'General Region') : 'General Region';
+    const ctx = contextInput ? (contextInput.value || '') : '';
+    const userName = getUserName();
+    const userType = getUserType();
+
     planBtn.disabled = true;
-    planBtn.innerText = "Consulting...";
-    globalLoader.style.display = "block";
-    expertResult.style.display = "none";
+    planBtn.innerText = 'Consulting...';
+    if (globalLoader) globalLoader.style.display = 'block';
+    if (expertResult) expertResult.style.display = 'none';
 
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("disease", detectedDiseaseName);
-    formData.append("location", loc);
-    formData.append("context", ctx);
-    formData.append("user_name", userName);
-
-    if (userCoordinates) {
-        formData.append("latitude", userCoordinates.lat);
-        formData.append("longitude", userCoordinates.lng);
-    }
+    formData.append('file', file);
+    formData.append('disease', detectedDiseaseName);
+    formData.append('location', loc);
+    formData.append('context', ctx);
+    formData.append('user_name', userName);
+    formData.append('user_type', userType);
+    if (userCoordinates) { formData.append('latitude', userCoordinates.lat); formData.append('longitude', userCoordinates.lng); }
 
     try {
-        const response = await fetch("http://localhost:8000/get_expert_plan", {
-            method: "POST",
-            body: formData
-        });
+        const response = await fetch('http://localhost:8000/get_expert_plan', { method: 'POST', body: formData });
         const data = await response.json();
 
         if (data.plan) {
-            let html = formatMarkdown(data.plan);
-            expertResult.innerHTML = html;
-            expertResult.style.display = "block";
-
-            // Also add to thread
-            addThreadEntry('ai', '<strong>🧑‍⚕️ Expert Cure Plan</strong><br>' + html);
-
+            const html = formatMarkdown(data.plan);
+            if (expertResult) { expertResult.innerHTML = html; expertResult.style.display = 'block'; }
+            addThreadEntry('ai', '<strong>🧑‍⚕️ Expert care plan</strong><br>' + html);
             if (window.toast) window.toast.success('Expert plan generated!');
         } else {
-            if (window.toast) window.toast.error("Expert failed: " + (data.error || "Unknown"));
+            if (window.toast) window.toast.error('Expert plan failed: ' + (data.error || 'Unknown'));
         }
     } catch (e) {
         console.error(e);
-        if (window.toast) window.toast.error('Error connecting to AI Expert.');
+        if (window.toast) window.toast.error('Error connecting to AI expert.');
     } finally {
         planBtn.disabled = false;
-        planBtn.innerText = "Generate Plan";
-        globalLoader.style.display = "none";
+        planBtn.innerText = 'Generate Plan';
+        if (globalLoader) globalLoader.style.display = 'none';
     }
 });

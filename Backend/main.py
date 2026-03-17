@@ -1,27 +1,39 @@
+﻿# ==========================================
+#  FOLIAGE CARE — API GATEWAY v2.1
+#  No CNN. Pure Gemini Vision.
+#  M1: /predict         — Diagnosis + region overlay
+#  M2: /simulate        — Disease progression image
+#  M3: /get_expert_plan — Full treatment plan
+#  M4: /followup        — Context-aware chat
 # ==========================================
-#  FOLIAGE CARE: API GATEWAY (Final Production)
-#  M1: Detection | M2: Smart Sim | M3: Expert
-# ==========================================
+
 import os
-from datetime import datetime
 import io
 import json
 import base64
-import numpy as np
-import tensorflow as tf
-import requests
 import traceback
-from google import genai  # <--- NEW LIBRARY
-from PIL import Image
+from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel
-from fastapi import FastAPI, File, UploadFile, Form, Body
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
-# --- 1. CONFIGURATION ---
+from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+from PIL import Image
+from huggingface_hub import InferenceClient
+
+# ─────────────────────────────────────────
+#  1. STARTUP
+# ─────────────────────────────────────────
 load_dotenv()
-app = FastAPI()
+
+app = FastAPI(
+    title="FoliageCare API",
+    version="2.1.0",
+    description="Plant health consultation API — India-specific, Gemini Vision powered",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,373 +43,620 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# PATHS
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "foliagecare_model.keras")
-JSON_PATH = os.path.join(BASE_DIR, "class_indices.json")
-
-# API KEYS
-HF_TOKEN = os.getenv("HF_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+HF_TOKEN       = os.getenv("HF_TOKEN")
 
-# Initialize Gemini Client (NEW SYNTAX)
+# ─────────────────────────────────────────
+#  2. GEMINI CLIENT
+# ─────────────────────────────────────────
 gemini_client = None
 if GEMINI_API_KEY:
     try:
         gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-        print("✅ Gemini Client Initialized (New SDK)")
+        print("✅ Gemini Client Ready")
     except Exception as e:
-        print(f"⚠️ Gemini Init Failed: {e}")
+        print(f"❌ Gemini Init Failed: {e}")
+else:
+    print("⚠️  GEMINI_API_KEY not set — all AI endpoints will return errors")
 
-# --- 2. LOAD AI BRAIN (Module 1) ---
-print("🏗️ Loading Local AI...")
-try:
-    MODEL = tf.keras.models.load_model(MODEL_PATH)
-    try:
-        target_layer = MODEL.get_layer("out_relu")
-        LAST_CONV_LAYER = "out_relu"
-    except:
-        target_layer = MODEL.get_layer("Conv_1")
-        LAST_CONV_LAYER = "Conv_1"
-        
-    GRAD_MODEL = tf.keras.models.Model([MODEL.inputs], [target_layer.output, MODEL.output])
-    print(f"✅ Local Model Ready (Layer: {LAST_CONV_LAYER})")
-except Exception as e:
-    print(f"❌ Local Model Failed: {e}")
-    MODEL = None
+# ─────────────────────────────────────────
+#  3. GENERATION CONFIGS (per module)
+# ─────────────────────────────────────────
 
-# Load Classes
-try:
-    with open(JSON_PATH, "r") as f:
-        class_indices = json.load(f)
-        CLASS_NAMES = {v: k for k, v in class_indices.items()}
-except:
-    CLASS_NAMES = {}
+# /predict — precision diagnosis, JSON enforced
+PREDICT_CONFIG = types.GenerateContentConfig(
+    temperature=0.1,
+    max_output_tokens=4096,
+    response_mime_type="application/json",  # clean JSON always, no markdown fences
+    safety_settings=[
+        types.SafetySetting(
+            category="HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold="BLOCK_NONE",
+        ),
+        types.SafetySetting(
+            category="HARM_CATEGORY_HARASSMENT",
+            threshold="BLOCK_NONE",
+        ),
+        types.SafetySetting(
+            category="HARM_CATEGORY_HATE_SPEECH",
+            threshold="BLOCK_NONE",
+        ),
+        types.SafetySetting(
+            category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold="BLOCK_NONE",
+        ),
+    ],
+)
 
-PREVENTION_TIPS = {
-    "Potato___Early_blight": "Use copper-based fungicides. Remove infected leaves.",
-    "Potato___Late_blight": "Destroy infected plants immediately. Preventative fungicide.",
-    "Potato___healthy": "Healthy! Keep monitoring.",
-    "Unknown": "Consult an expert."
-}
+# /simulate — creative image prompt generation
+SIMULATE_CONFIG = types.GenerateContentConfig(
+    temperature=0.7,
+    max_output_tokens=256,
+)
 
-# --- 3. HELPER FUNCTIONS ---
-def process_image_for_model(image_bytes):
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    image = image.resize((224, 224))
-    img_array = np.array(image) / 255.0
-    return np.expand_dims(img_array, axis=0)
+# /get_expert_plan — balanced tone, long markdown output
+EXPERT_PLAN_CONFIG = types.GenerateContentConfig(
+    temperature=0.3,
+    max_output_tokens=2048,
+    safety_settings=[
+        types.SafetySetting(
+            category="HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold="BLOCK_NONE",
+        ),
+    ],
+)
 
-def generate_gradcam_heatmap(img_array, pred_index):
-    img_tensor = tf.cast(img_array, tf.float32)
-    with tf.GradientTape() as tape:
-        tape.watch(img_tensor)
-        outputs = GRAD_MODEL([img_tensor])
-        conv_outputs, predictions = outputs[0], outputs[1]
-        if isinstance(predictions, list): predictions = predictions[0]
-        if isinstance(conv_outputs, list): conv_outputs = conv_outputs[0]
-        loss = predictions[:, pred_index]
+# /followup — conversational, natural variance ok
+FOLLOWUP_CONFIG = types.GenerateContentConfig(
+    temperature=0.4,
+    max_output_tokens=1024,
+)
 
-    grads = tape.gradient(loss, conv_outputs)
-    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
-    conv_outputs = conv_outputs[0]
-    heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
-    heatmap = tf.squeeze(heatmap)
-    heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-10)
-    return heatmap.numpy()
+# ─────────────────────────────────────────
+#  4. HELPERS
+# ─────────────────────────────────────────
 
-def overlay_heatmap_turbo(original_bytes, heatmap):
-    heatmap = np.clip(heatmap, 0, 1)
-    r = np.clip((heatmap - 0.5) * 2, 0, 1) * 255
-    g = np.clip(1 - np.abs(heatmap - 0.5) * 2, 0, 1) * 255
-    b = np.clip((0.5 - heatmap) * 2, 0, 1) * 255
-    colormap = np.stack([r, g, b], axis=-1).astype(np.uint8)
-    
-    original_img = Image.open(io.BytesIO(original_bytes)).convert("RGB")
-    colored_heatmap = Image.fromarray(colormap).resize(original_img.size, resample=Image.BILINEAR)
-    final_image = Image.blend(original_img, colored_heatmap, alpha=0.4)
-    
-    buffered = io.BytesIO()
-    final_image.save(buffered, format="JPEG")
-    return base64.b64encode(buffered.getvalue()).decode("utf-8")
+def get_indian_season() -> str:
+    """Returns the current Indian season with farming-relevant context."""
+    m = datetime.now().month
+    if 6 <= m <= 9:
+        return (
+            "Monsoon (June–September) — high humidity, peak fungal disease risk, "
+            "root rot danger from overwatering, waterlogging alerts for low-lying fields"
+        )
+    elif 10 <= m <= 11:
+        return (
+            "Post-Monsoon (October–November) — excellent time to fertilize, repot, "
+            "and propagate; soil moisture still good, cooler nights ahead"
+        )
+    elif 12 <= m <= 2:
+        return (
+            "Winter (December–February) — frost risk in North India, reduce watering "
+            "frequency, protect tender plants from cold waves, Rabi crop care season"
+        )
+    else:
+        return (
+            "Summer (March–May) — extreme heat stress, increase watering to twice daily, "
+            "provide shade for pots, drought-tolerant advice for Rajasthan/Gujarat regions"
+        )
 
 
-# --- 4. API ENDPOINTS ---
+def build_indian_context(
+    user_name: str,
+    location:  Optional[str],
+    latitude:  Optional[str],
+    longitude: Optional[str],
+    context:   Optional[str],
+    user_type: Optional[str] = None,
+) -> str:
+    """
+    Shared Indian context block injected into every Gemini prompt.
+    Handles season, user type tone, language rules, remedy priority, location.
+    """
+    loc_str = (
+        f"{location} (GPS: {latitude}, {longitude})"
+        if latitude and longitude
+        else (location or "India (location not specified)")
+    )
+
+    user_type_guidance = {
+        "home_gardener": (
+            "User is a HOME GARDENER — focus on pot/balcony/terrace care. "
+            "Mention Vastu/cultural significance where relevant (Tulsi, banana tree). "
+            "Suggest kitchen-ingredient remedies first. Warm, encouraging tone."
+        ),
+        "farmer": (
+            "User is a FARMER — give per-acre dosages, yield-focused advice. "
+            "Reference government schemes (PM-KISAN, Soil Health Card) where relevant. "
+            "Mention Krishi Vigyan Kendra (KVK) for free expert follow-up. "
+            "Use Kharif/Rabi/Zaid seasonal calendar context."
+        ),
+        "nursery": (
+            "User is a NURSERY OWNER — focus on bulk plant care, propagation shelf life, "
+            "preventing disease spread across stock, cost-effective wholesale treatments."
+        ),
+        "student": (
+            "User is a STUDENT/RESEARCHER — use botanical terminology alongside common names. "
+            "Mention ICAR publications or agricultural university resources where helpful."
+        ),
+    }.get(user_type or "home_gardener", "")
+
+    return f"""
+=== FOLIAGECARE INDIA CONTEXT ===
+User Name    : {user_name}
+User Type    : {user_type or "home_gardener"}
+Location     : {loc_str}
+Date         : {datetime.now().strftime('%B %d, %Y')}
+Indian Season: {get_indian_season()}
+User Context : {context or "No additional context provided"}
+
+--- USER TYPE GUIDANCE ---
+{user_type_guidance}
+
+--- LANGUAGE RULES ---
+- Detect the language in the user's message and reply in the SAME language.
+- Always include Hindi / local plant names alongside English.
+  e.g. "Tulsi (Holy Basil)", "Gobar Khad (cow dung manure)", "Neem tel (neem oil)",
+       "Tamatar (Tomato)", "Aloo (Potato)", "Gehun (Wheat)"
+- NEVER use scientific jargon: no "necrotic lesions", "chlorosis", "inoculum",
+  "sporulation", or "pathogen virulence". Speak like a knowledgeable village guide.
+- Be warm, simple, and encouraging — the user CAN fix this.
+
+--- REMEDY PRIORITY (always recommend in this order) ---
+1. Desi / home remedy  : neem oil spray, turmeric paste, cow dung, wood ash,
+                         buttermilk, diluted soap water, cinnamon powder
+2. Organic products    : Jeevamrut, Panchagavya, vermicompost, neem cake,
+                         Trichoderma viride, Pseudomonas fluorescens
+3. Indian agri brands  : Coromandel, Dhanuka, PI Industries, Bayer India,
+                         Syngenta India, Rallis India, UPL
+4. Chemical (last)     : Only if infestation is severe. Always prefix with
+                         "Only if the above does not work in 3–4 days:" and
+                         include a safety/PPE warning.
+
+--- PRODUCT RULES ---
+- Only recommend products available in India (Amazon.in, local agri shop, KVK).
+- Never suggest Miracle-Gro, Scotts, or other Western-only brands.
+- End every response with one seasonal prevention tip for the current Indian season.
+=================================
+"""
+
+
+# ─────────────────────────────────────────
+#  5. ENDPOINTS
+# ─────────────────────────────────────────
 
 @app.get("/")
 def home():
-    return {"status": "FoliageCare API Online"}
-
-@app.post("/predict")
-async def predict(
-    file: UploadFile = File(...),
-    user_name: str = Form("Farmer"),
-    location: str = Form(None),
-    context: str = Form(None),
-    latitude: str = Form(None),
-    longitude: str = Form(None)
-):
-    """Module 1: Diagnosis & Tailored Report (with Image Validation)"""
-    if MODEL is None: return {"error": "Model not loaded"}
-    
-    image_bytes = await file.read()
-
-    # --- Image Validation: Detect non-plant images ---
-    if gemini_client:
-        try:
-            validation_image = Image.open(io.BytesIO(image_bytes))
-            validation_response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    "Does this image contain a plant leaf or crop? Reply with ONLY 'YES' or 'NO'.",
-                    validation_image
-                ]
-            )
-            answer = validation_response.text.strip().upper()
-            if "NO" in answer:
-                print(f"⚠️ Non-plant image detected for {user_name}")
-                return {
-                    "is_invalid_image": True,
-                    "class": "Invalid",
-                    "confidence": 0,
-                    "prevention_measures": f"Hey {user_name}, this doesn't look like a plant leaf! 🌿 Please upload a clear, close-up photo of the affected leaf so I can give you an accurate diagnosis.",
-                    "explanation_image": None
-                }
-        except Exception as e:
-            print(f"⚠️ Image validation warning: {e}")
-
-    processed_image = process_image_for_model(image_bytes)
-    
-    predictions = MODEL.predict(processed_image)
-    idx = np.argmax(predictions[0])
-    confidence = float(np.max(predictions[0]))
-    class_name = CLASS_NAMES.get(idx, "Unknown")
-    
-    heatmap_base64 = None
-    try:
-        heatmap = generate_gradcam_heatmap(processed_image, idx)
-        heatmap_base64 = overlay_heatmap_turbo(image_bytes, heatmap)
-    except Exception as e:
-        print(f"⚠️ Grad-CAM Warning: {e}")
-
-    # Generate Tailored Analysis Report with Gemini
-    if gemini_client:
-        loc_str = f"{location} (GPS: {latitude}, {longitude})" if latitude and longitude else (location or "remote field")
-        report_prompt = f"""
-        Act as a friendly village agricultural guide talking to {user_name}, a local farmer.
-        
-        DETECTED: {class_name} ({confidence*100:.1f}% confidence)
-        LOCATION: {loc_str}
-        DATE: {datetime.now().strftime('%B %d, %Y')}
-        CONDITIONS: {context}
-
-        Write a very short, extremely simple explanation (2 sentences max).
-        DO NOT use scientific jargons like "necrotic lesions", "inoculum", or "chlorosis". 
-        Speak in plain, simple English that a farmer with no formal education can easily understand.
-        
-        1. Simply say what the disease is doing to the plant.
-        2. Give ONE easy, immediately actionable step they can do today.
-        """
-        try:
-            response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=report_prompt
-            )
-            report_text = response.text.strip()
-        except:
-            report_text = PREVENTION_TIPS.get(class_name, "Consult an expert.")
-    else:
-        report_text = PREVENTION_TIPS.get(class_name, "Consult an expert.")
-
     return {
-        "class": class_name,
-        "confidence": confidence,
-        "prevention_measures": report_text,
-        "explanation_image": heatmap_base64
+        "status":  "FoliageCare API v2.1 Online",
+        "engine":  "Gemini Vision — no CNN",
+        "season":  get_indian_season(),
+        "modules": {
+            "POST /predict":         "Diagnosis + region overlay + trust signals",
+            "POST /simulate":        "Disease progression image (7-day forecast)",
+            "POST /get_expert_plan": "Full markdown treatment plan",
+            "POST /followup":        "Context-aware follow-up chat",
+        },
     }
 
-# Add this to your imports at the top
-from huggingface_hub import InferenceClient
 
-@app.post("/simulate")
-async def simulate_progression(
-    file: UploadFile = File(...), 
-    disease_name: str = Form(...),
-    context: str = Form(None),
-    user_name: str = Form("Farmer"),
-    latitude: str = Form(None),
-    longitude: str = Form(None)
+# ── MODULE 1 ── DIAGNOSIS ──────────────────────────────────────
+@app.post("/predict")
+async def predict(
+    file:      UploadFile     = File(...),
+    user_name: str            = Form("Farmer"),
+    user_type: str            = Form("home_gardener"),
+    location:  Optional[str] = Form(None),
+    context:   Optional[str] = Form(None),
+    latitude:  Optional[str] = Form(None),
+    longitude: Optional[str] = Form(None),
 ):
-    """Module 2: Smart Simulation (Contextually Enriched & Fixed)"""
-    
-    # Initialize the primary client for Instruct Pix2Pix
-    client = InferenceClient(model="timbrooks/instruct-pix2pix", token=HF_TOKEN)
+    """
+    Module 1 — Full plant disease diagnosis via Gemini Vision.
 
-    try:
-        image_bytes = await file.read()
-        original_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        original_image = original_image.resize((512, 512))
-        
-        if gemini_client:
-            loc_str = f"GPS: {latitude}, {longitude}" if latitude and longitude else "remote field"
-            
-            gemini_prompt = f"""
-            The plant has '{disease_name}'. The farmer's context is: "{context}". Location/Weather: {loc_str}.
-            How would this disease look on the leaf 7 days from now if left untreated?
-            Return ONLY a comma-separated prompt for an image generator.
-            Example: "severe rot, completely yellow leaf, prominent holes, highly damaged plant leaf, photorealistic"
-            NO markdown, NO intro text.
-            """
-            try:
-                response = gemini_client.models.generate_content(
-                    model="gemini-2.5-flash", 
-                    contents=gemini_prompt
-                )
-                edit_instruction = response.text.strip()
-            except Exception as e:
-                print(f"⚠️ Gemini Prompt Error: {e}")
-                edit_instruction = f"make it look severely damaged by {disease_name}, rotten, yellowing"
-        else:
-            edit_instruction = f"make it look severely damaged by {disease_name}, rotten, yellowing"
-
-        print(f"🎨 Visual Prompt: {edit_instruction}")
-
-        try:
-            # First attempt: stable-diffusion-v1-5 image-to-image (very reliable on free tier)
-            client = InferenceClient(model="runwayml/stable-diffusion-v1-5", token=HF_TOKEN)
-            generated_image = client.image_to_image(
-                image=original_image,
-                prompt=edit_instruction,
-                negative_prompt="blurry, abstract, watermark",
-                strength=0.85, 
-                guidance_scale=8.0
-            )
-        except Exception as provider_err:
-            print(f"⚠️ Image-to-Image Provider failed: {provider_err}. Falling back to Text-to-Image.")
-            # Fallback 1: FLUX.1-schnell (Extremely fast and usually available)
-            try:
-                fallback_client = InferenceClient(model="black-forest-labs/FLUX.1-schnell", token=HF_TOKEN)
-                generated_image = fallback_client.text_to_image(
-                    prompt=f"extreme close up of a plant leaf showing: {edit_instruction}, photorealistic, nature photography",
-                    width=512, height=512
-                )
-            except Exception as fallback_err:
-                print(f"⚠️ FLUX failed: {fallback_err}. Second fallback to SD 1.5 Text-to-Image.")
-                # Fallback 2: The ultimate fallback, SD 1.5 Text-to-Image
-                fallback_client_2 = InferenceClient(model="runwayml/stable-diffusion-v1-5", token=HF_TOKEN)
-                generated_image = fallback_client_2.text_to_image(
-                    prompt=f"extreme close up of a plant leaf showing: {edit_instruction}, photorealistic",
-                    negative_prompt="blurry",
-                    width=512, height=512
-                )
-
-        buffered = io.BytesIO()
-        generated_image.save(buffered, format="JPEG")
-        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-        
-        return {"future_image": img_str, "prompt_used": edit_instruction}
-
-    except Exception as e:
-        traceback.print_exc()
-        return {"error": f"Simulation Failed: {str(e)}"}
-
-@app.post("/get_expert_plan")
-async def get_expert_plan(
-    file: UploadFile = File(...),
-    disease: str = Form(...),
-    location: str = Form(...),
-    context: str = Form(...),
-    # RESTORED: Context Fields
-    user_name: str = Form("Farmer"),
-    latitude: str = Form(None),
-    longitude: str = Form(None)
-):
-    """Module 3: Expert Plan (Context Aware)"""
+    Returns structured JSON with:
+    - diagnosis: plant, disease, severity, confidence
+    - visual_evidence: description + affected_regions (% coords for frontend overlay)
+    - trust_signals: why this diagnosis, alternative ruled out, confidence explanation
+    - action_plan: immediate, desi remedy, organic, chemical (last resort), seasonal tip
+    """
     if not gemini_client:
-        return {"error": "Gemini Client Failed"}
+        return {"error": "Gemini client not initialized. Check GEMINI_API_KEY."}
+
+    image_bytes = await file.read()
+    image       = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    india_ctx   = build_indian_context(
+        user_name, location, latitude, longitude, context, user_type
+    )
+
+    prompt = f"""
+{india_ctx}
+
+You are FoliageCare AI — an expert plant pathologist consulting with {user_name}.
+
+TASK: Analyze the uploaded plant/leaf image.
+response_mime_type is application/json — output raw JSON only, nothing else.
+
+--- STEP 1: Validate the image ---
+If the image does NOT contain a plant leaf, crop, plant part, or vegetation of any kind:
+{{
+  "is_invalid_image": true,
+  "message": "Friendly 1-sentence tip in the user's language asking for a clear leaf photo."
+}}
+
+--- STEP 2: Full diagnosis (if valid plant image) ---
+{{
+  "is_invalid_image": false,
+
+  "diagnosis": {{
+    "plant":       "Common name (e.g. Tomato, Wheat, Tulsi, Money Plant, Rose)",
+    "plant_hindi": "Hindi/local name (e.g. Tamatar, Gehun, Tulsi, Pothos, Gulab)",
+    "disease":     "Disease name in plain English. Use 'Healthy' if no disease.",
+    "severity":    "none | mild | moderate | severe",
+    "confidence":  0.0
+  }},
+
+  "visual_evidence": {{
+    "description": "1–2 sentences: WHERE and WHAT you see on the leaf. Plain English. No jargon.",
+    "affected_regions": [
+      {{
+        "label": "Short label (e.g. 'Brown spots', 'Yellowing edge', 'White powder')",
+        "x_pct": 0.0,
+        "y_pct": 0.0,
+        "w_pct": 0.0,
+        "h_pct": 0.0
+      }}
+    ]
+  }},
+
+  "trust_signals": {{
+    "why_this_diagnosis":     "1 sentence — the key visual feature confirming this diagnosis.",
+    "alternative_diagnosis":  "Second most likely disease and why ruled out. Or: 'None — presentation is clear.'",
+    "confidence_explanation": "1 sentence — why confidence is high or low (lighting, image angle, disease stage)."
+  }},
+
+  "action_plan": {{
+    "immediate_action": "The single most important thing to do TODAY. Simple language.",
+    "desi_remedy":      "Home remedy with exact prep. e.g. 'Mix 5ml neem oil in 1 litre water, spray morning or evening.'",
+    "organic_option":   "Organic product available in India + how to apply.",
+    "chemical_option":  "Indian brand product. MUST start with: 'Only if the above does not work in 3–4 days: '",
+    "seasonal_tip":     "One prevention tip specific to the current Indian season."
+  }}
+}}
+
+COORDINATE RULES for affected_regions:
+- x_pct, y_pct, w_pct, h_pct are fractions of image size (0.0–1.0).
+- Example: top-left quarter spot → x_pct=0.05, y_pct=0.05, w_pct=0.25, h_pct=0.25
+- Include 1–4 regions maximum. Healthy plant → empty array [].
+- confidence is a float 0.0–1.0 (e.g. 0.91 not 91).
+"""
 
     try:
-        image_bytes = await file.read()
-        image = Image.open(io.BytesIO(image_bytes))
-
-        # Build precise location string
-        loc_str = location
-        if latitude and longitude:
-            loc_str = f"{location} (GPS: {latitude}, {longitude})"
-
-        prompt = f"""
-        Act as a friendly, helpful agricultural advisor explaining things to a local farmer ({user_name}).
-        
-        **CASE FILE:**
-        - Diagnosis: {disease}
-        - Location: {loc_str}
-        - Current Date: {datetime.now().strftime('%B %d, %Y')}
-        - User Context: {context}
-        
-        **TASK:**
-        1. Confirm what is wrong in very simple, plain English (no scientific jargon).
-        2. Give a simple 3-step action plan using easy-to-find items (Immediate, Chemical, Organic).
-           - Base it on {loc_str} and {context}.
-        3. DO NOT use big words or complex science terms. Keep the language basic and encouraging.
-        Format in clear Markdown.
-        """
-
-        # FIXED: Model Name 'gemini-1.5-flash'
         response = gemini_client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=[prompt, image]
+            contents=[prompt, image],
+            config=PREDICT_CONFIG,
         )
-        return {"plan": response.text}
+        # response_mime_type=application/json guarantees valid JSON in response.text
+        return json.loads(response.text)
+
+    except json.JSONDecodeError as e:
+        raw = getattr(response, "text", "")
+        # Attempt to strip any accidental markdown fences and re-parse
+        clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        try:
+            return json.loads(clean)
+        except Exception:
+            return {
+                "error":        "Gemini returned non-JSON output.",
+                "raw_response": raw[:500],
+                "detail":       str(e),
+            }
+    except Exception as e:
+        traceback.print_exc()
+        return {"error": str(e)}
+
+
+# ── MODULE 2 ── DISEASE PROGRESSION SIMULATION ────────────────
+@app.post("/simulate")
+async def simulate_progression(
+    file:         UploadFile     = File(...),
+    disease_name: str            = Form(...),
+    context:      Optional[str] = Form(None),
+    user_name:    str            = Form("Farmer"),
+    user_type:    str            = Form("home_gardener"),
+    latitude:     Optional[str] = Form(None),
+    longitude:    Optional[str] = Form(None),
+):
+    """
+    Module 2 — Simulates disease appearance after 7 days untreated.
+
+    Step 1: Gemini builds a contextual visual progression prompt.
+    Step 2: HuggingFace generates the future image (3 cascading fallbacks).
+    Returns: base64 future_image + prompt_used (shown to user for transparency).
+    """
+    image_bytes    = await file.read()
+    original_image = Image.open(io.BytesIO(image_bytes)).convert("RGB").resize((512, 512))
+
+    # Step 1 — Gemini builds a smart contextual image edit prompt
+    if gemini_client:
+        loc_str = (
+            f"GPS: {latitude}, {longitude}"
+            if latitude and longitude
+            else "India (location not specified)"
+        )
+        gemini_prompt = f"""
+The plant has been diagnosed with '{disease_name}'.
+User type: {user_type}
+Context: "{context or 'no additional context'}"
+Location: {loc_str}
+Current Indian season: {get_indian_season()}
+
+How would this disease visually appear on the leaf in 7 days if completely untreated?
+Factor in the current season's humidity and temperature typical for India.
+
+Reply ONLY with a comma-separated image generation prompt (5–10 descriptors).
+Describe VISUAL appearance only — color, texture, spread, damage extent.
+Example format: "severely yellowed leaf, large dark brown patches from edges, wilting, photorealistic"
+NO markdown. NO explanation. Just the prompt string.
+"""
+        try:
+            r = gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=gemini_prompt,
+                config=SIMULATE_CONFIG,
+            )
+            edit_instruction = r.text.strip()
+        except Exception as e:
+            print(f"⚠️ Gemini simulation prompt failed: {e}")
+            edit_instruction = (
+                f"severely damaged plant leaf with {disease_name}, "
+                "heavy discoloration, rotten patches, wilting, photorealistic"
+            )
+    else:
+        edit_instruction = (
+            f"severely damaged plant leaf with {disease_name}, "
+            "heavy discoloration, rotten patches, wilting, photorealistic"
+        )
+
+    print(f"🎨 Simulation prompt: {edit_instruction}")
+
+    # Step 2 — Image generation with 3 cascading fallbacks
+    generated_image = None
+
+    # Attempt 1 — SD 1.5 image-to-image (preserves original leaf shape)
+    try:
+        client_i2i = InferenceClient(
+            model="runwayml/stable-diffusion-v1-5",
+            token=HF_TOKEN,
+        )
+        generated_image = client_i2i.image_to_image(
+            image=original_image,
+            prompt=edit_instruction,
+            negative_prompt="blurry, abstract, watermark, cartoon, illustration",
+            strength=0.82,
+            guidance_scale=8.0,
+        )
+        print("✅ SD 1.5 image-to-image succeeded")
+
+    except Exception as e1:
+        print(f"⚠️ SD 1.5 i2i failed: {e1}")
+
+        # Attempt 2 — FLUX.1-schnell text-to-image
+        try:
+            client_flux = InferenceClient(
+                model="black-forest-labs/FLUX.1-schnell",
+                token=HF_TOKEN,
+            )
+            generated_image = client_flux.text_to_image(
+                prompt=(
+                    f"extreme close-up photograph of a plant leaf showing: "
+                    f"{edit_instruction}, photorealistic, nature photography, sharp focus"
+                ),
+                width=512,
+                height=512,
+            )
+            print("✅ FLUX.1-schnell succeeded")
+
+        except Exception as e2:
+            print(f"⚠️ FLUX failed: {e2}")
+
+            # Attempt 3 — SD 1.5 text-to-image (ultimate fallback)
+            try:
+                client_t2i = InferenceClient(
+                    model="runwayml/stable-diffusion-v1-5",
+                    token=HF_TOKEN,
+                )
+                generated_image = client_t2i.text_to_image(
+                    prompt=f"extreme close-up of a diseased plant leaf: {edit_instruction}, photorealistic",
+                    negative_prompt="blurry, cartoon, illustration, abstract",
+                    width=512,
+                    height=512,
+                )
+                print("✅ SD 1.5 text-to-image fallback succeeded")
+
+            except Exception as e3:
+                print(f"❌ All image generation attempts failed: {e3}")
+                return {
+                    "error":        "All simulation models failed.",
+                    "last_error":   str(e3),
+                    "prompt_used":  edit_instruction,
+                }
+
+    buf = io.BytesIO()
+    generated_image.save(buf, format="JPEG", quality=90)
+    img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    return {
+        "future_image": img_b64,
+        "prompt_used":  edit_instruction,
+        "note":         f"Simulated appearance of '{disease_name}' after 7 days untreated.",
+    }
+
+
+# ── MODULE 3 ── EXPERT TREATMENT PLAN ─────────────────────────
+@app.post("/get_expert_plan")
+async def get_expert_plan(
+    file:      UploadFile     = File(...),
+    disease:   str            = Form(...),
+    location:  str            = Form("India"),
+    context:   str            = Form(""),
+    user_name: str            = Form("Farmer"),
+    user_type: str            = Form("home_gardener"),
+    latitude:  Optional[str] = Form(None),
+    longitude: Optional[str] = Form(None),
+):
+    """
+    Module 3 — Full expert treatment plan with image context.
+
+    Returns structured Markdown:
+    - Plain-English explanation of the disease
+    - 3-step action plan: immediate → organic → chemical (last resort)
+    - Season-specific prevention tips
+    - KVK referral section
+    """
+    if not gemini_client:
+        return {"error": "Gemini client not initialized."}
+
+    image_bytes = await file.read()
+    image       = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    india_ctx   = build_indian_context(
+        user_name, location, latitude, longitude, context, user_type
+    )
+
+    prompt = f"""
+{india_ctx}
+
+You are FoliageCare AI — a trusted agricultural advisor helping {user_name}.
+
+DIAGNOSED DISEASE: {disease}
+
+Examine this plant image and write a complete, easy-to-understand treatment plan.
+Use the exact Markdown structure below. Keep every section short and actionable.
+No scientific jargon. All products must be available in India.
+
+---
+
+## What's happening 🌿
+(2–3 sentences. Plain English. What the disease is doing to the plant and why it happens.)
+
+## Your 3-step action plan
+
+### Step 1 — Do this today ⚡
+(Fastest action to stop spread. Use items from home or any local kirana / agri shop.
+Include specifics: quantities, timing, method.)
+
+### Step 2 — Desi / organic treatment 🌿
+(Home remedy OR organic product. Exact prep instructions required.
+Example: "Mix 5ml neem oil + 2 drops dish soap in 1 litre water.
+Spray on all leaf surfaces morning or evening. Repeat every 5 days for 3 weeks.")
+
+### Step 3 — If it gets worse ⚗️
+(Indian brand chemical product + application method.
+MUST begin with: "Only if Steps 1 and 2 show no improvement in 4–5 days:")
+
+## Prevent it coming back 🛡️
+(2–3 bullet points tailored to the current Indian season: {get_indian_season()})
+
+## When to call an expert 📞
+(1–2 sentences on when the situation needs professional help.
+Always include: "Visit your nearest Krishi Vigyan Kendra (KVK) for free expert advice.")
+
+---
+Match the tone to user type: {user_type}
+End on an encouraging note — the user can fix this.
+"""
+
+    try:
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[prompt, image],
+            config=EXPERT_PLAN_CONFIG,
+        )
+        return {"plan": response.text.strip()}
 
     except Exception as e:
         traceback.print_exc()
         return {"error": str(e)}
 
-# --- Follow-Up Request Model ---
+
+# ── MODULE 4 ── FOLLOW-UP CHAT ─────────────────────────────────
 class FollowUpRequest(BaseModel):
-    question: str
-    disease: str
-    conversation_history: List[dict] = []
-    user_name: str = "Farmer"
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    question:             str
+    disease:              str
+    conversation_history: List[dict]       = []
+    user_name:            str              = "Farmer"
+    user_type:            str              = "home_gardener"
+    location:             Optional[str]   = None
+    latitude:             Optional[float] = None
+    longitude:            Optional[float] = None
+    context:              Optional[str]   = None
+
 
 @app.post("/followup")
 async def followup(req: FollowUpRequest):
-    """Module 4: Follow-Up Questions (Context-Aware)"""
+    """
+    Module 4 — Context-aware follow-up chat.
+
+    Keeps last 6 turns of conversation history.
+    Always responds with India-specific, season-aware advice.
+    Gently redirects completely off-topic questions back to plant care.
+    """
     if not gemini_client:
-        return {"error": "Gemini Client Failed"}
+        return {"error": "Gemini client not initialized."}
+
+    india_ctx = build_indian_context(
+        req.user_name,
+        req.location,
+        str(req.latitude)  if req.latitude  else None,
+        str(req.longitude) if req.longitude else None,
+        req.context,
+        req.user_type,
+    )
+
+    # Build conversation history string (last 6 turns only)
+    history_lines = []
+    for turn in req.conversation_history[-6:]:
+        role = "USER" if turn.get("role") == "user" else "FOLIAGECARE AI"
+        text = turn.get("text", "").strip()
+        if text:
+            history_lines.append(f"{role}: {text}")
+    history_text = (
+        "\n".join(history_lines)
+        if history_lines
+        else "This is the beginning of the consultation."
+    )
+
+    prompt = f"""
+{india_ctx}
+
+You are FoliageCare AI — a trusted plant health expert helping {req.user_name}.
+Current diagnosis on file: {req.disease}
+
+--- CONVERSATION HISTORY ---
+{history_text}
+
+--- NEW QUESTION FROM {req.user_name.upper()} ---
+{req.question}
+
+INSTRUCTIONS:
+1. Answer helpfully, always relating back to the diagnosed disease ({req.disease}).
+2. If the question is completely unrelated to plant/crop health, respond:
+   "I'm best at helping with plant health! For your {req.disease} issue, I can help with
+   [suggest a relevant follow-up]. Is there something about your plant I can help with?"
+3. Keep answers concise:
+   - Simple questions  → 2–4 sentences
+   - Multi-step advice → bullet points, max 5 items
+4. Always end with one small actionable next step.
+5. Detect and match the user's language (Hindi / English / regional).
+6. Use Markdown for readability.
+"""
 
     try:
-        loc_str = f"GPS: {req.latitude}, {req.longitude}" if req.latitude and req.longitude else "unknown location"
-
-        # Build conversation context from history
-        history_text = "\n".join(
-            [f"{'USER' if h.get('role') == 'user' else 'AI'}: {h.get('text', '')}" for h in req.conversation_history[-6:]]
-        )
-
-        prompt = f"""
-        You are FoliageCare AI, a plant pathology expert consulting with {req.user_name}.
-        
-        **CASE FILE:**
-        - Current Diagnosis: {req.disease}
-        - Location: {loc_str}
-        - Current Date: {datetime.now().strftime('%B %d, %Y')}
-        
-        **CONVERSATION SO FAR:**
-        {history_text}
-        
-        **USER'S NEW QUESTION:**
-        {req.question}
-        
-        Provide a helpful, concise answer. Be specific to the diagnosed disease and the user's context.
-        If the question is unrelated to plant care, gently redirect them.
-        Use Markdown formatting for readability.
-        """
-
         response = gemini_client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=prompt
+            contents=prompt,
+            config=FOLLOWUP_CONFIG,
         )
         return {"reply": response.text.strip()}
 
@@ -405,6 +664,10 @@ async def followup(req: FollowUpRequest):
         traceback.print_exc()
         return {"error": str(e)}
 
+
+# ─────────────────────────────────────────
+#  6. RUN
+# ─────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

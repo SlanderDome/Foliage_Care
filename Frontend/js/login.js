@@ -10,6 +10,17 @@ function waitForFirebase(cb) {
   }
 }
 
+function getPostLoginRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("redirect") || sessionStorage.getItem("postLoginRedirect") || "profile.html";
+}
+
+function redirectAfterLogin() {
+  const target = getPostLoginRedirect();
+  sessionStorage.removeItem("postLoginRedirect");
+  window.location.href = target;
+}
+
 // 2. HELPER: Get User Location
 function getUserLocation() {
   return new Promise((resolve) => {
@@ -93,7 +104,7 @@ waitForFirebase(() => {
         const location = await getUserLocation();
         await saveUserToDB(result.user, location);
 
-        window.location.href = "profile.html";
+        redirectAfterLogin();
       } catch (err) {
         alert("Google Login Failed: " + err.message);
       }
@@ -117,7 +128,7 @@ waitForFirebase(() => {
         const location = await getUserLocation();
         await saveUserToDB(cred.user, location, nameInput ? nameInput.value : "");
 
-        window.location.href = "profile.html";
+        redirectAfterLogin();
       } catch (err) {
         alert("Signup Failed: " + err.message);
       }
@@ -132,8 +143,10 @@ waitForFirebase(() => {
       const password = loginForm.querySelector('input[type="password"]').value;
 
       try {
-        await window.signInWithEmailAndPassword(auth, email, password);
-        window.location.href = "profile.html";
+        const cred = await window.signInWithEmailAndPassword(auth, email, password);
+        const location = await getUserLocation();
+        await saveUserToDB(cred.user, location);
+        redirectAfterLogin();
       } catch (err) {
         alert("Login Failed: " + err.message);
       }

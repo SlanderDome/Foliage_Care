@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outbreak Map — Foliage Care</title>
+    <meta name="description"
+        content="Live global plant disease intelligence map. See outbreak clusters and disease trends across regions in real time.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Devanagari:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/start.css">
+    <link rel="stylesheet" href="css/map.css">
+    <link rel="stylesheet" href="css/cursor.css">
+    <link rel="icon" href="assets/892926.png" type="image/png">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+    <canvas id="leaf-canvas"></canvas>
+    <div class="ambient-bg"></div>
+
+    <!-- ═══════════ NAVBAR ═══════════ -->
+    <nav class="navbar">
+        <div class="logo">
+            <span class="logo-icon">🌱</span>FOLIAGE CARE
+            <span class="deva-inline">फोलिएज केयर</span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-skeleton"></li>
+            <li class="nav-skeleton"></li>
+            <li class="nav-skeleton"></li>
+            <li class="nav-skeleton"></li>
+            <li class="nav-skeleton"></li>
+            <li class="nav-skeleton"></li>
+            <li class="nav-real hidden"><a href="index.html">Home <span class="deva-inline">मुख्य पृष्ठ</span></a></li>
+            <li class="nav-real hidden"><a href="playbook.html">Playbook <span class="deva-inline">प्लेबुक</span></a>
+            </li>
+            <li class="nav-real hidden"><a href="start.html">Diagnose <span class="deva-inline">जांच करें</span></a>
+            </li>
+            <li class="nav-real hidden"><a href="map.html" class="active">Map <span
+                        class="deva-inline">मानचित्र</span></a></li>
+            <li class="nav-real hidden"><a href="about.html">About <span class="deva-inline">हमारे बारे में</span></a>
+            </li>
+            <li class="nav-real hidden"><a href="profile.html">Profile <span class="deva-inline">प्रोफ़ाइल</span></a>
+            </li>
+            <li class="nav-real hidden"><a href="contact.html">Connect <span class="deva-inline">संपर्क</span></a></li>
+        </ul>
+    </nav>
+
+    <!-- ═══════════ TOAST ═══════════ -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ═══════════ MAP PAGE ═══════════ -->
+    <main class="map-page">
+
+        <!-- ── PAGE HEADER ── -->
+        <header class="map-header">
+            <div class="map-header-left">
+                <span class="map-eyebrow">
+                    <span class="live-dot"></span>
+                    Live Intelligence
+                </span>
+                <h1 class="map-title">Outbreak <em>Map</em></h1>
+                <p class="map-subtitle">Anonymous community scan data, visualised in real time.</p>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="map-filters" id="map-filters">
+                <button class="filter-pill active" data-filter="all">
+                    <span class="pill-dot all"></span> All
+                </button>
+                <button class="filter-pill" data-filter="healthy">
+                    <span class="pill-dot healthy"></span> Healthy
+                </button>
+                <button class="filter-pill" data-filter="warning">
+                    <span class="pill-dot warning"></span> Warning
+                </button>
+                <button class="filter-pill" data-filter="critical">
+                    <span class="pill-dot critical"></span> Critical
+                </button>
+            </div>
+        </header>
+
+        <!-- ── STAT BAR ── -->
+        <div class="stat-bar" id="stat-bar">
+            <div class="stat-item">
+                <span class="stat-val" id="stat-total">—</span>
+                <span class="stat-label">Total Scans</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <span class="stat-val" id="stat-diseases">—</span>
+                <span class="stat-label">Unique Diseases</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <span class="stat-val" id="stat-critical">—</span>
+                <span class="stat-label">Critical Cases</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <span class="stat-val" id="stat-today">—</span>
+                <span class="stat-label">Today</span>
+            </div>
+        </div>
+
+        <!-- ── MAP + SIDEBAR LAYOUT ── -->
+        <div class="map-layout">
+
+            <!-- Leaflet Map Container -->
+            <div class="map-container" id="map-container">
+                <div id="leaflet-map"></div>
+
+                <!-- Map Legend -->
+                <div class="map-legend">
+                    <span class="legend-title">Severity</span>
+                    <div class="legend-item">
+                        <span class="legend-dot healthy"></span>
+                        <span>Healthy</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot warning"></span>
+                        <span>Warning</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot critical"></span>
+                        <span>Critical</span>
+                    </div>
+                </div>
+
+                <!-- Empty Map State -->
+                <div class="map-empty-state" id="map-empty-state" style="display:none;">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <p>No community scans yet</p>
+                    <span>Be the first — run a diagnosis and your data will appear here</span>
+                    <a href="start.html" class="map-cta-btn">
+                        <i class="fas fa-microscope"></i> Run First Diagnosis
+                    </a>
+                </div>
+            </div>
+
+            <!-- Sidebar: Live Intel -->
+            <aside class="map-sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-title-group">
+                        <i class="fas fa-satellite-dish sidebar-icon"></i>
+                        <h3>Live Intel</h3>
+                    </div>
+                    <span class="scan-count-badge" id="scan-count-badge">0 scans</span>
+                </div>
+
+                <!-- Recent Activity Feed -->
+                <div class="sidebar-feed" id="sidebar-feed">
+                    <!-- Skeleton loading placeholders -->
+                    <div class="feed-skeleton" id="feed-skeleton">
+                        <div class="skeleton-item">
+                            <div class="sk-dot"></div>
+                            <div class="sk-lines">
+                                <div class="sk-line long"></div>
+                                <div class="sk-line short"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-item">
+                            <div class="sk-dot"></div>
+                            <div class="sk-lines">
+                                <div class="sk-line long"></div>
+                                <div class="sk-line short"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-item">
+                            <div class="sk-dot"></div>
+                            <div class="sk-lines">
+                                <div class="sk-line med"></div>
+                                <div class="sk-line short"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-item">
+                            <div class="sk-dot"></div>
+                            <div class="sk-lines">
+                                <div class="sk-line long"></div>
+                                <div class="sk-line short"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Top Diseases -->
+                <div class="sidebar-section">
+                    <h4 class="sidebar-section-title">
+                        <i class="fas fa-chart-bar"></i> Top Pathogens
+                    </h4>
+                    <div class="top-diseases" id="top-diseases">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- CTA -->
+                <a href="start.html" class="sidebar-cta">
+                    <i class="fas fa-plus"></i>
+                    Contribute a Scan
+                </a>
+            </aside>
+        </div>
+
+    </main>
+
+    <!-- Scripts -->
+    <script type="module" src="js/leaf-particles.js"></script>
+    <script src="js/scroll-reveal.js"></script>
+    <script src="js/navbar-auth.js"></script>
+    <script type="module" src="js/firebase.js"></script>
+    <script src="js/cursor.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/map.js"></script>
+</body>
+
+</html>

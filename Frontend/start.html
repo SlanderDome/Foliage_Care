@@ -82,22 +82,15 @@
       <!-- Card 1: Heatmap / Visual Proof -->
       <div class="hero-preview-card hero-card-1">
         <div class="hero-card-header">
-          <i class="fas fa-eye"></i>
-          <span>Visual Proof</span>
+          <i class="fas fa-expand"></i>
+          <span>Region Overlay</span>
         </div>
-        <div class="hero-card-body heatmap-body">
-          <div class="heatmap-grid">
-            <div class="heatmap-cell hot"></div>
-            <div class="heatmap-cell warm"></div>
-            <div class="heatmap-cell cool"></div>
-            <div class="heatmap-cell warm"></div>
-            <div class="heatmap-cell hot"></div>
-            <div class="heatmap-cell cool"></div>
-            <div class="heatmap-cell cool"></div>
-            <div class="heatmap-cell warm"></div>
-            <div class="heatmap-cell hot"></div>
+        <div class="hero-card-body overlay-body">
+          <div class="leaf-overlay-mock">
+            <div class="bounding-box glow"></div>
+            <div class="bounding-box accent"></div>
           </div>
-          <p class="hero-card-caption">AI focus regions highlighted</p>
+          <p class="hero-card-caption">AI precisely highlights diseases</p>
         </div>
       </div>
 
@@ -279,6 +272,17 @@
               placeholder="Add a field note... (e.g. 'Planted 2 weeks ago, heavy monsoon rain')" />
           </div>
 
+          <!-- User Type Selection (For Context-Aware AI) -->
+          <div class="user-type-group">
+            <label class="user-type-label">Select your role for tailored advice:</label>
+            <div class="user-type-pills">
+              <button type="button" class="user-type-pill selected" data-value="home_gardener">Home Gardener</button>
+              <button type="button" class="user-type-pill" data-value="farmer">Farmer</button>
+              <button type="button" class="user-type-pill" data-value="nursery">Nursery</button>
+              <button type="button" class="user-type-pill" data-value="student">Student/Research</button>
+            </div>
+          </div>
+
           <!-- Action Buttons -->
           <div class="action-buttons">
             <button class="cta-button cta-secondary" type="button" id="upload-photo"
@@ -428,6 +432,15 @@
   <script type="module" src="js/firebase.js"></script>
   <script src="js/navbar-auth.js"></script>
   <script src="js/cursor.js"></script>
+  <script>
+    // Handle User Type Pill Selection
+    document.querySelectorAll('.user-type-pill').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.user-type-pill').forEach(b => b.classList.remove('selected'));
+        this.classList.add('selected');
+      });
+    });
+  </script>
 </body>
 
 </html>

@@ -1,31 +1,92 @@
-function waitForFirebase(cb) {
-  if (window.firebaseReady) cb();
-  else setTimeout(() => waitForFirebase(cb), 50);
-}
-
-waitForFirebase(() => {
-  const auth = window.firebaseAuth;
-  const authLink = document.getElementById("auth-link");
-
+function showResolvedNav() {
+  const navLinks = document.querySelector(".nav-links");
   const skeletons = document.querySelectorAll(".nav-skeleton");
   const realItems = document.querySelectorAll(".nav-real");
 
-  window.onAuthStateChanged(auth, (user) => {
-    if (authLink) {
-      if (user) {
-        authLink.innerHTML = `Profile <span class="deva-inline">प्रोफ़ाइल</span>`;
-        authLink.href = "profile.html";
-      } else {
-        authLink.innerHTML = `Login / Signup <span class="deva-inline">प्रवेश</span>`;
-        authLink.href = "login.html";
-      }
+  if (navLinks) {
+    navLinks.style.visibility = "visible";
+  }
+
+  skeletons.forEach((item) => item.remove());
+  realItems.forEach((item) => item.classList.remove("hidden"));
+}
+
+function updateAuthUi(user) {
+  const authLink = document.getElementById("auth-link");
+  const fullMapLink = document.getElementById("full-map-link");
+
+  if (authLink) {
+    if (user) {
+      authLink.innerHTML = 'Profile <span class="deva-inline">&#2346;&#2381;&#2352;&#2379;&#2347;&#2364;&#2366;&#2311;&#2354;</span>';
+      authLink.href = "profile.html";
+    } else {
+      authLink.innerHTML = 'Login / Signup <span class="deva-inline">&#2346;&#2381;&#2352;&#2357;&#2375;&#2358;</span>';
+      authLink.href = "login.html";
     }
-    document.querySelector(".nav-links").style.visibility = "visible";
+  }
 
-    // Remove skeletons
-    skeletons.forEach(s => s.remove());
+  if (fullMapLink) {
+    if (user) {
+      fullMapLink.href = "profile.html";
+      fullMapLink.removeAttribute("data-auth-required");
+    } else {
+      fullMapLink.href = "login.html?redirect=profile.html";
+      fullMapLink.setAttribute("data-auth-required", "true");
+    }
+  }
+}
 
-    // Show real nav
-    realItems.forEach(i => i.classList.remove("hidden"));
+function bindFullMapRedirect() {
+  const fullMapLink = document.getElementById("full-map-link");
+  if (!fullMapLink || fullMapLink.dataset.redirectBound === "true") return;
+
+  fullMapLink.dataset.redirectBound = "true";
+  fullMapLink.addEventListener("click", () => {
+    if (fullMapLink.getAttribute("data-auth-required") !== "true") return;
+    sessionStorage.setItem("postLoginRedirect", "profile.html");
   });
-});
+}
+
+function attachAuthListener() {
+  if (!window.firebaseReady || !window.firebaseAuth || !window.onAuthStateChanged) {
+    return false;
+  }
+
+  try {
+    window.onAuthStateChanged(window.firebaseAuth, (user) => {
+      updateAuthUi(user && !user.isAnonymous ? user : null);
+      showResolvedNav();
+    });
+    return true;
+  } catch (error) {
+    console.warn("Navbar auth listener failed:", error);
+    return false;
+  }
+}
+
+function initNavbar() {
+  showResolvedNav();
+  updateAuthUi(null);
+  bindFullMapRedirect();
+
+  if (attachAuthListener()) return;
+
+  const startedAt = Date.now();
+  const timer = setInterval(() => {
+    if (attachAuthListener()) {
+      clearInterval(timer);
+      return;
+    }
+
+    if (Date.now() - startedAt > 4000) {
+      clearInterval(timer);
+      showResolvedNav();
+    }
+  }, 100);
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initNavbar, { once: true });
+} else {
+  initNavbar();
+}

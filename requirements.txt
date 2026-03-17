@@ -1,13 +1,7 @@
 fastapi
 uvicorn
 python-multipart
-tensorflow
-torch
-diffusers
-transformers
-accelerate
-opencv-python-headless
-matplotlib
-google-generativeai
-httpx
+google-genai
+huggingface_hub
+Pillow
 python-dotenv
