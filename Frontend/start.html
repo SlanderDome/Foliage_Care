@@ -316,56 +316,43 @@
             <!-- Entries appended dynamically by JS -->
           </div>
 
-          <!-- Follow-Up Bar (Moved below diagnosis) -->
+          <div id="unified-section" class="thread-actions-panel" style="display: none;">
+            <div class="thread-actions-copy">
+              <span class="thread-actions-kicker">Next Actions</span>
+              <h4>Keep the consultation moving</h4>
+              <p>Run a forecast or ask for a care plan. Both responses will appear right here in the thread.</p>
+            </div>
+
+            <div class="thread-actions-grid">
+              <button type="button" id="simulate-btn" class="thread-action-btn simulation-action">
+                <span class="thread-action-icon"><i class="fas fa-chart-line"></i></span>
+                <span class="thread-action-text">
+                  <strong>Simulate Disease</strong>
+                  <small>See how the issue may progress over the next few days.</small>
+                </span>
+              </button>
+
+              <button type="button" id="get-plan-btn" class="thread-action-btn expert-action">
+                <span class="thread-action-icon"><i class="fas fa-user-md"></i></span>
+                <span class="thread-action-text">
+                  <strong>Generate Plan</strong>
+                  <small>Get a detailed treatment plan added to this chat.</small>
+                </span>
+              </button>
+            </div>
+
+            <div id="global-loader" class="ai-loader compact-loader" style="display:none;">
+              <i class="fas fa-circle-notch fa-spin"></i>
+              <p>Preparing the next response...</p>
+            </div>
+          </div>
+
           <div class="followup-bar" id="followup-bar" style="display: none;">
             <i class="fas fa-leaf followup-icon"></i>
             <input type="text" id="followup-input" placeholder="Ask a follow-up about your plant's health..." />
             <button type="button" id="followup-send" class="followup-send-btn" title="Send">
               <i class="fas fa-paper-plane"></i>
             </button>
-          </div>
-
-          <!-- Environment Context & Actions -->
-          <div id="unified-section" class="expert-section" style="display: none;">
-            <div class="context-panel">
-              <h4><i class="fas fa-sliders-h"></i> Environment Context</h4>
-              <p>Tell the AI about your local conditions to personalize your care advice.</p>
-
-              <div class="context-inputs">
-                <div class="input-group">
-                  <label>Location</label>
-                  <input type="text" id="user-location" placeholder="e.g. Pune, India">
-                </div>
-                <div class="input-group">
-                  <label>Weather/Soil</label>
-                  <input type="text" id="user-context" placeholder="e.g. High Humidity">
-                </div>
-              </div>
-            </div>
-
-            <div class="action-grid">
-              <div class="action-box simulation-box">
-                <i class="fas fa-chart-line"></i>
-                <h5>Health Forecast</h5>
-                <p>Visualize how your plant may change in 5 days.</p>
-                <button id="simulate-btn" class="cta-button">Forecast Visuals</button>
-                <img id="future-image" src="" class="output-img">
-              </div>
-
-              <div class="action-box expert-box">
-                <i class="fas fa-user-md"></i>
-                <h5>Expert Care Plan</h5>
-                <p>Get a personalized care plan for your context.</p>
-                <button id="get-plan-btn" class="cta-button">Generate Plan</button>
-              </div>
-            </div>
-
-            <div id="global-loader" class="ai-loader" style="display:none;">
-              <i class="fas fa-circle-notch fa-spin"></i>
-              <p>AI is analyzing your context...</p>
-            </div>
-
-            <div id="expert-result" class="expert-markdown" style="display:none;"></div>
           </div>
 
 

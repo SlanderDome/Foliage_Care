@@ -141,6 +141,132 @@ def get_indian_season() -> str:
         )
 
 
+def normalize_user_type(user_type: Optional[str]) -> str:
+    value = (user_type or "home_gardener").strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "gardener": "home_gardener",
+        "home": "home_gardener",
+        "home_gardener": "home_gardener",
+        "farmer": "farmer",
+        "nursery": "nursery",
+        "student": "student",
+        "researcher": "student",
+        "student_research": "student",
+        "studentresearch": "student",
+    }
+    return aliases.get(value, "home_gardener")
+
+
+def get_user_type_profile(user_type: Optional[str]) -> dict:
+    normalized = normalize_user_type(user_type)
+
+    profiles = {
+        "home_gardener": {
+            "label": "home_gardener",
+            "guidance": (
+                "User is a HOME GARDENER — focus on pot, balcony, terrace, and indoor plant care. "
+                "Suggest kitchen-ingredient remedies first. Keep the tone warm, simple, and reassuring."
+            ),
+            "language_rules": (
+                "- Avoid technical jargon. Use plain, friendly language.\n"
+                "- Explain symptoms like a knowledgeable neighborhood plant expert.\n"
+                "- Always include Hindi/local plant names alongside English when relevant."
+            ),
+            "predict_focus": (
+                "- Prioritize practical next steps for a small number of plants.\n"
+                "- Mention watering correction, light placement, pruning, and easy home remedies.\n"
+                "- Keep every action low-cost and easy to do at home."
+            ),
+            "plan_focus": (
+                "- Emphasize simple home care, small-batch mixing instructions, and household-safe handling.\n"
+                "- Mention how to prevent spread to nearby balcony or indoor plants."
+            ),
+            "followup_focus": (
+                "- Answer with encouragement and step-by-step help for a non-expert grower.\n"
+                "- Translate any needed technical idea into simple everyday language immediately."
+            ),
+        },
+        "farmer": {
+            "label": "farmer",
+            "guidance": (
+                "User is a FARMER — give acreage-aware, yield-aware, operational advice. "
+                "Mention Krishi Vigyan Kendra (KVK) support when relevant and use Kharif/Rabi/Zaid seasonal context."
+            ),
+            "language_rules": (
+                "- Use simple field language, not academic wording.\n"
+                "- Keep instructions operational and outcome-focused.\n"
+                "- Always include Hindi/local plant names alongside English when relevant."
+            ),
+            "predict_focus": (
+                "- In immediate_action, mention field containment, irrigation adjustment, and spread control.\n"
+                "- In chemical_option, prefer products commonly available in Indian agri markets and include practical spray guidance.\n"
+                "- When relevant, reference likely crop loss risk, per-acre planning, or whether a KVK/agri officer review is warranted."
+            ),
+            "plan_focus": (
+                "- Include scale-aware treatment logic, spray timing, and field sanitation.\n"
+                "- Prefer advice that protects yield and prevents spread across rows, plots, or adjacent plants."
+            ),
+            "followup_focus": (
+                "- Answer as if the user may need to make a time-sensitive farm decision.\n"
+                "- Keep advice concise, decisive, and tied to field action."
+            ),
+        },
+        "nursery": {
+            "label": "nursery",
+            "guidance": (
+                "User is a NURSERY OPERATOR — focus on batch management, disease containment, propagation hygiene, "
+                "staff repeatability, and cost-effective treatment across many plants."
+            ),
+            "language_rules": (
+                "- Use clear operational language suitable for nursery staff and managers.\n"
+                "- Avoid unnecessary academic jargon, but be precise about isolation and sanitation.\n"
+                "- Always include Hindi/local plant names alongside English when relevant."
+            ),
+            "predict_focus": (
+                "- In immediate_action, prioritize isolation, tagging, and stopping spread across stock.\n"
+                "- Mention sanitation of benches, tools, trays, misting zones, and nearby inventory when relevant.\n"
+                "- Favor repeatable, batch-safe actions over one-off home remedies."
+            ),
+            "plan_focus": (
+                "- Structure treatment around stock segregation, routine monitoring, and sanitation workflow.\n"
+                "- Mention how to reduce disease spread during watering, propagation, transport, or display."
+            ),
+            "followup_focus": (
+                "- Answer with stock-management and workflow consistency in mind.\n"
+                "- Highlight how to monitor the rest of the batch, not just the single plant."
+            ),
+        },
+        "student": {
+            "label": "student",
+            "guidance": (
+                "User is a STUDENT OR RESEARCHER — balance accessibility with technical clarity. "
+                "Use common names first, then correct botanical or pathology terms where helpful. "
+                "You may mention ICAR, agricultural universities, or extension resources when relevant."
+            ),
+            "language_rules": (
+                "- You may use light technical terminology, but define it in simple words immediately.\n"
+                "- Mention likely differentials, symptom patterns, and uncertainty more explicitly than for other users.\n"
+                "- Always include Hindi/local plant names alongside English when relevant."
+            ),
+            "predict_focus": (
+                "- In trust_signals, be more explicit about the observed symptom pattern and why alternatives were ruled out.\n"
+                "- You may mention a likely pathogen class or technical symptom label if you explain it plainly.\n"
+                "- Keep the JSON fields short, but make them more analytical than other user types."
+            ),
+            "plan_focus": (
+                "- In the explanation section, briefly connect symptoms to likely disease process or plant stress mechanism.\n"
+                "- Keep the treatment practical, but allow slightly more technical precision where it helps learning."
+            ),
+            "followup_focus": (
+                "- If the question is analytical, answer with a bit more reasoning depth.\n"
+                "- You may compare hypotheses or explain diagnostic uncertainty, as long as it stays understandable."
+            ),
+        },
+    }
+
+    return profiles[normalized]
+
+
 def build_indian_context(
     user_name: str,
     location:  Optional[str],
@@ -148,59 +274,44 @@ def build_indian_context(
     longitude: Optional[str],
     context:   Optional[str],
     user_type: Optional[str] = None,
+    weather: Optional[str] = None,
 ) -> str:
+    
     """
     Shared Indian context block injected into every Gemini prompt.
     Handles season, user type tone, language rules, remedy priority, location.
     """
+    profile = get_user_type_profile(user_type)
     loc_str = (
         f"{location} (GPS: {latitude}, {longitude})"
         if latitude and longitude
         else (location or "India (location not specified)")
     )
 
-    user_type_guidance = {
-        "home_gardener": (
-            "User is a HOME GARDENER — focus on pot/balcony/terrace care. "
-            "Mention Vastu/cultural significance where relevant (Tulsi, banana tree). "
-            "Suggest kitchen-ingredient remedies first. Warm, encouraging tone."
-        ),
-        "farmer": (
-            "User is a FARMER — give per-acre dosages, yield-focused advice. "
-            "Reference government schemes (PM-KISAN, Soil Health Card) where relevant. "
-            "Mention Krishi Vigyan Kendra (KVK) for free expert follow-up. "
-            "Use Kharif/Rabi/Zaid seasonal calendar context."
-        ),
-        "nursery": (
-            "User is a NURSERY OWNER — focus on bulk plant care, propagation shelf life, "
-            "preventing disease spread across stock, cost-effective wholesale treatments."
-        ),
-        "student": (
-            "User is a STUDENT/RESEARCHER — use botanical terminology alongside common names. "
-            "Mention ICAR publications or agricultural university resources where helpful."
-        ),
-    }.get(user_type or "home_gardener", "")
-
     return f"""
 === FOLIAGECARE INDIA CONTEXT ===
 User Name    : {user_name}
-User Type    : {user_type or "home_gardener"}
+User Type    : {profile["label"]}
 Location     : {loc_str}
 Date         : {datetime.now().strftime('%B %d, %Y')}
+Current Wx   : {weather or "Weather data unavailable"}
 Indian Season: {get_indian_season()}
 User Context : {context or "No additional context provided"}
 
+--- CLIMATE & DIAGNOSIS RULES ---
+You must use the 'Weather Trend/weather' and 'Location' to influence your diagnosis of the image:
+1. ARID/DRY HEAT (e.g., Rajasthan, high temp, 0mm rain trend): Prioritize heat scorch, spider mites (which thrive in dry dust), and severe underwatering. Rule out fungal blights unless explicitly visible.
+2. HUMID/WET (e.g., Pune during monsoon, moderate temps, high rain trend): Prioritize powdery mildew, root rot, and bacterial leaf spots. 
+3. If the image looks like a borderline case (e.g., yellowing leaves), use the weather trend as the deciding factor (yellowing + zero rain = drought stress; yellowing + heavy rain = root suffocation).
+
 --- USER TYPE GUIDANCE ---
-{user_type_guidance}
+{profile["guidance"]}
 
 --- LANGUAGE RULES ---
 - Detect the language in the user's message and reply in the SAME language.
-- Always include Hindi / local plant names alongside English.
-  e.g. "Tulsi (Holy Basil)", "Gobar Khad (cow dung manure)", "Neem tel (neem oil)",
-       "Tamatar (Tomato)", "Aloo (Potato)", "Gehun (Wheat)"
-- NEVER use scientific jargon: no "necrotic lesions", "chlorosis", "inoculum",
-  "sporulation", or "pathogen virulence". Speak like a knowledgeable village guide.
-- Be warm, simple, and encouraging — the user CAN fix this.
+- Always include Hindi / local plant names alongside English where relevant.
+- {profile["language_rules"]}
+- Be helpful, grounded, and encouraging — but stay honest about uncertainty.
 
 --- REMEDY PRIORITY (always recommend in this order) ---
 1. Desi / home remedy  : neem oil spray, turmeric paste, cow dung, wood ash,
@@ -250,6 +361,7 @@ async def predict(
     context:   Optional[str] = Form(None),
     latitude:  Optional[str] = Form(None),
     longitude: Optional[str] = Form(None),
+    weather:   Optional[str]  = Form(None),
 ):
     """
     Module 1 — Full plant disease diagnosis via Gemini Vision.
@@ -265,8 +377,9 @@ async def predict(
 
     image_bytes = await file.read()
     image       = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    profile     = get_user_type_profile(user_type)
     india_ctx   = build_indian_context(
-        user_name, location, latitude, longitude, context, user_type
+        user_name, location, latitude, longitude, context, user_type, weather
     )
 
     prompt = f"""
@@ -274,7 +387,14 @@ async def predict(
 
 You are FoliageCare AI — an expert plant pathologist consulting with {user_name}.
 
-TASK: Analyze the uploaded plant/leaf image.
+TASK: Analyze the uploaded plant/leaf image. Cross-reference the visual symptoms with the "Current Wx" (weather) data. 
+- If temperatures are very high, consider heat stress, sunburn, or underwatering before diagnosing a pathogen.
+- If it is currently raining or highly humid, heavily weigh fungal infections (like powdery mildew or blight) as the primary cause.
+- Tailor the explanation and action plan for a {profile["label"]}.
+
+ROLE-SPECIFIC DIAGNOSIS FOCUS:
+{profile["predict_focus"]}
+
 response_mime_type is application/json — output raw JSON only, nothing else.
 
 --- STEP 1: Validate the image ---
@@ -329,6 +449,7 @@ COORDINATE RULES for affected_regions:
 - Example: top-left quarter spot → x_pct=0.05, y_pct=0.05, w_pct=0.25, h_pct=0.25
 - Include 1–4 regions maximum. Healthy plant → empty array [].
 - confidence is a float 0.0–1.0 (e.g. 0.91 not 91).
+- Do NOT change the JSON schema. Curate the wording inside the existing fields for the user type.
 """
 
     try:
@@ -367,6 +488,7 @@ async def simulate_progression(
     user_type:    str            = Form("home_gardener"),
     latitude:     Optional[str] = Form(None),
     longitude:    Optional[str] = Form(None),
+    weather:   Optional[str]  = Form(None),
 ):
     """
     Module 2 — Simulates disease appearance after 7 days untreated.
@@ -505,6 +627,7 @@ async def get_expert_plan(
     user_type: str            = Form("home_gardener"),
     latitude:  Optional[str] = Form(None),
     longitude: Optional[str] = Form(None),
+    weather:   Optional[str]  = Form(None),
 ):
     """
     Module 3 — Full expert treatment plan with image context.
@@ -520,8 +643,9 @@ async def get_expert_plan(
 
     image_bytes = await file.read()
     image       = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    profile     = get_user_type_profile(user_type)
     india_ctx   = build_indian_context(
-        user_name, location, latitude, longitude, context, user_type
+        user_name, location, latitude, longitude, context, user_type, weather   
     )
 
     prompt = f"""
@@ -533,7 +657,10 @@ DIAGNOSED DISEASE: {disease}
 
 Examine this plant image and write a complete, easy-to-understand treatment plan.
 Use the exact Markdown structure below. Keep every section short and actionable.
-No scientific jargon. All products must be available in India.
+All products must be available in India.
+
+ROLE-SPECIFIC PLAN FOCUS:
+{profile["plan_focus"]}
 
 ---
 
@@ -563,7 +690,7 @@ MUST begin with: "Only if Steps 1 and 2 show no improvement in 4–5 days:")
 Always include: "Visit your nearest Krishi Vigyan Kendra (KVK) for free expert advice.")
 
 ---
-Match the tone to user type: {user_type}
+Match the tone and detail level to user type: {profile["label"]}
 End on an encouraging note — the user can fix this.
 """
 
@@ -605,6 +732,7 @@ async def followup(req: FollowUpRequest):
     if not gemini_client:
         return {"error": "Gemini client not initialized."}
 
+    profile = get_user_type_profile(req.user_type)
     india_ctx = build_indian_context(
         req.user_name,
         req.location,
@@ -643,13 +771,17 @@ INSTRUCTIONS:
 1. Answer helpfully, always relating back to the diagnosed disease ({req.disease}).
 2. If the question is completely unrelated to plant/crop health, respond:
    "I'm best at helping with plant health! For your {req.disease} issue, I can help with
-   [suggest a relevant follow-up]. Is there something about your plant I can help with?"
+    [suggest a relevant follow-up]. Is there something about your plant I can help with?"
 3. Keep answers concise:
    - Simple questions  → 2–4 sentences
    - Multi-step advice → bullet points, max 5 items
 4. Always end with one small actionable next step.
 5. Detect and match the user's language (Hindi / English / regional).
 6. Use Markdown for readability.
+7. Tailor your style to a {profile["label"]}.
+
+ROLE-SPECIFIC FOLLOW-UP FOCUS:
+{profile["followup_focus"]}
 """
 
     try:

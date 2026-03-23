@@ -1,28 +1,37 @@
-const DEMO_SCANS = [
-    { disease: "Potato___Late_blight", confidence: 0.93, lat: 28.61, lng: 77.2, timestamp: Date.now() - 1000 * 60 * 20 },
-    { disease: "Apple___Apple_scab", confidence: 0.87, lat: 31.52, lng: 74.35, timestamp: Date.now() - 1000 * 60 * 60 * 3 },
-    { disease: "Corn___Common_rust", confidence: 0.79, lat: 18.52, lng: 73.86, timestamp: Date.now() - 1000 * 60 * 60 * 7 },
-    { disease: "Grape___Black_rot", confidence: 0.91, lat: 17.38, lng: 78.48, timestamp: Date.now() - 1000 * 60 * 60 * 12 },
-    { disease: "Tomato___healthy", confidence: 0.96, lat: 12.97, lng: 77.59, timestamp: Date.now() - 1000 * 60 * 60 * 18 },
-    { disease: "Pepper_bell___Bacterial_spot", confidence: 0.82, lat: 22.57, lng: 88.36, timestamp: Date.now() - 1000 * 60 * 60 * 24 },
-    { disease: "Potato___Early_blight", confidence: 0.74, lat: 26.85, lng: 80.91, timestamp: Date.now() - 1000 * 60 * 60 * 30 },
-    { disease: "Cherry___Powdery_mildew", confidence: 0.88, lat: 30.73, lng: 76.78, timestamp: Date.now() - 1000 * 60 * 60 * 36 },
-    { disease: "Apple___Cedar_apple_rust", confidence: 0.62, lat: 23.02, lng: 72.57, timestamp: Date.now() - 1000 * 60 * 60 * 48 },
-    { disease: "Grape___Leaf_blight", confidence: 0.71, lat: 19.08, lng: 72.88, timestamp: Date.now() - 1000 * 60 * 60 * 52 },
-    { disease: "Corn___Northern_Leaf_Blight", confidence: 0.85, lat: 25.59, lng: 85.13, timestamp: Date.now() - 1000 * 60 * 60 * 60 },
-    { disease: "Potato___healthy", confidence: 0.97, lat: 15.49, lng: 73.82, timestamp: Date.now() - 1000 * 60 * 60 * 72 },
-];
-
 const SEVERITY_COLOR = {
     healthy: "#7cb342",
     warning: "#c9a84c",
     critical: "#c0543a",
 };
 
+const INDIA_BOUNDS = {
+    minLat: 6,
+    maxLat: 38.5,
+    minLng: 68,
+    maxLng: 98,
+};
+
+const INDIA_MAX_BOUNDS = [
+    [INDIA_BOUNDS.minLat, INDIA_BOUNDS.minLng],
+    [INDIA_BOUNDS.maxLat, INDIA_BOUNDS.maxLng],
+];
+
 const mapInstances = [];
 
-function getSeverity(disease, confidence) {
+function getSeverity(disease, confidence, savedSeverity) {
     if ((disease || "").toLowerCase().includes("healthy")) return "healthy";
+    switch ((savedSeverity || "").toLowerCase()) {
+        case "none":
+        case "healthy":
+            return "healthy";
+        case "mild":
+        case "moderate":
+            return "warning";
+        case "severe":
+            return "critical";
+        default:
+            break;
+    }
     if ((confidence || 0) >= 0.8) return "critical";
     return "warning";
 }
@@ -53,6 +62,34 @@ function isRecent(ms) {
     return Date.now() - ms < 86400000;
 }
 
+function hasCoordinates(scan) {
+    return Number.isFinite(scan.lat) && Number.isFinite(scan.lng);
+}
+
+function isInIndia(lat, lng) {
+    return (
+        lat >= INDIA_BOUNDS.minLat &&
+        lat <= INDIA_BOUNDS.maxLat &&
+        lng >= INDIA_BOUNDS.minLng &&
+        lng <= INDIA_BOUNDS.maxLng
+    );
+}
+
+function normalizeScan(data) {
+    const lat = Number(data.latitude);
+    const lng = Number(data.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !isInIndia(lat, lng)) return null;
+
+    return {
+        disease: data.disease || "Unknown",
+        confidence: typeof data.confidence === "number" ? data.confidence : Number(data.confidence) || 0,
+        severity: data.severity || "",
+        lat,
+        lng,
+        timestamp: data.timestamp?.toMillis?.() || Date.now(),
+    };
+}
+
 function makeMarkerIcon(severity, recent) {
     const color = SEVERITY_COLOR[severity] || SEVERITY_COLOR.healthy;
     const size = severity === "critical" ? 14 : 11;
@@ -76,7 +113,7 @@ function makeMarkerIcon(severity, recent) {
 }
 
 function makePopupHTML(scan) {
-    const severity = getSeverity(scan.disease, scan.confidence);
+    const severity = getSeverity(scan.disease, scan.confidence, scan.severity);
     const color = SEVERITY_COLOR[severity];
     const confidence = Math.round((scan.confidence || 0) * 100);
     const label = severity.charAt(0).toUpperCase() + severity.slice(1);
@@ -109,6 +146,8 @@ function createMapInstance(ctx) {
         boxZoom: ctx.boxZoom !== false,
         maxZoom: ctx.maxZoom || 16,
         minZoom: ctx.minZoom || 2,
+        maxBounds: ctx.maxBounds || INDIA_MAX_BOUNDS,
+        maxBoundsViscosity: ctx.maxBoundsViscosity || 1,
     });
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
@@ -148,9 +187,9 @@ function renderInstanceMarkers(instance, scans) {
     instance.markers = [];
 
     scans.forEach((scan) => {
-        if (!scan.lat || !scan.lng) return;
+        if (!hasCoordinates(scan)) return;
 
-        const severity = getSeverity(scan.disease, scan.confidence);
+        const severity = getSeverity(scan.disease, scan.confidence, scan.severity);
         const marker = L.marker([scan.lat, scan.lng], {
             icon: makeMarkerIcon(severity, isRecent(scan.timestamp)),
             title: formatDisease(scan.disease),
@@ -189,7 +228,7 @@ function populateInstanceFeed(instance, scans) {
     feed.innerHTML = "";
 
     [...scans].sort((a, b) => b.timestamp - a.timestamp).forEach((scan) => {
-        const severity = getSeverity(scan.disease, scan.confidence);
+        const severity = getSeverity(scan.disease, scan.confidence, scan.severity);
         const confidence = Math.round((scan.confidence || 0) * 100);
         const item = document.createElement("div");
         item.className = "feed-item";
@@ -201,7 +240,7 @@ function populateInstanceFeed(instance, scans) {
             </div>`;
 
         item.addEventListener("click", () => {
-            if (!scan.lat || !scan.lng) return;
+            if (!hasCoordinates(scan)) return;
             instance.map.flyTo([scan.lat, scan.lng], 10, { animate: true, duration: 1 });
             const match = instance.markers.find((entry) => {
                 const latLng = entry.marker.getLatLng();
@@ -234,7 +273,7 @@ function computeInstanceStats(instance, scans) {
     const totals = {
         total: scans.length,
         diseases: new Set(scans.map((scan) => scan.disease)).size,
-        critical: scans.filter((scan) => getSeverity(scan.disease, scan.confidence) === "critical").length,
+        critical: scans.filter((scan) => getSeverity(scan.disease, scan.confidence, scan.severity) === "critical").length,
         today: scans.filter((scan) => scan.timestamp >= today.getTime()).length,
     };
 
@@ -283,6 +322,19 @@ function renderInstanceTopDiseases(instance, scans) {
     });
 }
 
+function setInstanceData(instance, scans) {
+    instance.allScans = scans;
+    renderInstanceMarkers(instance, scans);
+    populateInstanceFeed(instance, scans);
+    computeInstanceStats(instance, scans);
+    renderInstanceTopDiseases(instance, scans);
+
+    const emptyState = document.getElementById("map-empty-state");
+    if (emptyState && instance.ctx.mapElId === "leaflet-map") {
+        emptyState.style.display = scans.length === 0 ? "flex" : "none";
+    }
+}
+
 function waitForFirebase(timeout = 4000) {
     return new Promise((resolve) => {
         if (window.firebaseReady && window.db) {
@@ -303,47 +355,51 @@ function waitForFirebase(timeout = 4000) {
     });
 }
 
-async function loadScans() {
-    let scans = [];
-
+async function subscribeToScans(onUpdate) {
     try {
         await waitForFirebase();
-        const { db, getDocs, collection, orderBy, query, limit } = window;
-        if (db && getDocs && collection && orderBy && query && limit) {
-            const result = await getDocs(
-                query(collection(db, "community_scans"), orderBy("timestamp", "desc"), limit(200))
+        const { db, onSnapshot, getDocs, collection, orderBy, query, limit } = window;
+        const scansQuery = db && collection && orderBy && query && limit
+            ? query(collection(db, "community_scans"), orderBy("timestamp", "desc"), limit(200))
+            : null;
+
+        if (scansQuery && onSnapshot) {
+            return onSnapshot(
+                scansQuery,
+                (snapshot) => {
+                    const scans = snapshot.docs
+                        .map((doc) => normalizeScan(doc.data()))
+                        .filter(Boolean);
+                    onUpdate(scans);
+                },
+                (error) => {
+                    console.warn("Realtime community scan subscription failed:", error);
+                    onUpdate([]);
+                }
             );
+        }
 
-            result.forEach((doc) => {
-                const data = doc.data();
-                scans.push({
-                    disease: data.disease || "Unknown",
-                    confidence: data.confidence || 0,
-                    lat: data.latitude || null,
-                    lng: data.longitude || null,
-                    timestamp: data.timestamp?.toMillis?.() || Date.now(),
-                });
-            });
-
-            scans = scans.filter((scan) => scan.lat && scan.lng);
+        if (scansQuery && getDocs) {
+            const result = await getDocs(scansQuery);
+            const scans = result.docs
+                .map((doc) => normalizeScan(doc.data()))
+                .filter(Boolean);
+            onUpdate(scans);
+            return () => {};
         }
     } catch (error) {
-        console.warn("Firebase read failed, using demo data:", error);
+        console.warn("Firebase read failed for community scans:", error);
     }
 
-    return scans.length === 0 ? [...DEMO_SCANS] : [...scans, ...DEMO_SCANS];
+    onUpdate([]);
+    return () => {};
 }
 
 async function bootInstance(instance) {
-    const scans = await loadScans();
-    instance.allScans = scans;
-    renderInstanceMarkers(instance, scans);
-    populateInstanceFeed(instance, scans);
-    computeInstanceStats(instance, scans);
-    renderInstanceTopDiseases(instance, scans);
-
-    const emptyState = document.getElementById("map-empty-state");
-    if (emptyState) emptyState.style.display = "none";
+    setInstanceData(instance, []);
+    instance.unsubscribe = await subscribeToScans((scans) => {
+        setInstanceData(instance, scans);
+    });
 }
 
 function invalidateProfileMap() {
@@ -362,6 +418,8 @@ document.addEventListener("DOMContentLoaded", async function () {
             statIds: { total: "peek-total", diseases: "peek-diseases" },
             center: [22.5, 78.9],
             zoom: 5,
+            minZoom: 4,
+            maxBounds: INDIA_MAX_BOUNDS,
             zoomControl: false,
             attributionControl: false,
             dragging: false,
@@ -388,6 +446,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             topDiseasesElId: "top-diseases",
             filterContainerId: "map-filters",
             statIds: { total: "stat-total", diseases: "stat-diseases", critical: "stat-critical", today: "stat-today" },
+            center: [22.5, 78.9],
+            zoom: 5,
+            minZoom: 4,
+            maxBounds: INDIA_MAX_BOUNDS,
         });
 
         if (instance) await bootInstance(instance);
@@ -412,6 +474,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                     topDiseasesElId: "intel-top-diseases",
                     filterContainerId: "profile-map-filters",
                     statIds: { total: "intel-total", diseases: "intel-diseases", critical: "intel-critical", today: "intel-today" },
+                    center: [22.5, 78.9],
+                    zoom: 5,
+                    minZoom: 4,
+                    maxBounds: INDIA_MAX_BOUNDS,
                 });
 
                 if (instance) {

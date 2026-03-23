@@ -234,6 +234,14 @@ a {
     align-items: center;
 }
 
+.hero-shell::before {
+    content: none;
+}
+
+.hero-shell::after {
+    content: none;
+}
+
 .hero-copy {
     padding: 32px 0;
 }
@@ -268,7 +276,7 @@ a {
 .hero h1 {
     max-width: 11ch;
     font-family: var(--ff-heading);
-    font-size: clamp(3.2rem, 6vw, 5.6rem);
+    font-size: clamp(2.95rem, 5.4vw, 5rem);
     line-height: 0.92;
     letter-spacing: -0.04em;
     margin-bottom: 24px;
@@ -276,7 +284,7 @@ a {
 
 .hero-text {
     max-width: 640px;
-    font-size: clamp(1rem, 1.5vw, 1.18rem);
+    font-size: clamp(0.96rem, 1.35vw, 1.08rem);
     color: var(--text-secondary);
     margin-bottom: 34px;
 }
@@ -383,7 +391,7 @@ a {
     position: relative;
     overflow: hidden;
     border-radius: calc(var(--radius-lg) + 4px);
-    min-height: 420px;
+    height: 420px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: var(--shadow-strong);
 }
@@ -396,25 +404,10 @@ a {
 }
 
 .hero-panel-image img {
+    display: block;
+    width: 100%;
     height: 100%;
     object-fit: cover;
-}
-
-.hero-panel-badge {
-    position: absolute;
-    top: 22px;
-    left: 22px;
-    z-index: 1;
-    padding: 10px 14px;
-    border-radius: 999px;
-    background: rgba(6, 17, 11, 0.78);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-    font-size: 0.76rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    backdrop-filter: blur(12px);
 }
 
 .section-header p,
@@ -486,12 +479,12 @@ a {
 .section-header h2 {
     margin: 14px 0 14px;
     font-family: var(--ff-heading);
-    font-size: clamp(2.2rem, 4vw, 3.6rem);
+    font-size: clamp(2rem, 3.6vw, 3.2rem);
     line-height: 0.98;
 }
 
 .section-header p {
-    font-size: 1.02rem;
+    font-size: 0.98rem;
 }
 
 .grower-grid {
@@ -807,11 +800,26 @@ a {
     }
 
     .hero h1 {
-        font-size: clamp(2.5rem, 12vw, 4rem);
+        font-size: clamp(2.3rem, 11vw, 3.6rem);
+    }
+
+    .hero-panel {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        min-height: 280px;
+        margin-top: 20px;
     }
 
     .hero-panel-image {
-        min-height: 320px;
+        position: relative;
+        height: 280px;
+        border-radius: 28px;
+        transform: none;
+    }
+
+    .hero-panel-image::after {
+        background: linear-gradient(180deg, rgba(4, 11, 7, 0.14) 0%, rgba(4, 11, 7, 0.54) 100%);
     }
 
     .hero-metrics,

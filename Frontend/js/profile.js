@@ -1,616 +1,723 @@
-// ═══════════════════════════════════════════════════
-// FOLIAGE CARE — Profile Page JavaScript
-// Tab system, Firebase integration, all features
-// ═══════════════════════════════════════════════════
 
-// ─── Toast System ───
 function showToast(message, type = 'success') {
-  const c = document.getElementById('toast-container');
-  if (!c) return;
-  const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span>`;
-  c.appendChild(t);
-  setTimeout(() => { t.classList.add('toast-exit'); t.addEventListener('animationend', () => t.remove()); }, 3500);
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const icons = {
+    success: 'fa-check-circle',
+    error: 'fa-exclamation-circle',
+    info: 'fa-circle-info'
+  };
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add('toast-exit');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  }, 3200);
 }
 
-// ─── Firebase Wait ───
-function waitForFirebase(cb) {
-  if (window.firebaseReady && window.db) cb();
-  else setTimeout(() => waitForFirebase(cb), 80);
+function waitForFirebaseProfile(callback) {
+  if (window.firebaseReady && window.db && window.firebaseAuth) {
+    callback();
+    return;
+  }
+
+  setTimeout(() => waitForFirebaseProfile(callback), 80);
 }
 
-let tabsInitialized = false;
-let chartInitialized = false;
-let climateInitialized = false;
-let tipsInitialized = false;
-let bookmarkInitialized = false;
-let timeRangeInitialized = false;
-let profileAuthBound = false;
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-// ═══════════════════════════════════════════════════
-// TAB SYSTEM
-// ═══════════════════════════════════════════════════
-function initTabs() {
-  if (tabsInitialized) return;
-  tabsInitialized = true;
+function formatDate(value) {
+  if (!value) return 'Unknown date';
 
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+function formatMonthYear(value) {
+  if (!value) return '-';
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric'
+  });
+}
+
+function formatRelative(value) {
+  if (!value) return '-';
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  const diff = Date.now() - date.getTime();
+  const hour = 60 * 60 * 1000;
+  const day = 24 * hour;
+
+  if (diff < hour) return 'Less than an hour ago';
+  if (diff < day) return `${Math.max(1, Math.round(diff / hour))}h ago`;
+  if (diff < 7 * day) return `${Math.max(1, Math.round(diff / day))}d ago`;
+
+  return formatDate(date);
+}
+
+function parseConfidence(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value <= 1 ? value : value / 100;
+  }
+
+  if (typeof value === 'string') {
+    const numeric = Number.parseFloat(value.replace('%', ''));
+    if (Number.isFinite(numeric)) {
+      return numeric > 1 ? numeric / 100 : numeric;
+    }
+  }
+
+  return null;
+}
+
+function parseTimestamp(raw) {
+  if (!raw) return null;
+  if (raw instanceof Date) return raw;
+  if (typeof raw.toDate === 'function') return raw.toDate();
+  if (typeof raw.seconds === 'number') return new Date(raw.seconds * 1000);
+  if (typeof raw === 'number') return new Date(raw);
+  if (typeof raw === 'string') {
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  return null;
+}
+
+function inferSeverity(label, savedSeverity) {
+  const severity = String(savedSeverity || '').toLowerCase();
+  if (severity === 'healthy') return 'healthy';
+  if (severity === 'critical' || severity === 'severe') return 'critical';
+  if (severity === 'warning' || severity === 'moderate' || severity === 'mild') return 'attention';
+
+  const text = String(label || '').toLowerCase();
+  if (!text) return 'attention';
+  if (text.includes('healthy')) return 'healthy';
+  if (text.includes('blight') || text.includes('rot') || text.includes('wilt') || text.includes('mildew') || text.includes('spot')) {
+    return 'critical';
+  }
+  return 'attention';
+}
+
+function severityLabel(severity) {
+  return {
+    healthy: 'Healthy',
+    attention: 'Needs attention',
+    critical: 'Critical'
+  }[severity] || 'Needs attention';
+}
+
+function severityIcon(severity) {
+  return {
+    healthy: 'fa-circle-check',
+    attention: 'fa-triangle-exclamation',
+    critical: 'fa-circle-exclamation'
+  }[severity] || 'fa-triangle-exclamation';
+}
+
+function getInitials(name) {
+  return String(name || 'FC')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('') || 'FC';
+}
+
+function createAvatarDataUrl(text) {
+  const initials = escapeHtml(getInitials(text));
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#8cc63f" />
+          <stop offset="100%" stop-color="#476d28" />
+        </linearGradient>
+      </defs>
+      <rect width="120" height="120" rx="60" fill="url(#g)" />
+      <text x="50%" y="53%" dominant-baseline="middle" text-anchor="middle"
+        font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#f6f5ee">${initials}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+const state = {
+  user: null,
+  profile: {},
+  scans: [],
+  historyFilter: 'all',
+  tabsReady: false,
+  exportBound: false,
+  settingsBound: false,
+  avatarBound: false,
+  logoutBound: false,
+  filtersBound: false
+};
+
+function setProfileImage(src, fallbackText) {
+  const avatar = document.getElementById('profile-pic');
+  if (!avatar) return;
+  avatar.src = src || createAvatarDataUrl(fallbackText || 'FC');
+}
+
+function activateTab(tabName) {
   const buttons = document.querySelectorAll('.tab-btn');
   const panels = document.querySelectorAll('.tab-panel');
   const indicator = document.querySelector('.tab-indicator');
-  function activateTab(tabName) {
-    buttons.forEach((btn) => {
-      const isActive = btn.dataset.tab === tabName;
-      btn.classList.toggle('active', isActive);
-      if (isActive && indicator) {
-        indicator.style.width = `${btn.offsetWidth}px`;
-        indicator.style.transform = `translateX(${btn.offsetLeft}px)`;
-      }
-    });
-    panels.forEach(p => {
-      const isActive = p.id === `panel-${tabName}`;
-      p.classList.toggle('active', isActive);
-    });
 
-    document.dispatchEvent(new CustomEvent('profile:tab-change', {
-      detail: { tabName }
-    }));
-  }
+  buttons.forEach((button) => {
+    const active = button.dataset.tab === tabName;
+    button.classList.toggle('active', active);
 
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+    if (active && indicator) {
+      indicator.style.width = `${button.offsetWidth}px`;
+      indicator.style.transform = `translateX(${button.offsetLeft}px)`;
+    }
   });
 
-  // "View All" link switches to Records tab
-  const viewAllLink = document.getElementById('view-all-records');
-  if (viewAllLink) {
-    viewAllLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      activateTab('records');
-    });
-  }
+  panels.forEach((panel) => {
+    panel.classList.toggle('active', panel.id === `panel-${tabName}`);
+  });
 
-  const activeButton = document.querySelector('.tab-btn.active');
-  if (activeButton) activateTab(activeButton.dataset.tab);
+  document.dispatchEvent(new CustomEvent('profile:tab-change', { detail: { tabName } }));
+}
+function initTabs() {
+  if (state.tabsReady) return;
+  state.tabsReady = true;
+
+  document.querySelectorAll('.tab-btn').forEach((button) => {
+    button.addEventListener('click', () => activateTab(button.dataset.tab));
+  });
+
+  const initial = document.querySelector('.tab-btn.active');
+  if (initial) activateTab(initial.dataset.tab);
 
   window.addEventListener('resize', () => {
-    const current = document.querySelector('.tab-btn.active');
-    if (current) activateTab(current.dataset.tab);
+    const active = document.querySelector('.tab-btn.active');
+    if (active) activateTab(active.dataset.tab);
+  });
+
+  document.getElementById('view-all-history')?.addEventListener('click', () => activateTab('history'));
+  document.getElementById('overview-settings-btn')?.addEventListener('click', () => activateTab('settings'));
+  document.getElementById('jump-to-settings')?.addEventListener('click', () => activateTab('settings'));
+}
+
+function renderIdentity() {
+  const user = state.user;
+  const profile = state.profile;
+  const latestScan = state.scans[0];
+  const displayName = profile.displayName || user?.displayName || 'Gardener';
+  const bio = profile.bio?.trim() || 'Add a short note about your garden or growing focus.';
+  const createdAt = user?.metadata?.creationTime ? new Date(user.metadata.creationTime) : null;
+
+  document.getElementById('profile-name').textContent = displayName;
+  document.getElementById('profile-email').textContent = user?.email || '';
+  document.getElementById('profile-bio').textContent = bio;
+  document.getElementById('member-since').textContent = `Member since ${formatMonthYear(createdAt)}`;
+  document.getElementById('settings-member-since').textContent = formatMonthYear(createdAt);
+  document.getElementById('settings-email').value = user?.email || '';
+  document.getElementById('last-scan-pill').textContent = latestScan
+    ? `Last scan ${formatRelative(latestScan.timestamp)}`
+    : 'Last scan -';
+
+  setProfileImage(profile.photoURL || user?.photoURL, displayName);
+}
+
+function computeSummary(scans) {
+  const plantCounts = new Map();
+  const diagnosisCounts = new Map();
+  let healthy = 0;
+  let attention = 0;
+  let confidenceSum = 0;
+  let confidenceCount = 0;
+
+  scans.forEach((scan) => {
+    if (scan.severity === 'healthy') healthy += 1;
+    else attention += 1;
+
+    if (scan.plantName) {
+      plantCounts.set(scan.plantName, (plantCounts.get(scan.plantName) || 0) + 1);
+    }
+
+    if (scan.diagnosis) {
+      diagnosisCounts.set(scan.diagnosis, (diagnosisCounts.get(scan.diagnosis) || 0) + 1);
+    }
+
+    if (typeof scan.confidence === 'number') {
+      confidenceSum += scan.confidence;
+      confidenceCount += 1;
+    }
+  });
+
+  const topPlant = [...plantCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'No scans yet';
+  const topDiagnosis = [...diagnosisCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'No scans yet';
+  const latest = scans[0];
+  const uniquePlants = plantCounts.size;
+  const healthyRate = scans.length ? Math.round((healthy / scans.length) * 100) : 0;
+  const averageConfidence = confidenceCount ? `${Math.round((confidenceSum / confidenceCount) * 100)}%` : '-';
+
+  return {
+    total: scans.length,
+    attention,
+    uniquePlants,
+    healthyRate,
+    topPlant,
+    topDiagnosis,
+    latestDiagnosis: latest ? latest.diagnosis : 'No scans yet',
+    averageConfidence
+  };
+}
+
+function renderSummary() {
+  const summary = computeSummary(state.scans);
+
+  document.getElementById('total-diagnoses').textContent = summary.total;
+  document.getElementById('pathology-index').textContent = `${summary.healthyRate}%`;
+  document.getElementById('species-count').textContent = summary.uniquePlants;
+  document.getElementById('attention-count').textContent = summary.attention;
+  document.getElementById('settings-total-scans').textContent = summary.total;
+
+  document.getElementById('top-plant').textContent = summary.topPlant;
+  document.getElementById('top-diagnosis').textContent = summary.topDiagnosis;
+  document.getElementById('latest-diagnosis').textContent = summary.latestDiagnosis;
+  document.getElementById('avg-confidence').textContent = summary.averageConfidence;
+}
+
+function renderRecent() {
+  const list = document.getElementById('recent-list');
+  const empty = document.getElementById('recent-empty');
+  if (!list || !empty) return;
+
+  list.innerHTML = '';
+
+  const recent = state.scans.slice(0, 4);
+  empty.style.display = recent.length ? 'none' : 'flex';
+  list.style.display = recent.length ? 'grid' : 'none';
+
+  recent.forEach((scan) => {
+    const article = document.createElement('article');
+    article.className = `recent-card ${scan.severity}`;
+    article.innerHTML = `
+      <div class="recent-top">
+        <span class="status-chip ${scan.severity}">
+          <i class="fas ${severityIcon(scan.severity)}"></i>
+          ${severityLabel(scan.severity)}
+        </span>
+        <span class="recent-date">${formatDate(scan.timestamp)}</span>
+      </div>
+      <h3>${escapeHtml(scan.diagnosis)}</h3>
+      <p>${escapeHtml(scan.plantName || 'Plant scan')}</p>
+      <div class="recent-meta">
+        <span>${scan.confidence != null ? `${Math.round(scan.confidence * 100)}% confidence` : 'Confidence unavailable'}</span>
+        <span>${escapeHtml(scan.sourceLabel)}</span>
+      </div>
+    `;
+    list.appendChild(article);
   });
 }
 
-// ═══════════════════════════════════════════════════
-// WEATHER / CLIMATE INTELLIGENCE
-// ═══════════════════════════════════════════════════
-async function fetchWeather(lat, lng) {
-  try {
-    const data = await (await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`
-    )).json();
-    const c = data.current;
-    document.getElementById('climate-temp').textContent = `${Math.round(c.temperature_2m)}°C`;
-    document.getElementById('climate-humidity').textContent = `${c.relative_humidity_2m}%`;
-    document.getElementById('climate-wind').textContent = `${c.wind_speed_10m} km/h`;
+function renderGarden() {
+  const grid = document.getElementById('garden-grid');
+  const empty = document.getElementById('garden-empty');
+  if (!grid || !empty) return;
 
-    // Reverse geocode
-    const geo = await (await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
-    )).json();
-    document.getElementById('climate-location').textContent = `${geo.city || geo.locality || 'Your Area'}, ${geo.countryCode || ''}`;
-  } catch (e) { console.error('Weather error:', e); }
+  grid.innerHTML = '';
+
+  const grouped = new Map();
+  state.scans.forEach((scan) => {
+    const key = scan.plantName || 'Unlabeled plant';
+    const current = grouped.get(key) || {
+      plantName: key,
+      total: 0,
+      latest: scan,
+      healthy: 0,
+      attention: 0
+    };
+
+    current.total += 1;
+    current.latest = scan.timestamp > current.latest.timestamp ? scan : current.latest;
+    if (scan.severity === 'healthy') current.healthy += 1;
+    else current.attention += 1;
+
+    grouped.set(key, current);
+  });
+
+  const plants = [...grouped.values()].sort((a, b) => b.latest.timestamp - a.latest.timestamp);
+  empty.style.display = plants.length ? 'none' : 'flex';
+  grid.style.display = plants.length ? 'grid' : 'none';
+
+  plants.forEach((plant) => {
+    const card = document.createElement('article');
+    card.className = 'garden-card';
+    card.innerHTML = `
+      <div class="garden-icon">${escapeHtml(getInitials(plant.plantName))}</div>
+      <div class="garden-copy">
+        <h3>${escapeHtml(plant.plantName)}</h3>
+        <p>${plant.total} scan${plant.total === 1 ? '' : 's'} saved</p>
+      </div>
+      <div class="garden-stats">
+        <span>${plant.healthy} healthy</span>
+        <span>${plant.attention} flagged</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+function getFilteredHistory() {
+  if (state.historyFilter === 'healthy') {
+    return state.scans.filter((scan) => scan.severity === 'healthy');
+  }
+
+  if (state.historyFilter === 'attention') {
+    return state.scans.filter((scan) => scan.severity !== 'healthy');
+  }
+
+  return state.scans;
 }
 
-function initClimate() {
-  if (climateInitialized) return;
-  climateInitialized = true;
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const empty = document.getElementById('history-empty');
+  if (!list || !empty) return;
 
-  if (!navigator.geolocation) {
-    document.getElementById('climate-location').textContent = 'Location unavailable';
+  list.innerHTML = '';
+
+  const entries = getFilteredHistory();
+  empty.style.display = entries.length ? 'none' : 'flex';
+  list.style.display = entries.length ? 'grid' : 'none';
+
+  entries.forEach((scan) => {
+    const row = document.createElement('article');
+    row.className = `history-row ${scan.severity}`;
+    row.innerHTML = `
+      <div class="history-icon">${escapeHtml(getInitials(scan.plantName || scan.diagnosis))}</div>
+      <div class="history-main">
+        <div class="history-title-row">
+          <h3>${escapeHtml(scan.diagnosis)}</h3>
+          <span class="status-chip ${scan.severity}">
+            <i class="fas ${severityIcon(scan.severity)}"></i>
+            ${severityLabel(scan.severity)}
+          </span>
+        </div>
+        <div class="history-meta">
+          <span>${escapeHtml(scan.plantName || 'Plant scan')}</span>
+          <span>${formatDate(scan.timestamp)}</span>
+          <span>${scan.confidence != null ? `${Math.round(scan.confidence * 100)}% confidence` : 'Confidence unavailable'}</span>
+          <span>${escapeHtml(scan.sourceLabel)}</span>
+        </div>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function renderAll() {
+  renderIdentity();
+  renderSummary();
+  renderRecent();
+  renderGarden();
+  renderHistory();
+}
+
+function normalizeScanRecord(data, sourceLabel, idHint) {
+  const diagnosis = data.disease || data.prediction || 'Diagnosis unavailable';
+  const plantName = data.plantName || data.plant || diagnosis || 'Plant scan';
+  const timestamp = parseTimestamp(data.timestamp) || new Date(0);
+  const confidence = parseConfidence(data.confidence);
+  const severity = inferSeverity(diagnosis, data.severity);
+  const sourceId = data.id || idHint || `${diagnosis}-${timestamp.getTime()}`;
+
+  return {
+    id: sourceId,
+    diagnosis,
+    plantName,
+    confidence,
+    severity,
+    timestamp,
+    sourceLabel
+  };
+}
+
+async function fetchScansFromTopLevel(user) {
+  try {
+    const scansRef = window.collection(window.db, 'scans');
+    const scanQuery = window.query(scansRef, window.where('userId', '==', user.uid));
+    const snapshot = await window.getDocs(scanQuery);
+
+    return snapshot.docs.map((docSnap) => normalizeScanRecord(docSnap.data(), 'scan history', docSnap.id));
+  } catch (error) {
+    console.warn('Top-level scan load failed:', error);
+    return [];
+  }
+}
+
+async function fetchLegacyPredictionScans(user) {
+  try {
+    const snapshot = await window.getDocs(window.collection(window.db, 'users', user.uid, 'predictions'));
+    return snapshot.docs.map((docSnap) => normalizeScanRecord(docSnap.data(), 'legacy profile record', docSnap.id));
+  } catch (error) {
+    console.warn('Legacy scan load failed:', error);
+    return [];
+  }
+}
+
+async function loadScans(user) {
+  const [topLevel, legacy] = await Promise.all([
+    fetchScansFromTopLevel(user),
+    fetchLegacyPredictionScans(user)
+  ]);
+
+  const seen = new Set();
+  const merged = [...topLevel, ...legacy].filter((scan) => {
+    const key = `${scan.diagnosis}|${scan.plantName}|${scan.timestamp.getTime()}|${scan.confidence ?? 'na'}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  merged.sort((a, b) => b.timestamp - a.timestamp);
+  state.scans = merged;
+}
+
+async function loadProfileDoc(user) {
+  try {
+    const snapshot = await window.getDoc(window.doc(window.db, 'users', user.uid));
+    state.profile = snapshot.exists() ? snapshot.data() : {};
+  } catch (error) {
+    console.warn('Profile load failed:', error);
+    state.profile = {};
+  }
+}
+
+function bindHistoryFilters() {
+  if (state.filtersBound) return;
+  state.filtersBound = true;
+
+  document.querySelectorAll('.filter-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.historyFilter = button.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach((item) => item.classList.remove('active'));
+      button.classList.add('active');
+      renderHistory();
+    });
+  });
+}
+
+async function exportScans() {
+  if (!state.scans.length) {
+    showToast('No scan history to export yet.', 'info');
     return;
   }
-  navigator.geolocation.getCurrentPosition(
-    pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-    () => { document.getElementById('climate-location').textContent = 'Permission denied'; },
-    { enableHighAccuracy: true, timeout: 5000 }
-  );
+
+  const header = ['Plant Name', 'Diagnosis', 'Severity', 'Confidence', 'Date', 'Source'];
+  const rows = state.scans.map((scan) => [
+    scan.plantName,
+    scan.diagnosis,
+    severityLabel(scan.severity),
+    scan.confidence != null ? `${Math.round(scan.confidence * 100)}%` : '',
+    scan.timestamp.toISOString(),
+    scan.sourceLabel
+  ]);
+
+  const csv = [header, ...rows]
+    .map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `foliage-care-history-${Date.now()}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+
+  showToast('History exported.', 'success');
+}
+function initExportButtons() {
+  if (state.exportBound) return;
+  state.exportBound = true;
+
+  ['export-data-btn', 'export-records', 'overview-export-btn'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('click', exportScans);
+  });
 }
 
-// ═══════════════════════════════════════════════════
-// CHART.JS — Pathology Trend
-// ═══════════════════════════════════════════════════
-function initChart() {
-  if (chartInitialized) return;
-  chartInitialized = true;
+function initLogoutButtons() {
+  if (state.logoutBound) return;
+  state.logoutBound = true;
 
-  const ctx = document.getElementById('healthChart');
-  if (!ctx) return;
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [
-        {
-          label: 'Healthy',
-          data: [12, 19, 15, 25, 22, 30, 28],
-          borderColor: '#7cb342',
-          backgroundColor: 'rgba(124,179,66,.06)',
-          borderWidth: 2.5, tension: .4, fill: true,
-          pointBackgroundColor: '#7cb342', pointRadius: 3, pointHoverRadius: 6
-        },
-        {
-          label: 'Under Observation',
-          data: [5, 8, 6, 4, 8, 5, 7],
-          borderColor: '#c9a84c',
-          backgroundColor: 'rgba(201,168,76,.06)',
-          borderWidth: 2.5, tension: .4, fill: true,
-          pointBackgroundColor: '#c9a84c', pointRadius: 3, pointHoverRadius: 6
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: '#a0a090', usePointStyle: true, pointStyle: 'circle', padding: 16, font: { size: 11, family: "'DM Sans', sans-serif" } }
-        },
-        tooltip: {
-          backgroundColor: 'rgba(8,10,8,.95)', titleColor: '#e8e6dc', bodyColor: '#a0a090',
-          borderColor: 'rgba(124,179,66,.2)', borderWidth: 1, cornerRadius: 10, padding: 12
-        }
-      },
-      scales: {
-        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#696960', font: { size: 10 } } },
-        x: { grid: { display: false }, ticks: { color: '#696960', font: { size: 10 } } }
+  const handler = async () => {
+    if (!window.firebaseAuth || typeof window.signOut !== 'function') {
+      showToast('Sign out is still loading. Please try again.', 'info');
+      return;
+    }
+
+    if (!window.confirm('Sign out of Foliage Care?')) return;
+
+    try {
+      await window.signOut(window.firebaseAuth);
+      sessionStorage.removeItem('postLoginRedirect');
+      window.location.href = 'login.html';
+    } catch (error) {
+      console.error('Sign out failed:', error);
+      showToast('Unable to sign out right now.', 'error');
+    }
+  };
+
+  document.getElementById('heroLogoutBtn')?.addEventListener('click', handler);
+  document.getElementById('logoutBtn')?.addEventListener('click', handler);
+}
+
+function initSettings() {
+  if (state.settingsBound) return;
+  state.settingsBound = true;
+
+  document.getElementById('save-settings-btn')?.addEventListener('click', async () => {
+    const user = state.user;
+    if (!user) return;
+
+    const displayName = document.getElementById('settings-name').value.trim();
+    const bio = document.getElementById('settings-bio').value.trim();
+    const language = document.getElementById('pref-language').value;
+
+    const payload = {
+      displayName,
+      bio,
+      preferences: {
+        language
       }
+    };
+
+    try {
+      await window.setDoc(window.doc(window.db, 'users', user.uid), payload, { merge: true });
+
+      if (displayName && typeof window.updateProfile === 'function') {
+        await window.updateProfile(user, { displayName });
+      }
+
+      state.profile = {
+        ...state.profile,
+        ...payload,
+        preferences: {
+          ...(state.profile.preferences || {}),
+          language
+        }
+      };
+
+      renderIdentity();
+      showToast('Profile updated.', 'success');
+    } catch (error) {
+      console.error('Settings save failed:', error);
+      showToast('Could not save profile settings.', 'error');
     }
   });
 }
 
-// ═══════════════════════════════════════════════════
-// DAILY TIPS
-// ═══════════════════════════════════════════════════
-const TIPS = [
-  { text: '"Inspect the undersides of leaves regularly — many pathogens hide there to avoid sunlight and can cause significant damage if undetected."', category: 'Observation' },
-  { text: '"Water early in the morning to reduce evaporation and allow leaf surfaces to dry before evening, minimizing fungal pathology risks."', category: 'Watering' },
-  { text: '"Yellowing lower leaves often indicate nitrogen deficiency. Consider a balanced fertilizer or compost amendment for recovery."', category: 'Nutrition' },
-  { text: '"Rotate container plants quarterly to ensure even light exposure and balanced growth on all sides."', category: 'Care Protocol' },
-  { text: '"Quarantine new plants for 2 weeks before introducing them to your collection to prevent pathogen spread."', category: 'Biosecurity' },
-  { text: '"Neem oil is an effective organic solution against aphids, whiteflies, and spider mites — apply weekly as preventive."', category: 'Organic Solutions' },
-  { text: '"Mulching around plants helps retain moisture, suppress weeds, and regulate soil temperature for optimal root health."', category: 'Soil Health' }
-];
+function fillSettingsForm() {
+  const user = state.user;
+  const profile = state.profile;
 
-function initTips() {
-  if (tipsInitialized) return;
-  tipsInitialized = true;
-
-  const tip = TIPS[new Date().getDay() % TIPS.length];
-  const el = document.getElementById('tip-text');
-  const cat = document.getElementById('tip-category');
-  const dt = document.getElementById('tip-date');
-  if (el) el.textContent = tip.text;
-  if (cat) cat.innerHTML = `<i class="fas fa-tag"></i> ${tip.category}`;
-  if (dt) dt.textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  document.getElementById('settings-name').value = profile.displayName || user?.displayName || '';
+  document.getElementById('settings-bio').value = profile.bio || '';
+  document.getElementById('pref-language').value = profile.preferences?.language || 'en';
 }
 
-function initBookmark() {
-  if (bookmarkInitialized) return;
-  bookmarkInitialized = true;
+function initAvatarUpload() {
+  if (state.avatarBound) return;
+  state.avatarBound = true;
 
-  const btn = document.getElementById('bookmark-tip-btn');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    const bookmarked = btn.classList.toggle('bookmarked');
-    btn.querySelector('i').className = bookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
-    showToast(bookmarked ? 'Tip bookmarked!' : 'Bookmark removed', 'info');
-  });
-}
+  document.getElementById('avatar-upload')?.addEventListener('change', (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !state.user) return;
 
-// ═══════════════════════════════════════════════════
-// NAME EDITING
-// ═══════════════════════════════════════════════════
-function initNameEdit(user) {
-  const editBtn = document.getElementById('edit-name-btn');
-  const displayArea = document.getElementById('name-display-area');
-  const editUI = document.getElementById('edit-name-ui');
-  const nameInput = document.getElementById('new-name-input');
-  const saveBtn = document.getElementById('save-name-btn');
-  const cancelBtn = document.getElementById('cancel-name-btn');
-  const nameEl = document.getElementById('profile-name');
-  if (!editBtn) return;
-
-  editBtn.addEventListener('click', () => {
-    nameInput.value = nameEl.textContent;
-    displayArea.style.display = 'none';
-    editUI.style.display = 'flex';
-    nameInput.focus();
-  });
-
-  cancelBtn.addEventListener('click', () => {
-    editUI.style.display = 'none';
-    displayArea.style.display = 'flex';
-  });
-
-  saveBtn.addEventListener('click', async () => {
-    const name = nameInput.value.trim();
-    if (!name) { showToast('Name cannot be empty', 'error'); return; }
-    try {
-      await window.setDoc(window.doc(window.db, 'users', user.uid), { displayName: name }, { merge: true });
-      if (window.updateProfile) await window.updateProfile(user, { displayName: name });
-      nameEl.textContent = name;
-      editUI.style.display = 'none';
-      displayArea.style.display = 'flex';
-      showToast('Name updated!', 'success');
-    } catch (e) { console.error(e); showToast('Failed to update name', 'error'); }
-  });
-
-  nameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') saveBtn.click();
-    if (e.key === 'Escape') cancelBtn.click();
-  });
-}
-
-// ═══════════════════════════════════════════════════
-// AVATAR UPLOAD
-// ═══════════════════════════════════════════════════
-function initAvatar(user) {
-  const input = document.getElementById('avatar-upload');
-  const img = document.getElementById('profile-pic');
-  if (!input) return;
-
-  input.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { showToast('Image must be under 2MB', 'error'); return; }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Profile photo must be under 2 MB.', 'error');
+      event.target.value = '';
+      return;
+    }
 
     const reader = new FileReader();
-    reader.onload = async (ev) => {
-      img.src = ev.target.result;
+    reader.onload = async (loadEvent) => {
+      const photoURL = loadEvent.target?.result;
+      if (typeof photoURL !== 'string') return;
+
       try {
-        await window.setDoc(window.doc(window.db, 'users', user.uid), { photoURL: ev.target.result }, { merge: true });
-        showToast('Profile photo updated!', 'success');
-      } catch (err) { console.error(err); showToast('Failed to save photo', 'error'); }
+        await window.setDoc(window.doc(window.db, 'users', state.user.uid), { photoURL }, { merge: true });
+        state.profile.photoURL = photoURL;
+        setProfileImage(photoURL, state.profile.displayName || state.user.displayName || 'FC');
+        showToast('Profile photo updated.', 'success');
+      } catch (error) {
+        console.error('Avatar save failed:', error);
+        showToast('Could not save profile photo.', 'error');
+      } finally {
+        event.target.value = '';
+      }
     };
+
     reader.readAsDataURL(file);
   });
 }
 
-// ═══════════════════════════════════════════════════
-// DIAGNOSIS RECORDS
-// ═══════════════════════════════════════════════════
-function classifyStatus(prediction) {
-  if (!prediction) return 'observation';
-  const p = prediction.toLowerCase();
-  if (p.includes('healthy')) return 'healthy';
-  if (p.includes('blight') || p.includes('rot') || p.includes('wilt') || p.includes('mold')) return 'critical';
-  return 'observation';
+async function handleAuthenticatedUser(user) {
+  state.user = user;
+
+  await Promise.all([
+    loadProfileDoc(user),
+    loadScans(user)
+  ]);
+
+  fillSettingsForm();
+  renderAll();
 }
 
-function statusLabel(status) {
-  return { healthy: 'Healthy', observation: 'Under Observation', critical: 'Critical' }[status] || 'Unknown';
-}
-
-function statusIcon(status) {
-  return { healthy: 'fa-check-circle', observation: 'fa-exclamation-circle', critical: 'fa-times-circle' }[status] || 'fa-question-circle';
-}
-
-async function loadDiagnoses(user) {
-  const listEl = document.getElementById('diagnoses-list');
-  const emptyEl = document.getElementById('diagnoses-empty');
-  const timelineEl = document.getElementById('records-timeline');
-  const recordsEmpty = document.getElementById('records-empty');
-  if (!listEl) return;
-
-  try {
-    const ref = window.collection(window.db, 'users', user.uid, 'predictions');
-    const q = window.query(ref, window.orderBy('timestamp', 'desc'), window.limit(20));
-    const snap = await window.getDocs(q);
-
-    if (snap.empty) {
-      if (emptyEl) emptyEl.style.display = 'block';
-      if (recordsEmpty) recordsEmpty.style.display = 'block';
-      return;
-    }
-
-    let healthyCount = 0, totalCount = 0;
-    const species = new Set();
-
-    snap.forEach((docSnap) => {
-      const d = docSnap.data();
-      const status = classifyStatus(d.prediction);
-      if (status === 'healthy') healthyCount++;
-      totalCount++;
-      if (d.plantName) species.add(d.plantName.toLowerCase());
-
-      const dateStr = d.timestamp
-        ? new Date(d.timestamp.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        : 'Unknown date';
-
-      // Recent diagnoses (first 5 only)
-      if (totalCount <= 5) {
-        const item = document.createElement('div');
-        item.className = 'diagnosis-item';
-        item.innerHTML = `
-          <div class="diagnosis-dot ${status}"><i class="fas ${statusIcon(status)}"></i></div>
-          <div class="diagnosis-info">
-            <span class="diagnosis-name">${d.prediction || 'Analysis pending'}</span>
-            <span class="diagnosis-date">${dateStr}</span>
-          </div>
-          <span class="diagnosis-badge ${status}">${statusLabel(status)}</span>
-        `;
-        listEl.appendChild(item);
-      }
-
-      // Full records timeline
-      if (timelineEl) {
-        const entry = document.createElement('div');
-        entry.className = `record-entry ${status}`;
-        entry.innerHTML = `
-          <img class="record-thumb" src="${d.imageURL || 'assets/default-plant.png'}" alt="Plant" loading="lazy">
-          <div class="record-details">
-            <p class="record-verdict">${d.prediction || 'Analysis pending'}</p>
-            <div class="record-meta">
-              <span>${dateStr}</span>
-              ${d.confidence ? `<span>· ${Math.round(d.confidence * 100)}% confidence</span>` : ''}
-            </div>
-          </div>
-          <span class="record-confidence">${statusLabel(status)}</span>
-        `;
-        timelineEl.appendChild(entry);
-      }
-    });
-
-    // Update hero stats
-    const totalEl = document.getElementById('total-diagnoses');
-    const speciesEl = document.getElementById('species-count');
-    const indexEl = document.getElementById('pathology-index');
-    const ringFill = document.getElementById('index-ring-fill');
-
-    if (totalEl) totalEl.textContent = totalCount;
-    if (speciesEl) speciesEl.textContent = species.size || totalCount;
-
-    const indexPercent = totalCount > 0 ? Math.round((healthyCount / totalCount) * 100) : 0;
-    if (indexEl) indexEl.textContent = `${indexPercent}%`;
-
-    // Animate the SVG ring
-    if (ringFill) {
-      const circumference = 2 * Math.PI * 34; // r=34
-      const offset = circumference - (indexPercent / 100) * circumference;
-      ringFill.style.strokeDashoffset = offset;
-
-      // Color based on score
-      if (indexPercent >= 70) ringFill.style.stroke = '#7cb342';
-      else if (indexPercent >= 40) ringFill.style.stroke = '#c9a84c';
-      else ringFill.style.stroke = '#c0543a';
-    }
-
-  } catch (e) {
-    console.warn('Diagnoses load error:', e);
-    if (emptyEl) emptyEl.style.display = 'block';
-  }
-}
-
-// ═══════════════════════════════════════════════════
-// MY GARDEN
-// ═══════════════════════════════════════════════════
-async function loadGarden(user) {
-  const gridEl = document.getElementById('garden-grid');
-  const emptyEl = document.getElementById('garden-empty');
-  if (!gridEl) return;
-
-  try {
-    const ref = window.collection(window.db, 'users', user.uid, 'predictions');
-    const q = window.query(ref, window.orderBy('timestamp', 'desc'));
-    const snap = await window.getDocs(q);
-
-    if (snap.empty) {
-      if (emptyEl) emptyEl.style.display = 'block';
-      return;
-    }
-
-    // Group by plant name for unique entries
-    const plantMap = new Map();
-    snap.forEach(docSnap => {
-      const d = docSnap.data();
-      const name = d.prediction || 'Unknown Plant';
-      if (!plantMap.has(name)) {
-        plantMap.set(name, { ...d, count: 1 });
-      } else {
-        plantMap.get(name).count++;
-      }
-    });
-
-    plantMap.forEach((plant, name) => {
-      const status = classifyStatus(name);
-      const healthPercent = status === 'healthy' ? 92 : status === 'observation' ? 55 : 25;
-      const card = document.createElement('div');
-      card.className = 'garden-plant-card';
-      card.innerHTML = `
-        <img class="plant-card-image" src="${plant.imageURL || 'assets/default-plant.png'}" alt="${name}" loading="lazy">
-        <div class="plant-card-body">
-          <h4 class="plant-card-name">${name}</h4>
-          <p class="plant-card-status">${statusLabel(status)} · ${plant.count} diagnosis${plant.count > 1 ? 'es' : ''}</p>
-          <div class="plant-health-bar">
-            <div class="plant-health-fill ${status === 'critical' ? 'critical' : status === 'observation' ? 'warning' : ''}" style="width: ${healthPercent}%"></div>
-          </div>
-        </div>
-      `;
-      gridEl.appendChild(card);
-    });
-
-  } catch (e) {
-    console.warn('Garden load error:', e);
-    if (emptyEl) emptyEl.style.display = 'block';
-  }
-}
-
-// ═══════════════════════════════════════════════════
-// SETTINGS — Inline Save
-// ═══════════════════════════════════════════════════
-function initSettings(user) {
-  const saveBtn = document.getElementById('save-settings-btn');
-  if (!saveBtn) return;
-
-  // Load existing settings
-  (async () => {
-    try {
-      const snap = await window.getDoc(window.doc(window.db, 'users', user.uid));
-      if (snap.exists()) {
-        const d = snap.data();
-        document.getElementById('settings-name').value = d.displayName || user.displayName || '';
-        document.getElementById('settings-bio').value = d.bio || '';
-        if (d.preferences) {
-          document.getElementById('notif-email').checked = d.preferences.emailNotif !== false;
-          document.getElementById('notif-health').checked = d.preferences.healthAlerts !== false;
-          if (d.preferences.language) document.getElementById('pref-language').value = d.preferences.language;
-        }
-      }
-    } catch (e) { console.warn('Settings load:', e); }
-  })();
-
-  saveBtn.addEventListener('click', async () => {
-    try {
-      const payload = {
-        displayName: document.getElementById('settings-name').value.trim(),
-        bio: document.getElementById('settings-bio').value.trim(),
-        preferences: {
-          emailNotif: document.getElementById('notif-email').checked,
-          healthAlerts: document.getElementById('notif-health').checked,
-          language: document.getElementById('pref-language').value
-        }
-      };
-
-      await window.setDoc(window.doc(window.db, 'users', user.uid), payload, { merge: true });
-
-      // Update visible profile
-      if (payload.displayName) document.getElementById('profile-name').textContent = payload.displayName;
-      if (payload.bio) document.getElementById('profile-bio').textContent = payload.bio;
-
-      showToast('Settings saved!', 'success');
-    } catch (e) { console.error(e); showToast('Failed to save settings', 'error'); }
-  });
-}
-
-// ═══════════════════════════════════════════════════
-// EXPORT DATA
-// ═══════════════════════════════════════════════════
-function initExport(user) {
-  const btn = document.getElementById('export-data-btn');
-  const recordsBtn = document.getElementById('export-records');
-  if (!btn && !recordsBtn) return;
-
-  async function doExport() {
-    try {
-      const ref = window.collection(window.db, 'users', user.uid, 'predictions');
-      const snap = await window.getDocs(ref);
-      if (snap.empty) { showToast('No data to export', 'info'); return; }
-
-      let csv = 'Prediction,Date,Confidence\n';
-      snap.forEach(doc => {
-        const d = doc.data();
-        const date = d.timestamp ? new Date(d.timestamp.seconds * 1000).toISOString() : '';
-        csv += `"${d.prediction || ''}","${date}","${d.confidence || ''}"\n`;
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `foliage-care-records-${Date.now()}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Data exported!', 'success');
-    } catch (e) { console.error(e); showToast('Export failed', 'error'); }
-  }
-
-  if (btn) btn.addEventListener('click', doExport);
-  if (recordsBtn) recordsBtn.addEventListener('click', doExport);
-}
-
-// ═══════════════════════════════════════════════════
-// TIME RANGE BUTTONS
-// ═══════════════════════════════════════════════════
-function initTimeRange() {
-  if (timeRangeInitialized) return;
-  timeRangeInitialized = true;
-
-  document.querySelectorAll('.range-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
-}
-
-function initStaticProfileUI() {
-  initTabs();
-  initChart();
-  initClimate();
-  initTips();
-  initBookmark();
-  initTimeRange();
-}
-
-// ═══════════════════════════════════════════════════
-// MAIN INIT
-// ═══════════════════════════════════════════════════
 function bindProfileAuth() {
-  if (profileAuthBound) return;
-  profileAuthBound = true;
+  initTabs();
+  bindHistoryFilters();
+  initExportButtons();
+  initLogoutButtons();
+  initSettings();
+  initAvatarUpload();
 
-  const auth = window.firebaseAuth;
-
-  window.onAuthStateChanged(auth, async (user) => {
-    if (!user) { window.location.href = 'login.html'; return; }
-
-    // Profile identity
-    document.getElementById('profile-name').textContent = user.displayName || 'Gardener';
-    document.getElementById('profile-email').textContent = user.email;
-    if (user.photoURL) document.getElementById('profile-pic').src = user.photoURL;
-
-    // Member since
-    if (user.metadata && user.metadata.creationTime) {
-      const d = new Date(user.metadata.creationTime);
-      document.getElementById('member-since').textContent =
-        `Member since ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+  window.onAuthStateChanged(window.firebaseAuth, async (user) => {
+    if (!user) {
+      window.location.href = 'login.html';
+      return;
     }
 
-    // Load user data from Firestore
     try {
-      const snap = await window.getDoc(window.doc(window.db, 'users', user.uid));
-      if (snap.exists()) {
-        const d = snap.data();
-        if (d.displayName) document.getElementById('profile-name').textContent = d.displayName;
-        if (d.bio) document.getElementById('profile-bio').textContent = d.bio;
-        if (d.photoURL) document.getElementById('profile-pic').src = d.photoURL;
-      }
-    } catch (e) { console.warn('Profile load:', e); }
-
-    // Initialize all features
-    initStaticProfileUI();
-    initNameEdit(user);
-    initAvatar(user);
-    initSettings(user);
-    initExport(user);
-
-    // Load data
-    loadDiagnoses(user);
-    loadGarden(user);
-
-    // Logout
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', async () => {
-        if (confirm('Sign out of Foliage Care?')) {
-          await window.signOut(auth);
-          window.location.href = 'login.html';
-        }
-      });
+      await handleAuthenticatedUser(user);
+    } catch (error) {
+      console.error('Profile bootstrap failed:', error);
+      showToast('Unable to load your profile right now.', 'error');
     }
   });
 }
 
-document.addEventListener('DOMContentLoaded', initStaticProfileUI);
-waitForFirebase(bindProfileAuth);
+document.addEventListener('DOMContentLoaded', initTabs);
+waitForFirebaseProfile(bindProfileAuth);

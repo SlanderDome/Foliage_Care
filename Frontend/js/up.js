@@ -24,17 +24,13 @@ const stepperLines = document.querySelectorAll('.stepper-line');
 
 // Unified section
 const unifiedSection = document.getElementById("unified-section");
-const locationInput = document.getElementById("user-location");
-const contextInput = document.getElementById("user-context");
 const globalLoader = document.getElementById("global-loader");
 
 // Simulation
 const simulateBtn = document.getElementById("simulate-btn");
-const futureImg = document.getElementById("future-image");
 
 // Expert plan
 const planBtn = document.getElementById("get-plan-btn");
-const expertResult = document.getElementById("expert-result");
 
 // Follow-up
 const followupBar = document.getElementById("followup-bar");
@@ -47,23 +43,60 @@ let detectedPlantName = "";
 let userCoordinates = null;
 let conversationHistory = [];
 let lastDiagnosisResult = null;
+let currentLocationWeather = "";
 
 // ═══════════ HELPERS ═══════════
 
 function getUserLocation() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => { // <-- Make sure to add 'async' here
             userCoordinates = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             console.log("📍 Location captured:", userCoordinates);
+            
             const locInput = document.getElementById("user-location");
             if (locInput && !locInput.value) {
                 locInput.value = `${userCoordinates.lat.toFixed(4)}, ${userCoordinates.lng.toFixed(4)}`;
+            }
+
+            // NEW: Fetch the weather immediately after getting coordinates
+            const weather = await getLiveWeather(userCoordinates.lat, userCoordinates.lng);
+            if (weather) {
+                currentLocationWeather = weather;
             }
         },
         () => { console.warn("⚠️ Location access denied."); },
         { enableHighAccuracy: true, timeout: 5000 }
     );
+}
+
+async function getWeatherTrend(lat, lng) {
+    try {
+        // Fetch daily max temps and rain for the past 7 days and forecast for next 3 days
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,precipitation_sum&past_days=7&forecast_days=3&timezone=auto`;
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error("Weather trend fetch failed");
+        
+        const data = await response.json();
+        
+        // Calculate the trend summary
+        const pastTemps = data.daily.temperature_2m_max.slice(0, 7);
+        const pastRain = data.daily.precipitation_sum.slice(0, 7);
+        
+        const avgTemp = (pastTemps.reduce((a, b) => a + b, 0) / 7).toFixed(1);
+        const totalRain = pastRain.reduce((a, b) => a + b, 0).toFixed(1);
+        
+        // Create a human-readable narrative for Gemini
+        const trendNarrative = `Over the last 7 days, this location experienced an average daily high of ${avgTemp}°C with a total rainfall of ${totalRain}mm.`;
+        
+        console.log("🌦️ Weather Trend Captured:", trendNarrative);
+        return trendNarrative;
+        
+    } catch (error) {
+        console.warn("⚠️ Could not fetch weather trend:", error);
+        return null;
+    }
 }
 
 function getTimeString() {
@@ -78,6 +111,13 @@ function getUserName() {
 function getUserType() {
     const selected = document.querySelector('.user-type-pill.selected');
     return selected ? selected.dataset.value : "home_gardener";
+}
+
+function setThreadActionState(button, label, isLoading) {
+    if (!button) return;
+    button.disabled = isLoading;
+    button.dataset.defaultLabel = button.dataset.defaultLabel || button.innerHTML;
+    button.innerHTML = isLoading ? label : button.dataset.defaultLabel;
 }
 
 // --- Partial JSON Salvager ---
@@ -156,166 +196,327 @@ function animateGauge(gaugeContainer, percent) {
 // --- Severity badge ---
 function buildSeverityBadge(severity) {
     const map = {
-        none: { bg: '#EAF3DE', color: '#2D5016', label: 'Healthy ✓' },
-        mild: { bg: '#FDF3D0', color: '#854F0B', label: 'Mild issue' },
-        moderate: { bg: '#FAECE7', color: '#993C1D', label: 'Moderate' },
-        severe: { bg: '#FCEBEB', color: '#A32D2D', label: 'Severe — act now' },
+        none: { bg: 'rgba(124, 179, 66, 0.1)', color: 'var(--accent)', border: 'rgba(124, 179, 66, 0.2)', label: 'Healthy ✓' },
+        mild: { bg: 'rgba(201, 168, 76, 0.1)', color: 'var(--gold)', border: 'rgba(201, 168, 76, 0.2)', label: 'Mild issue' },
+        moderate: { bg: 'rgba(192, 84, 58, 0.1)', color: 'var(--ember)', border: 'rgba(192, 84, 58, 0.2)', label: 'Moderate' },
+        severe: { bg: 'rgba(192, 57, 43, 0.15)', color: '#e74c3c', border: 'rgba(231, 76, 60, 0.3)', label: 'Severe — act now' },
     };
     const s = map[severity] || map['mild'];
-    return `<span style="
-        background:${s.bg};
-        color:${s.color};
-        font-size:11px;
-        font-weight:500;
-        padding:3px 10px;
-        border-radius:999px;
-        display:inline-block;
-        margin-left:8px;
-        vertical-align:middle;
-    ">${s.label}</span>`;
+    return `<span class="severity-badge" style="background:${s.bg};color:${s.color};border:1px solid ${s.border};">${s.label}</span>`;
 }
 
 // --- Action plan renderer ---
 function buildActionPlanHTML(actionPlan) {
     if (!actionPlan) return '';
     const steps = [
-        { icon: '⚡', title: 'Do this today', body: actionPlan.immediate_action, borderColor: '#C0392B' },
-        { icon: '🌿', title: 'Desi / organic treatment', body: actionPlan.desi_remedy, borderColor: '#5C8A2E' },
+        { icon: '<i class="fas fa-bolt"></i>', title: 'Do this today', body: actionPlan.immediate_action, theme: 'danger' },
+        { icon: '<i class="fas fa-leaf"></i>', title: 'Desi / organic treatment', body: actionPlan.desi_remedy, theme: 'success' },
         {
-            icon: '⚗️', title: 'If it gets worse',
+            icon: '<i class="fas fa-vial"></i>', title: 'If it gets worse',
             body: actionPlan.organic_option
                 ? actionPlan.organic_option + (actionPlan.chemical_option ? '<br><br>' + actionPlan.chemical_option : '')
                 : actionPlan.chemical_option,
-            borderColor: '#D4A017'
+            theme: 'warning'
         },
     ];
 
     const stepsHTML = steps.filter(s => s.body).map(s => `
-        <div style="border-left:3px solid ${s.borderColor};padding:10px 14px;margin-bottom:10px;background:var(--bg-card,#fff);border-radius:0 8px 8px 0;">
-            <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${s.icon} ${s.title}</div>
-            <div style="font-size:13px;line-height:1.6;color:var(--text-secondary,#555);">${s.body}</div>
+        <div class="action-card theme-${s.theme}">
+            <div class="action-card-header">
+                <span class="action-icon">${s.icon}</span>
+                <span class="action-title">${s.title}</span>
+            </div>
+            <div class="action-card-body">${s.body}</div>
         </div>
     `).join('');
 
     const seasonTip = actionPlan.seasonal_tip
-        ? `<div style="background:#EAF3DE;border-radius:8px;padding:10px 14px;font-size:12px;color:#2D5016;margin-top:4px;">🌦️ <strong>Seasonal tip:</strong> ${actionPlan.seasonal_tip}</div>`
+        ? `<div class="seasonal-tip">
+             <span class="season-icon"><i class="fas fa-cloud-sun-rain"></i></span>
+             <span class="season-text"><strong>Seasonal tip:</strong> ${actionPlan.seasonal_tip}</span>
+           </div>`
         : '';
 
-    return `<div style="margin-top:12px;">${stepsHTML}${seasonTip}</div>`;
+    return `<div class="action-plan-grid">${stepsHTML}</div>${seasonTip}`;
 }
 
 // --- Trust signals renderer ---
 function buildTrustSignalsHTML(trustSignals) {
     if (!trustSignals) return '';
     const items = [
-        { icon: '✓', color: '#5C8A2E', text: trustSignals.why_this_diagnosis },
-        { icon: '≈', color: '#888780', text: trustSignals.alternative_diagnosis },
-        { icon: 'ℹ', color: '#D4A017', text: trustSignals.confidence_explanation },
+        { icon: '<i class="fas fa-check-circle"></i>', color: 'var(--accent-dim)', text: trustSignals.why_this_diagnosis },
+        { icon: '<i class="fas fa-random"></i>', color: 'var(--text-muted)', text: trustSignals.alternative_diagnosis },
+        { icon: '<i class="fas fa-info-circle"></i>', color: 'var(--gold-dim)', text: trustSignals.confidence_explanation },
     ].filter(i => i.text && i.text !== 'None');
     if (!items.length) return '';
 
     const rows = items.map(i => `
-        <div style="display:flex;gap:8px;margin-bottom:6px;font-size:12px;line-height:1.5;">
-            <span style="color:${i.color};font-weight:700;min-width:14px;">${i.icon}</span>
-            <span style="color:var(--text-secondary,#555);">${i.text}</span>
+        <div class="trust-row">
+            <span class="trust-icon" style="color:${i.color}">${i.icon}</span>
+            <span class="trust-text">${i.text}</span>
         </div>
     `).join('');
 
     return `
-        <details style="margin-top:12px;">
-            <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted,#888);list-style:none;user-select:none;">Why we think this ▾</summary>
-            <div style="margin-top:8px;padding:10px 12px;background:var(--bg-surface,#F8F4EC);border-radius:8px;">${rows}</div>
+        <details class="trust-panel">
+            <summary class="trust-summary">Why we think this <i class="fas fa-chevron-down"></i></summary>
+            <div class="trust-content">${rows}</div>
         </details>
     `;
 }
 
 
 // --- Region overlay (replaces Grad-CAM) ---
+// ═══════════════════════════════════════════════
+//  FOLIAGE CARE — REGION OVERLAY FIX
+//  Drop these two blocks into up.js, replacing:
+//  1. The drawRegionOverlay() function
+//  2. The overlay rendering section inside analyzeButton click handler
+// ═══════════════════════════════════════════════
+
+
+// ─── REPLACE: drawRegionOverlay() function ────────────────────
+// The old version used getElementById which fails because the
+// element is injected via innerHTML and may not be in DOM yet.
+// This version receives the element directly — no ID lookup.
+
 function drawRegionOverlay(imgElement, regions) {
-    if (!regions || !regions.length) return;
+    if (!regions || !regions.length) {
+        console.warn('⚠️ drawRegionOverlay: no regions to draw', regions);
+        return;
+    }
 
     function draw() {
+        const W = imgElement.naturalWidth;
+        const H = imgElement.naturalHeight;
+
+        if (!W || !H) {
+            console.warn('⚠️ drawRegionOverlay: image has no naturalWidth/Height yet', W, H);
+            return;
+        }
+
+        console.log(`✅ Drawing ${regions.length} overlay regions on ${W}×${H} image`);
+
+        // Make wrapper relative — required for absolute canvas positioning
         const wrapper = imgElement.parentElement;
-        if (!wrapper) return;
         wrapper.style.position = 'relative';
         wrapper.style.display = 'inline-block';
+        wrapper.style.width = '100%';
 
+        // Remove any stale canvas from a previous diagnosis
         const existing = wrapper.querySelector('.region-overlay-canvas');
         if (existing) existing.remove();
 
+        // Create canvas matching the image's natural dimensions
         const canvas = document.createElement('canvas');
         canvas.className = 'region-overlay-canvas';
-        canvas.width = imgElement.naturalWidth || imgElement.offsetWidth;
-        canvas.height = imgElement.naturalHeight || imgElement.offsetHeight;
-        canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;border-radius:inherit;';
+        canvas.width = W;
+        canvas.height = H;
+
+        // Stretch canvas visually over the image using CSS
+        // (canvas pixel space = naturalWidth × naturalHeight,
+        //  display space      = image rendered size)
+        canvas.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: inherit;
+        `;
         wrapper.appendChild(canvas);
 
         const ctx = canvas.getContext('2d');
-        const W = canvas.width;
-        const H = canvas.height;
 
+        // Draw each region with a staggered draw-in animation
         regions.forEach((region, idx) => {
+            // Clamp coordinates — Gemini occasionally returns slightly > 1.0
+            const x_pct = Math.min(Math.max(region.x_pct || 0, 0), 1);
+            const y_pct = Math.min(Math.max(region.y_pct || 0, 0), 1);
+            const w_pct = Math.min(Math.max(region.w_pct || 0, 0), 1 - x_pct);
+            const h_pct = Math.min(Math.max(region.h_pct || 0, 0), 1 - y_pct);
+
+            const x = x_pct * W;
+            const y = y_pct * H;
+            const w = w_pct * W;
+            const h = h_pct * H;
+
+            if (w < 2 || h < 2) {
+                console.warn(`⚠️ Region ${idx} too small to draw:`, { x, y, w, h });
+                return;
+            }
+
+            console.log(`📦 Region ${idx} "${region.label}": x=${x.toFixed(0)} y=${y.toFixed(0)} w=${w.toFixed(0)} h=${h.toFixed(0)}`);
+
             setTimeout(() => {
-                const x = region.x_pct * W;
-                const y = region.y_pct * H;
-                const w = region.w_pct * W;
-                const h = region.h_pct * H;
-
-                ctx.fillStyle = 'rgba(212, 160, 23, 0.08)';
-                ctx.fillRect(x, y, w, h);
-
-                let progress = 0;
                 const perimeter = 2 * (w + h);
                 const duration = 600;
                 const startTime = performance.now();
 
                 function animateBox(now) {
                     const elapsed = now - startTime;
-                    progress = Math.min(elapsed / duration, 1);
+                    const progress = Math.min(elapsed / duration, 1);
                     const drawn = progress * perimeter;
 
-                    ctx.clearRect(x - 2, y - 2, w + 4, h + 4);
-                    ctx.fillStyle = 'rgba(212, 160, 23, 0.08)';
+                    // Clear just this box's area (+4px padding for label)
+                    ctx.clearRect(x - 3, y - 24, w + 6, h + 27);
+
+                    // Tinted fill
+                    ctx.fillStyle = 'rgba(212, 160, 23, 0.10)';
                     ctx.fillRect(x, y, w, h);
 
+                    // Animated stroke — draw partial perimeter
                     ctx.strokeStyle = '#D4A017';
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = Math.max(2, W / 200); // scale with image size
                     ctx.lineJoin = 'round';
                     ctx.lineCap = 'round';
-
                     ctx.beginPath();
-                    let remaining = drawn;
-                    if (remaining > 0) { const seg = Math.min(remaining, w); ctx.moveTo(x, y); ctx.lineTo(x + seg, y); remaining -= seg; }
-                    if (remaining > 0) { const seg = Math.min(remaining, h); ctx.moveTo(x + w, y); ctx.lineTo(x + w, y + seg); remaining -= seg; }
-                    if (remaining > 0) { const seg = Math.min(remaining, w); ctx.moveTo(x + w, y + h); ctx.lineTo(x + w - seg, y + h); remaining -= seg; }
-                    if (remaining > 0) { const seg = Math.min(remaining, h); ctx.moveTo(x, y + h); ctx.lineTo(x, y + h - seg); }
+
+                    let rem = drawn;
+                    // Top edge →
+                    if (rem > 0) { const s = Math.min(rem, w); ctx.moveTo(x, y); ctx.lineTo(x + s, y); rem -= s; }
+                    // Right edge ↓
+                    if (rem > 0) { const s = Math.min(rem, h); ctx.moveTo(x + w, y); ctx.lineTo(x + w, y + s); rem -= s; }
+                    // Bottom edge ←
+                    if (rem > 0) { const s = Math.min(rem, w); ctx.moveTo(x + w, y + h); ctx.lineTo(x + w - s, y + h); rem -= s; }
+                    // Left edge ↑
+                    if (rem > 0) { const s = Math.min(rem, h); ctx.moveTo(x, y + h); ctx.lineTo(x, y + h - s); }
                     ctx.stroke();
 
-                    if (region.label) {
+                    // Label — fades in with the box
+                    if (region.label && progress > 0.1) {
+                        const label = region.label;
+                        const fontSize = Math.max(11, Math.round(W / 60));
+                        ctx.font = `500 ${fontSize}px "DM Sans", sans-serif`;
+                        const textW = ctx.measureText(label).width;
+                        const padX = 6, padY = 4;
+                        const boxW = textW + padX * 2;
+                        const boxH = fontSize + padY * 2;
+                        const labelX = x;
+                        // Put label above box if space, else inside top
+                        const labelY = y - boxH - 2 >= 0 ? y - boxH - 2 : y + 2;
+
                         ctx.globalAlpha = progress;
                         ctx.fillStyle = 'rgba(212, 160, 23, 0.92)';
-                        const labelW = ctx.measureText(region.label).width + 12;
-                        const labelH = 18;
-                        const labelX = x;
-                        const labelY = y - labelH - 2 < 0 ? y + 2 : y - labelH - 2;
-                        ctx.fillRect(labelX, labelY, labelW, labelH);
+                        // Rounded label background
+                        const r = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(labelX + r, labelY);
+                        ctx.lineTo(labelX + boxW - r, labelY);
+                        ctx.quadraticCurveTo(labelX + boxW, labelY, labelX + boxW, labelY + r);
+                        ctx.lineTo(labelX + boxW, labelY + boxH - r);
+                        ctx.quadraticCurveTo(labelX + boxW, labelY + boxH, labelX + boxW - r, labelY + boxH);
+                        ctx.lineTo(labelX + r, labelY + boxH);
+                        ctx.quadraticCurveTo(labelX, labelY + boxH, labelX, labelY + boxH - r);
+                        ctx.lineTo(labelX, labelY + r);
+                        ctx.quadraticCurveTo(labelX, labelY, labelX + r, labelY);
+                        ctx.closePath();
+                        ctx.fill();
+
                         ctx.fillStyle = '#FFFFFF';
-                        ctx.font = '500 11px "DM Sans", sans-serif';
                         ctx.textBaseline = 'middle';
-                        ctx.fillText(region.label, labelX + 6, labelY + labelH / 2);
+                        ctx.fillText(label, labelX + padX, labelY + boxH / 2);
                         ctx.globalAlpha = 1;
                     }
 
                     if (progress < 1) requestAnimationFrame(animateBox);
                 }
+
                 requestAnimationFrame(animateBox);
-            }, idx * 150);
+            }, idx * 200); // 200ms stagger between boxes
         });
     }
 
-    if (imgElement.complete && imgElement.naturalWidth) { draw(); }
-    else { imgElement.addEventListener('load', draw, { once: true }); }
+    // Key fix: use MutationObserver to wait until the image is in the DOM
+    // AND has loaded its natural dimensions — whichever comes last
+    if (imgElement.complete && imgElement.naturalWidth > 0) {
+        // Already loaded — draw immediately
+        draw();
+    } else {
+        // Not loaded yet — wait for load event
+        imgElement.addEventListener('load', () => {
+            console.log('🖼️ Image loaded, drawing overlay now');
+            draw();
+        }, { once: true });
+
+        // Extra safety: if src is already set but load hasn't fired,
+        // poll for naturalWidth for up to 3 seconds
+        let attempts = 0;
+        const poll = setInterval(() => {
+            attempts++;
+            if (imgElement.naturalWidth > 0) {
+                clearInterval(poll);
+                draw();
+            } else if (attempts > 30) {
+                clearInterval(poll);
+                console.error('❌ drawRegionOverlay: image never loaded after 3s');
+            }
+        }, 100);
+    }
 }
+
+
+// ─── REPLACE: overlay rendering block inside analyzeButton handler ────
+// Find this block in your analyzeButton click handler:
+//
+//   const overlayLeaf = document.getElementById('overlay-leaf-img');
+//   if (overlayLeaf && evidence.affected_regions ...) {
+//       drawRegionOverlay(overlayLeaf, evidence.affected_regions);
+//   }
+//
+// Replace it with this:
+
+/*
+
+    // ── Draw region overlay ──
+    // Use a small timeout so the DOM has time to render the
+    // thread entry HTML before we try to find the image element.
+    // querySelector on threadEntries is safer than getElementById
+    // because it searches within the thread container only.
+    setTimeout(() => {
+        const regions = evidence.affected_regions || [];
+
+        if (!regions.length) {
+            console.warn('⚠️ No affected_regions returned by Gemini — overlay skipped');
+            return;
+        }
+
+        // Find the most recently added overlay image — last one in thread
+        const allLeafImgs = threadEntries.querySelectorAll('.overlay-leaf-img');
+        const overlayLeaf = allLeafImgs[allLeafImgs.length - 1];
+
+        if (!overlayLeaf) {
+            console.error('❌ Could not find .overlay-leaf-img in thread entries');
+            return;
+        }
+
+        console.log('🎯 Found overlay target, regions:', regions);
+        drawRegionOverlay(overlayLeaf, regions);
+    }, 100); // 100ms — enough for innerHTML to render
+
+*/
+
+
+// ─── ALSO UPDATE: the visualsHTML string in analyzeButton handler ────
+// Change id="overlay-leaf-img" to class="overlay-leaf-img"
+// (class lets querySelector find the LAST one, id always finds the FIRST)
+//
+// Find this line in visualsHTML:
+//   <img id="overlay-leaf-img"
+//
+// Change to:
+//   <img class="overlay-leaf-img"
+//
+// Full corrected img tag:
+/*
+
+    <img class="overlay-leaf-img"
+         src="${previewImage.src}"
+         alt="Leaf with AI regions"
+         style="width:100%;display:block;border-radius:12px;">
+
+*/
 
 // ═══════════ THREAD ENTRY SYSTEM ═══════════
 
@@ -375,7 +576,7 @@ function formatMarkdown(text) {
 
 // ═══════════ FIREBASE SAVE ═══════════
 
-async function saveScanToHistory(diseaseResult, confidenceVal) {
+async function saveScanToHistory(diseaseResult, confidenceVal, severityVal) {
     if (!window.firebaseAuth || !window.firebaseAuth.currentUser) return;
     try {
         const user = window.firebaseAuth.currentUser;
@@ -384,7 +585,8 @@ async function saveScanToHistory(diseaseResult, confidenceVal) {
 
         await window.addDoc(window.collection(db, 'scans'), {
             userId: user.uid, plantName: detectedPlantName || 'Plant Scan',
-            disease: diseaseResult, confidence: confidenceStr, timestamp: window.serverTimestamp(),
+            disease: diseaseResult, confidence: confidenceStr, severity: severityVal || 'unknown',
+            timestamp: window.serverTimestamp(),
             icon: diseaseResult.toLowerCase().includes('healthy') ? 'fas fa-seedling' : 'fas fa-exclamation-triangle',
         });
 
@@ -392,7 +594,8 @@ async function saveScanToHistory(diseaseResult, confidenceVal) {
             const confNum = (typeof confidenceVal === 'number') ? confidenceVal : parseFloat(confidenceVal) / 100;
             await window.addDoc(window.collection(db, 'community_scans'), {
                 disease: diseaseResult, confidence: confNum, latitude: userCoordinates.lat,
-                longitude: userCoordinates.lng, timestamp: window.serverTimestamp(),
+                longitude: userCoordinates.lng, severity: severityVal || 'unknown',
+                timestamp: window.serverTimestamp(),
             });
             console.log('🗺️ Community scan contributed.');
         }
@@ -430,8 +633,6 @@ analyzeButton.addEventListener('click', async (event) => {
     const file = fileInput.files[0];
     if (!file) { if (window.toast) window.toast.warning('Please upload an image first.'); return; }
 
-    const loc = locationInput ? locationInput.value.trim() : '';
-    const ctx = contextInput ? contextInput.value.trim() : '';
     const userName = getUserName();
     const userType = getUserType();
     const fieldNote = fieldNoteInput ? fieldNoteInput.value.trim() : '';
@@ -450,16 +651,18 @@ analyzeButton.addEventListener('click', async (event) => {
     addTypingIndicator();
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file',      file);
     formData.append('user_name', userName);
     formData.append('user_type', userType);
-    formData.append('context', fieldNote || ctx);
+    formData.append('context',   fieldNote || ctx);
+    // In your analyzeButton event listener:
+if (typeof currentLocationWeather !== 'undefined' && currentLocationWeather) {
+    formData.append('weather_trend', currentLocationWeather);
+}
     if (userCoordinates) {
         formData.append('latitude', userCoordinates.lat);
         formData.append('longitude', userCoordinates.lng);
         formData.append('location', 'GPS Coordinates');
-    } else if (loc) {
-        formData.append('location', loc);
     }
 
     setStep(2);
@@ -536,37 +739,54 @@ analyzeButton.addEventListener('click', async (event) => {
             : plantName;
 
         const diagHeaderHTML = `
-            <strong>&#127807; ${plantLabel}</strong>${buildSeverityBadge(severity)}<br>
-            <span style="font-size:13px;color:var(--text-secondary,#555);margin-top:4px;display:block;">${diseaseName}</span>
+            <strong><i class="fas fa-clipboard-check" style="color:var(--accent);margin-right:6px;"></i> Diagnosis Complete for ${plantLabel}</strong>
         `;
 
         const evidenceHTML = evidence.description
-            ? `<div style="border-left:3px solid #5C8A2E;padding:8px 12px;margin:10px 0;font-size:13px;color:var(--text-secondary,#555);background:var(--bg-surface,#F8F4EC);border-radius:0 8px 8px 0;">${evidence.description}</div>`
+            ? `<div class="evidence-box">
+                 <i class="fas fa-microscope" style="color:var(--accent);margin-right:8px;"></i>
+                 <p>${evidence.description}</p>
+               </div>`
             : '';
 
         const actionPlanHTML = buildActionPlanHTML(actionPlan);
         const trustHTML = buildTrustSignalsHTML(trustSignals);
 
         const visualsHTML = `
-            <div class="diagnosis-visuals">
-                <div class="diag-left">
-                    <div class="confidence-gauge" id="thread-gauge">
-                        <svg class="gauge-svg" viewBox="0 0 120 120">
-                            <circle class="gauge-track" cx="60" cy="60" r="52"/>
-                            <circle class="gauge-fill"  cx="60" cy="60" r="52"/>
-                        </svg>
-                        <div class="gauge-center">
-                            <span class="gauge-value">0%</span>
-                            <span class="gauge-label">Confidence</span>
+            <div class="premium-diagnosis-card">
+                
+                <div class="diag-hero-split">
+                    <!-- Left: Leaf Image with floating gauge -->
+                    <div class="diag-visual-frame">
+                        <div class="confidence-floating-badge" id="thread-gauge">
+                            <svg class="gauge-svg" viewBox="0 0 120 120">
+                                <circle class="gauge-track" cx="60" cy="60" r="52"/>
+                                <circle class="gauge-fill"  cx="60" cy="60" r="52"/>
+                            </svg>
+                            <div class="gauge-center">
+                                <span class="gauge-value">0%</span>
+                                <span class="gauge-label">Confidence</span>
+                            </div>
                         </div>
+                        <img id="overlay-leaf-img" class="overlay-leaf-img" src="${previewImage.src}" alt="Leaf with AI regions">
                     </div>
-                    <div class="leaf-overlay-wrapper" style="margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid var(--border-card,#e0e0e0);position:relative;">
-                        <img id="overlay-leaf-img" src="${previewImage.src}" alt="Leaf with AI regions" style="width:100%;display:block;border-radius:12px;">
+                    
+                    <!-- Right: Evidence & Result -->
+                    <div class="diag-details-frame">
+                        <div class="diag-rep-badge-row">
+                            <div class="diag-rep-disease">${diseaseName}</div>
+                            ${buildSeverityBadge(severity)}
+                        </div>
+                        ${evidenceHTML}
                     </div>
                 </div>
-                <div class="diagnosis-report">
-                    ${evidenceHTML}
+
+                <div class="diag-action-section">
+                    <h4 class="section-kicker">Recommended Plan</h4>
                     ${actionPlanHTML}
+                </div>
+                
+                <div class="diag-trust-section">
                     ${trustHTML}
                 </div>
             </div>
@@ -582,7 +802,7 @@ analyzeButton.addEventListener('click', async (event) => {
             drawRegionOverlay(overlayLeaf, evidence.affected_regions);
         }
 
-        saveScanToHistory(diseaseName, confidence);
+        saveScanToHistory(diseaseName, confidence, severity);
 
         if (unifiedSection) unifiedSection.style.display = 'block';
         if (followupBar) followupBar.style.display = 'flex';
@@ -673,30 +893,28 @@ simulateBtn.addEventListener('click', async () => {
     if (!detectedDiseaseName) { if (window.toast) window.toast.warning('Please analyze an image first!'); return; }
 
     const file = fileInput.files[0];
-    const ctx = contextInput ? contextInput.value : '';
+    const noteContext = fieldNoteInput ? fieldNoteInput.value.trim() : '';
     const userName = getUserName();
     const userType = getUserType();
 
-    simulateBtn.disabled = true;
-    simulateBtn.innerText = 'Simulating...';
+    setThreadActionState(simulateBtn, '<span class="thread-action-text"><strong>Simulating...</strong><small>Generating a forecast inside the thread.</small></span>', true);
+    addTypingIndicator();
     if (globalLoader) globalLoader.style.display = 'block';
-    if (futureImg) futureImg.style.display = 'none';
-
     const formData = new FormData();
     formData.append('file', file);
     formData.append('disease_name', detectedDiseaseName);
-    formData.append('context', ctx);
+    formData.append('context', noteContext);
     formData.append('user_name', userName);
     formData.append('user_type', userType);
     if (userCoordinates) { formData.append('latitude', userCoordinates.lat); formData.append('longitude', userCoordinates.lng); }
 
     try {
+        setStep(4);
         const response = await fetch('http://localhost:8000/simulate', { method: 'POST', body: formData });
         const data = await response.json();
+        removeTypingIndicator();
 
         if (data.future_image) {
-            if (futureImg) { futureImg.src = 'data:image/jpeg;base64,' + data.future_image; futureImg.style.display = 'block'; }
-
             const promptNote = data.prompt_used
                 ? `<div style="font-size:11px;color:var(--text-muted,#888);margin-top:8px;font-style:italic;"><strong>Simulation factors:</strong> ${data.prompt_used}</div>`
                 : '';
@@ -708,14 +926,17 @@ simulateBtn.addEventListener('click', async () => {
             );
             if (window.toast) window.toast.success('Simulation generated!');
         } else {
+            addThreadEntry('warning', 'Forecast generation failed. Please try again.');
             if (window.toast) window.toast.error('Simulation failed: ' + (data.error || 'Unknown error'));
         }
     } catch (e) {
         console.error(e);
+        removeTypingIndicator();
+        addThreadEntry('warning', 'Connection error while generating the forecast.');
         if (window.toast) window.toast.error('Error connecting to server.');
     } finally {
-        simulateBtn.disabled = false;
-        simulateBtn.innerText = 'Simulate Visuals';
+        removeTypingIndicator();
+        setThreadActionState(simulateBtn, '', false);
         if (globalLoader) globalLoader.style.display = 'none';
     }
 });
@@ -726,21 +947,19 @@ planBtn.addEventListener('click', async () => {
     if (!detectedDiseaseName) return;
 
     const file = fileInput.files[0];
-    const loc = locationInput ? (locationInput.value || 'General Region') : 'General Region';
-    const ctx = contextInput ? (contextInput.value || '') : '';
+    const noteContext = fieldNoteInput ? fieldNoteInput.value.trim() : '';
     const userName = getUserName();
     const userType = getUserType();
 
-    planBtn.disabled = true;
-    planBtn.innerText = 'Consulting...';
+    setThreadActionState(planBtn, '<span class="thread-action-text"><strong>Building plan...</strong><small>Adding a treatment plan to the thread.</small></span>', true);
+    addTypingIndicator();
     if (globalLoader) globalLoader.style.display = 'block';
-    if (expertResult) expertResult.style.display = 'none';
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('disease', detectedDiseaseName);
-    formData.append('location', loc);
-    formData.append('context', ctx);
+    formData.append('location', userCoordinates ? 'GPS Coordinates' : 'General Region');
+    formData.append('context', noteContext);
     formData.append('user_name', userName);
     formData.append('user_type', userType);
     if (userCoordinates) { formData.append('latitude', userCoordinates.lat); formData.append('longitude', userCoordinates.lng); }
@@ -748,21 +967,25 @@ planBtn.addEventListener('click', async () => {
     try {
         const response = await fetch('http://localhost:8000/get_expert_plan', { method: 'POST', body: formData });
         const data = await response.json();
+        removeTypingIndicator();
 
         if (data.plan) {
             const html = formatMarkdown(data.plan);
-            if (expertResult) { expertResult.innerHTML = html; expertResult.style.display = 'block'; }
+            
             addThreadEntry('ai', '<strong>🧑‍⚕️ Expert care plan</strong><br>' + html);
             if (window.toast) window.toast.success('Expert plan generated!');
         } else {
+            addThreadEntry('warning', 'Care plan generation failed. Please try again.');
             if (window.toast) window.toast.error('Expert plan failed: ' + (data.error || 'Unknown'));
         }
     } catch (e) {
         console.error(e);
+        removeTypingIndicator();
+        addThreadEntry('warning', 'Connection error while generating the care plan.');
         if (window.toast) window.toast.error('Error connecting to AI expert.');
     } finally {
-        planBtn.disabled = false;
-        planBtn.innerText = 'Generate Plan';
+        removeTypingIndicator();
+        setThreadActionState(planBtn, '', false);
         if (globalLoader) globalLoader.style.display = 'none';
     }
 });
