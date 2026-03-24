@@ -224,29 +224,19 @@ Open the frontend by launching `Frontend/index.html` in a browser, or serve via 
 ## 📸 Screenshots
 
 ### Landing Page
-![Main Landing Page](https://github.com/user-attachments/assets/020cf329-6ba1-477c-8351-b8ff026e7a20)
-
-![Landing Page Section](https://github.com/user-attachments/assets/39a6512e-fed8-4f42-a5bf-f55c11aa6d40)
+![Landing Page — Hero section with bilingual navigation and CTA](Frontend/assets/screenshots/landing_page.png)
 
 ### Diagnosis Interface
-![Diagnosis Page](https://github.com/user-attachments/assets/42fca12d-5e2e-48c6-8fb4-7cb54d83aa7f)
-
-<img width="789" height="831" alt="Diagnosis Results" src="https://github.com/user-attachments/assets/2fd3a05e-5006-4ec6-9501-36284af67406" />
-
-![Diagnosis Detail](https://github.com/user-attachments/assets/415aa5f9-a358-40cb-bb7e-e8017d26eeb8)
+![Diagnosis Page — AI-powered plant wellness companion with upload interface](Frontend/assets/screenshots/diagnose_page.png)
 
 ### About
-![About Page](https://github.com/user-attachments/assets/30b3a476-4dd5-4aa3-bf3e-829ee3138121)
-
-![About Section](https://github.com/user-attachments/assets/a925bac1-1f28-4fb5-8476-73d9cbce0abe)
+![About Page — Project narrative and mission statement](Frontend/assets/screenshots/about_page.png)
 
 ### Authentication
-<img width="1784" height="825" alt="Login Page" src="https://github.com/user-attachments/assets/09a34f79-8f78-4ede-9b51-08e856fca2a6" />
+![Login / Signup — Firebase Authentication with Google OAuth and email sign-in](Frontend/assets/screenshots/login_page.png)
 
-### Feedback
-![Connect Page](https://github.com/user-attachments/assets/4c5b6b46-b3bf-47e5-8eb9-028983bbb6e0)
-
-![Feedback Form](https://github.com/user-attachments/assets/bd7b809a-9fa4-45ec-85a7-43aeb7d19113)
+### Connect & Feedback
+![Contact Page — User feedback submission form](Frontend/assets/screenshots/contact_page.png)
 
 ---
 
