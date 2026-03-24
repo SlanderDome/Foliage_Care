@@ -11,7 +11,7 @@
 **Foliage Care** is a full-stack, multimodal AI web platform that performs **real-time visual phytopathological analysis** of plant foliage. Rather than relying on a static image classifier, the system leverages **Google Gemini Vision** as its core inference engine — combining visual symptom recognition with **live weather telemetry**, **geolocation-aware seasonal context**, and **user-role-adaptive advisory generation** to deliver diagnosis-to-treatment pipelines tailored for Indian agriculture.
 
 > Built as a final-year capstone project demonstrating the integration of generative AI, geospatial intelligence, and domain-specific prompt engineering for precision agriculture.
-
+Working Demo:https://youtu.be/OYd5J8wdxEc
 ---
 
 ## 🧠 Core Philosophy
@@ -223,21 +223,6 @@ Open the frontend by launching `Frontend/index.html` in a browser, or serve via 
 
 ## 📸 Screenshots
 
-### Landing Page
-![Landing Page — Hero section with bilingual navigation and CTA](Frontend/assets/screenshots/landing_page.png)
-
-### Diagnosis Interface
-![Diagnosis Page — AI-powered plant wellness companion with upload interface](Frontend/assets/screenshots/diagnose_page.png)
-
-### About
-![About Page — Project narrative and mission statement](Frontend/assets/screenshots/about_page.png)
-
-### Authentication
-![Login / Signup — Firebase Authentication with Google OAuth and email sign-in](Frontend/assets/screenshots/login_page.png)
-
-### Connect & Feedback
-![Contact Page — User feedback submission form](Frontend/assets/screenshots/contact_page.png)
-
 ---
 
 ## 📄 License
@@ -247,5 +232,5 @@ This project was developed as a **final-year capstone project** for academic eva
 ---
 
 <p align="center">
-  Built with 🌱 by the Foliage Care Team
+  
 </p>
