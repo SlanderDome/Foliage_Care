@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>My Garden - Foliage Care</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Inter:wght@400;500&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+
+  <!-- Standard Foliage Care Dependencies -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Cormorant+Garamond:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Devanagari:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/start.css">
+  <link rel="stylesheet" href="css/cursor.css">
+  <link rel="icon" href="assets/892926.png" type="image/png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "inverse-on-surface": "#2f312a",
+            "on-tertiary-fixed": "#191c19",
+            "on-secondary-fixed": "#101f12",
+            "surface-container-high": "#292b24",
+            "on-background": "#e3e3d8",
+            "secondary-fixed": "#d4e8d3",
+            "secondary": "#b9ccb7",
+            "on-secondary-container": "#a7baa7",
+            "surface-variant": "#34362e",
+            "tertiary-fixed": "#e1e3dd",
+            "outline": "#8e928b",
+            "surface-dim": "#12140e",
+            "secondary-container": "#3a4b3c",
+            "inverse-surface": "#e3e3d8",
+            "primary-fixed": "#d7e7d3",
+            "inverse-primary": "#536252",
+            "tertiary-fixed-dim": "#c5c7c2",
+            "primary-fixed-dim": "#bbcbb8",
+            "outline-variant": "#444842",
+            "tertiary": "#c5c7c2",
+            "on-secondary-fixed-variant": "#3a4b3c",
+            "on-primary-fixed-variant": "#3c4a3c",
+            "on-secondary": "#243426",
+            "surface-container": "#1f2019",
+            "on-surface": "#e3e3d8",
+            "error": "#ffb4ab",
+            "tertiary-container": "#353834",
+            "on-tertiary-container": "#9fa19c",
+            "error-container": "#93000a",
+            "on-error": "#690005",
+            "primary-container": "#2d3b2d",
+            "surface-tint": "#bbcbb8",
+            "surface-container-lowest": "#0d0f09",
+            "on-tertiary": "#2e312d",
+            "on-error-container": "#ffdad6",
+            "surface": "#12140e",
+            "surface-container-highest": "#34362e",
+            "surface-container-low": "#1b1c16",
+            "on-tertiary-fixed-variant": "#454843",
+            "secondary-fixed-dim": "#b9ccb7",
+            "surface-bright": "#383a32",
+            "on-surface-variant": "#c4c8c0",
+            "primary": "#bbcbb8",
+            "on-primary": "#263426",
+            "on-primary-fixed": "#111f12",
+            "background": "#12140e",
+            "on-primary-container": "#95a593"
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "element-gap": "24px",
+            "container-margin": "48px",
+            "soft-glow-radius": "40px",
+            "unit": "8px"
+          },
+          fontFamily: {
+            "headline-lg": ["Newsreader"],
+            "headline-xl": ["Newsreader"],
+            "label-sm": ["Inter"],
+            "label-md": ["Inter"],
+            "body-md": ["Newsreader"]
+          },
+          fontSize: {
+            "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "300" }],
+            "headline-xl": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "300" }],
+            "label-sm": ["12px", { "lineHeight": "1.0", "letterSpacing": "0.08em", "fontWeight": "500" }],
+            "label-md": ["14px", { "lineHeight": "1.2", "fontWeight": "400" }],
+            "body-md": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0a0d0a;
+      color: #e3e3d8;
+    }
+
+    .radial-glow {
+      background: radial-gradient(circle at center, rgba(45, 59, 45, 0.15) 0%, rgba(10, 13, 10, 0) 70%);
+    }
+
+    .card-blur {
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .subtle-border {
+      border: 1px solid rgba(122, 140, 122, 0.1);
+    }
+  </style>
+</head>
+
+<body
+  class="min-h-screen font-body-md text-body-md overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+  <!-- ═══════════ NAVBAR ═══════════ -->
+  <nav class="navbar">
+    <div class="logo">
+      <span class="logo-icon">🌱</span>FOLIAGE CARE
+      <span class="deva-inline">फोलिएज केयर</span>
+    </div>
+    <ul class="nav-links">
+      <li class="nav-skeleton"></li>
+      <li class="nav-skeleton"></li>
+      <li class="nav-skeleton"></li>
+      <li class="nav-real hidden"><a href="index.html">Home <span class="deva-inline">मुख्य पृष्ठ</span></a></li>
+      <li class="nav-real hidden"><a href="dashboard_cinematic_3.html" class="active">My Garden <span class="deva-inline">मेरा बगीचा</span></a></li>
+      <li class="nav-real hidden"><a href="start.html">Diagnose <span class="deva-inline">जांच करें</span></a></li>
+      <li class="nav-real hidden"><a href="about.html">About <span class="deva-inline">हमारे बारे में</span></a></li>
+      <li class="nav-real hidden"><a href="login.html" id="auth-link">Login</a></li>
+      <li class="nav-real hidden"><a href="contact.html">Connect</a></li>
+    </ul>
+  </nav>
+  <!-- Main Canvas -->
+  <main class="pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto relative">
+    <!-- Background Ambient Glow -->
+    <div
+      class="fixed top-1/4 right-1/4 w-[600px] h-[600px] bg-primary-container/10 rounded-full blur-[120px] pointer-events-none -z-10">
+    </div>
+    <div
+      class="fixed bottom-0 left-1/4 w-[800px] h-[400px] bg-[#1a231a]/20 rounded-full blur-[100px] pointer-events-none -z-10">
+    </div>
+    <!-- Header Area -->
+    <header class="mb-container-margin flex justify-between items-end">
+      <div>
+        <h1 class="font-headline-xl text-headline-xl text-on-surface mb-2">My Garden</h1>
+        <p id="garden-subtitle" class="font-body-md text-body-md text-on-surface-variant font-light italic">Loading your garden...</p>
+      </div>
+      <button id="add-plant-button"
+        class="bg-primary-container text-on-primary-container px-6 py-3 rounded-full font-label-sm tracking-widest uppercase hover:bg-primary-fixed transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(187,203,184,0.2)]">
+        <span class="material-symbols-outlined text-sm">add</span> Add Plant
+      </button>
+    </header>
+    <!-- Vital Stats (Soft Mist Data Points) -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-element-gap mb-container-margin">
+      <div
+        class="relative p-8 rounded-xl bg-surface-container-low/30 card-blur subtle-border flex flex-col items-start overflow-hidden group">
+        <div class="absolute inset-0 radial-glow opacity-50 group-hover:opacity-100 transition-opacity duration-700">
+        </div>
+        <div class="relative z-10 flex items-center gap-4 mb-4">
+          <span class="material-symbols-outlined text-primary" data-icon="document_scanner" data-weight="fill"
+            style="font-variation-settings: 'FILL' 1;">document_scanner</span>
+          <span class="font-label-md text-label-md text-on-surface-variant tracking-wider">TOTAL SCANS</span>
+        </div>
+        <div id="stat-total-scans" class="relative z-10 font-headline-lg text-headline-lg text-on-surface">--</div>
+        <div id="stat-total-scans-copy" class="relative z-10 font-label-sm text-label-sm text-primary mt-2">Lifetime scans</div>
+      </div>
+      <div
+        class="relative p-8 rounded-xl bg-surface-container-low/30 card-blur subtle-border flex flex-col items-start overflow-hidden group">
+        <div class="absolute inset-0 radial-glow opacity-50 group-hover:opacity-100 transition-opacity duration-700">
+        </div>
+        <div class="relative z-10 flex items-center gap-4 mb-4">
+          <span class="material-symbols-outlined text-secondary" data-icon="favorite">favorite</span>
+          <span class="font-label-md text-label-md text-on-surface-variant tracking-wider">HEALTHY</span>
+        </div>
+        <div id="stat-healthy-rate" class="relative z-10 font-headline-lg text-headline-lg text-on-surface">--</div>
+        <div id="stat-healthy-copy" class="relative z-10 font-label-sm text-label-sm text-secondary mt-2">Healthy scan share</div>
+      </div>
+      <div
+        class="relative p-8 rounded-xl bg-surface-container-low/30 card-blur subtle-border flex flex-col items-start overflow-hidden group">
+        <div class="absolute inset-0 radial-glow opacity-50 group-hover:opacity-100 transition-opacity duration-700">
+        </div>
+        <div class="relative z-10 flex items-center gap-4 mb-4">
+          <span class="material-symbols-outlined text-tertiary" data-icon="potted_plant">potted_plant</span>
+          <span class="font-label-md text-label-md text-on-surface-variant tracking-wider">PLANTS</span>
+        </div>
+        <div id="stat-total-plants" class="relative z-10 font-headline-lg text-headline-lg text-on-surface">--</div>
+        <div id="stat-total-plants-copy" class="relative z-10 font-label-sm text-label-sm text-tertiary mt-2">Tracked plants</div>
+      </div>
+    </section>
+    <div class="mb-container-margin">
+      <!-- Plant Collection Grid (Bento Style) -->
+      <section class="space-y-6">
+        <h2 class="font-headline-lg text-headline-lg text-on-surface px-2">Specimens</h2>
+        <div id="garden-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        <div id="garden-empty-state" class="hidden rounded-2xl border border-outline/10 bg-surface-container-low/30 card-blur p-10 text-center">
+          <div class="text-5xl mb-4">🌱</div>
+          <h3 class="font-headline-lg text-2xl text-on-surface mb-2">Add your first plant</h3>
+          <p class="font-body-md text-sm text-on-surface-variant max-w-md mx-auto">Run a diagnosis from the scan page and it will appear here with history, health status, and replayable conversations.</p>
+        </div>
+      </section>
+    </div>
+    <!-- Cinematic Care Pulse Chart Area -->
+    <!-- Plant Detail View & Scan History (Moved down and modified) -->
+    <section id="plant-detail-view"
+      class="mt-container-margin relative rounded-2xl bg-[#121612]/20 card-blur subtle-border p-8 overflow-hidden min-h-[500px] flex gap-8">
+      <div class="absolute inset-0 bg-gradient-to-t from-primary-container/5 to-transparent pointer-events-none"></div>
+
+      <!-- Left Side: Trend Sparkline -->
+      <div class="flex-1 flex flex-col relative z-10 border-r border-outline/10 pr-8">
+        <div class="flex justify-between items-end mb-8">
+          <div>
+            <h2 id="detail-plant-title" class="font-headline-lg text-headline-lg text-on-surface">Select a plant</h2>
+            <p id="detail-plant-subtitle" class="font-label-sm text-label-sm text-on-surface-variant tracking-widest uppercase mt-1">Health Trend
+            </p>
+          </div>
+          <button id="detail-rescan-button"
+            class="bg-primary-container/20 text-primary border border-primary-container/30 px-6 py-2 rounded-lg font-label-sm uppercase hover:bg-primary-container/40 transition-colors">
+            Re-Scan
+          </button>
+        </div>
+
+        <!-- Abstract Chart Representation -->
+        <div class="relative flex-grow flex items-end pl-10 pb-8 mt-4">
+          <!-- Axes -->
+          <div class="absolute left-10 top-0 bottom-8 border-l border-outline/30 pointer-events-none"></div>
+          <div class="absolute left-10 right-0 bottom-8 border-b border-outline/30 pointer-events-none"></div>
+
+          <!-- Y-Axis Labels -->
+          <div class="absolute inset-0 bottom-8 flex flex-col justify-between pointer-events-none">
+            <div class="flex items-center w-full"><span
+                class="font-body-md text-xs font-light text-on-surface-variant/60 w-10 pr-3 text-right">100%</span>
+              <div class="border-t border-outline-variant w-full h-px opacity-10"></div>
+            </div>
+            <div class="flex items-center w-full"><span
+                class="font-body-md text-xs font-light text-on-surface-variant/60 w-10 pr-3 text-right">50%</span>
+              <div class="border-t border-outline-variant w-full h-px opacity-10"></div>
+            </div>
+            <div class="flex items-center w-full"><span
+                class="font-body-md text-xs font-light text-on-surface-variant/60 w-10 pr-3 text-right">0%</span></div>
+          </div>
+
+          <!-- X-Axis Labels -->
+          <div id="detail-x-axis" class="absolute left-10 right-0 bottom-0 flex justify-between px-4 pointer-events-none pt-3"></div>
+
+          <!-- Glowing Line -->
+          <div id="detail-sparkline" class="w-full h-40 relative z-10 ml-2">
+            <svg class="w-full h-full preserve-aspect-none"
+              style="filter: drop-shadow(0px 10px 15px rgba(187,203,184,0.3));" viewBox="0 0 100 20">
+              <path d="M0,10 L100,10" fill="none" stroke="rgba(196,200,192,0.25)" stroke-linecap="round" stroke-width="0.5"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Side: Scan History List -->
+      <div class="w-80 flex flex-col relative z-10">
+        <h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-6">Scan History</h3>
+        <div id="detail-history-list" class="flex-grow overflow-y-auto pr-2 space-y-4 scrollbar-hide">
+
+          <!-- History Item 1 -->
+          <div
+            class="bg-surface-variant/30 rounded-xl p-4 border border-outline/10 group hover:bg-surface-variant/50 transition-colors">
+            <div class="flex justify-between items-start mb-2">
+              <span class="font-body-md text-xs text-on-surface-variant">Oct 22</span>
+              <div class="flex items-center gap-1.5">
+                <div class="w-1.5 h-1.5 rounded-full bg-tertiary"></div>
+                <span class="font-label-sm text-[10px] text-tertiary">92%</span>
+              </div>
+            </div>
+            <h4 class="font-body-md text-[15px] text-on-surface leading-tight mb-3">Early Blight</h4>
+            <button
+              class="w-full flex items-center justify-center gap-2 border border-outline/20 text-on-surface-variant hover:text-on-surface hover:border-outline/40 py-1.5 rounded text-xs font-label-sm transition-colors"
+              onclick="document.getElementById('chat-modal').classList.remove('hidden')">
+              <span class="material-symbols-outlined text-[14px]">chat</span> Chat Replay
+            </button>
+          </div>
+
+          <!-- History Item 2 -->
+          <div class="bg-surface-variant/20 rounded-xl p-4 border border-outline/5">
+            <div class="flex justify-between items-start mb-2">
+              <span class="font-body-md text-xs text-on-surface-variant">Oct 15</span>
+              <div class="flex items-center gap-1.5">
+                <div class="w-1.5 h-1.5 rounded-full bg-tertiary"></div>
+                <span class="font-label-sm text-[10px] text-tertiary">85%</span>
+              </div>
+            </div>
+            <h4 class="font-body-md text-[15px] text-on-surface leading-tight mb-3">Leaf Spot</h4>
+            <button
+              class="w-full flex items-center justify-center gap-2 border border-outline/10 text-on-surface-variant/50 cursor-not-allowed py-1.5 rounded text-xs font-label-sm">
+              <span class="material-symbols-outlined text-[14px]">chat</span> Chat Replay
+            </button>
+          </div>
+
+          <!-- History Item 3 -->
+          <div class="bg-surface-variant/20 rounded-xl p-4 border border-outline/5">
+            <div class="flex justify-between items-start mb-2">
+              <span class="font-body-md text-xs text-on-surface-variant">Oct 8</span>
+              <div class="flex items-center gap-1.5">
+                <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                <span class="font-label-sm text-[10px] text-primary">99%</span>
+              </div>
+            </div>
+            <h4 class="font-body-md text-[15px] text-on-surface leading-tight mb-3">Healthy</h4>
+            <button
+              class="w-full flex items-center justify-center gap-2 border border-outline/10 text-on-surface-variant/50 cursor-not-allowed py-1.5 rounded text-xs font-label-sm">
+              <span class="material-symbols-outlined text-[14px]">chat</span> Chat Replay
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>&copy; 2025 Foliage Care. Growing together.</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script type="module" src="js/leaf-particles.js"></script>
+  <script src="js/scroll-reveal.js"></script>
+  <script type="module" src="js/firebase.js"></script>
+  <script src="js/dashboard-garden.js"></script>
+  <script src="js/navbar-auth.js"></script>
+  <script src="js/cursor.js"></script>
+
+  <!-- Chat Replay Modal -->
+  <div id="chat-modal" class="hidden fixed inset-0 z-[100] flex justify-end">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+      onclick="document.getElementById('chat-modal').classList.add('hidden')"></div>
+    <div
+      class="relative w-full max-w-md h-full bg-[#121612]/95 backdrop-blur-2xl border-l border-outline/10 shadow-[-10px_0_40px_rgba(0,0,0,0.5)] flex flex-col transform transition-transform duration-300">
+      <header class="flex justify-between items-center px-6 py-6 border-b border-outline/10">
+        <div>
+          <h2 id="chat-modal-title" class="font-headline-lg text-xl text-on-surface">Scan Conversation</h2>
+          <p id="chat-modal-meta" class="font-label-sm text-[10px] text-on-surface-variant tracking-widest uppercase mt-1">Loading replay</p>
+        </div>
+        <button class="text-on-surface-variant hover:text-on-surface transition-colors"
+          onclick="document.getElementById('chat-modal').classList.add('hidden')">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div id="chat-modal-body" class="flex-grow overflow-y-auto p-6 space-y-6">
+        <!-- User Note -->
+        <div class="flex flex-col gap-2 items-end">
+          <span class="font-label-sm text-[9px] text-on-surface-variant tracking-widest uppercase">Field Note</span>
+          <div class="bg-surface-variant/40 rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%] border border-outline/10">
+            <p class="font-body-md text-sm text-on-surface-variant font-light">The bottom leaves are curling and have
+              brown spots.</p>
+          </div>
+        </div>
+
+        <!-- Diagnosis Report -->
+        <div class="flex flex-col gap-2 items-start">
+          <span class="font-label-sm text-[9px] text-primary tracking-widest uppercase">Diagnosis Report</span>
+          <div
+            class="bg-primary-container/10 border border-primary-container/30 rounded-2xl rounded-tl-sm px-5 py-4 max-w-[95%]">
+            <h4 class="font-headline-lg text-lg text-primary mb-2">Early Blight</h4>
+            <div class="flex flex-col gap-1 font-label-sm text-[11px] text-on-surface-variant mb-3">
+              <span>Severity: Moderate</span>
+              <span>Confidence: 92%</span>
+            </div>
+            <p class="font-body-md text-sm text-on-surface font-light">Based on the circular lesions and chlorosis on
+              lower leaves, this is likely Alternaria solani.</p>
+          </div>
+        </div>
+
+        <!-- User Follow-up -->
+        <div class="flex flex-col gap-2 items-end">
+          <div class="bg-surface-variant/40 rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%] border border-outline/10">
+            <p class="font-body-md text-sm text-on-surface-variant font-light">How do I treat this?</p>
+          </div>
+        </div>
+
+        <!-- AI Answer -->
+        <div class="flex flex-col gap-2 items-start">
+          <div
+            class="bg-primary-container/10 border border-primary-container/30 rounded-2xl rounded-tl-sm px-5 py-4 max-w-[95%]">
+            <p class="font-body-md text-sm text-on-surface font-light">Apply neem oil diluted as directed or a copper
+              fungicide. Ensure you water at the base to keep foliage dry.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* Hide scrollbar for the chat area to keep it clean */
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Mobile safe area for bottom nav */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 1rem);
+    }
+  </style>
+</body>
+
+</html>
