@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foliage Care | First Light</title>
+  <meta
+    name="description"
+    content="A calm, refined homepage concept for Foliage Care, designed around soft morning light, plant intelligence, and trustworthy diagnosis."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  >
+  <link rel="icon" href="assets/892926.png" type="image/png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --page-bg: #f7faf7;
+      --surface: #ffffff;
+      --surface-subtle: #f0f7f0;
+      --text-primary: #1a2e1a;
+      --text-secondary: #4a6741;
+      --text-muted: #8aaa82;
+      --accent: #3a7d44;
+      --accent-dark: #2d6337;
+      --accent-light: #e8f5e9;
+      --border: #e2ede2;
+      --border-hover: #b8d4b8;
+      --gold: #c8951a;
+      --dark: #1a2e1a;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-soft: 0 12px 40px rgba(58,125,68,0.08);
+      --shadow-button: 0 8px 24px rgba(58,125,68,0.2);
+      --container: min(1180px, calc(100vw - 48px));
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(232,245,233,0.7), transparent 30%),
+        linear-gradient(180deg, #fbfdfb 0%, #f7faf7 100%);
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55)),
+        radial-gradient(circle at 10% 20%, rgba(232,245,233,0.3), transparent 25%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+
+    .site-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      transition: background 300ms ease, box-shadow 300ms ease, backdrop-filter 300ms ease;
+    }
+
+    .site-nav.scrolled {
+      background: rgba(255,255,255,0.84);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 1px 0 #e2ede2;
+    }
+
+    .nav-inner {
+      width: var(--container);
+      margin: 0 auto;
+      min-height: 78px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 22px;
+      height: 22px;
+      color: var(--accent);
+    }
+
+    .brand-copy {
+      display: grid;
+      gap: 1px;
+    }
+
+    .brand-copy strong {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .brand-copy span {
+      font-size: 11px;
+      font-weight: 300;
+      color: var(--text-muted);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      position: relative;
+      padding: 8px 0;
+      transition: color 200ms ease;
+    }
+
+    .nav-links a::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 2px;
+      height: 1px;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity 200ms ease;
+    }
+
+    .nav-links a:hover,
+    .nav-links a:focus-visible {
+      color: var(--accent);
+      outline: none;
+    }
+
+    .nav-links a:hover::after,
+    .nav-links a:focus-visible::after,
+    .nav-links a.active::after {
+      opacity: 1;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ghost-btn,
+    .solid-btn,
+    .primary-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 999px;
+      transition: transform 300ms var(--ease), background 300ms var(--ease), border-color 300ms var(--ease), box-shadow 300ms var(--ease), color 300ms var(--ease);
+      cursor: pointer;
+    }
+
+    .ghost-btn {
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-hover);
+      background: transparent;
+    }
+
+    .solid-btn,
+    .primary-btn {
+      position: relative;
+      overflow: hidden;
+      border: none;
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 2px 0 rgba(58,125,68,0.05);
+    }
+
+    .solid-btn {
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    .primary-btn {
+      padding: 14px 28px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .ghost-btn:hover,
+    .ghost-btn:focus-visible {
+      background: var(--accent-light);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .solid-btn:hover,
+    .solid-btn:focus-visible,
+    .primary-btn:hover,
+    .primary-btn:focus-visible {
+      background: var(--accent-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-button);
+      outline: none;
+    }
+
+    .primary-btn::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      border: 2px solid rgba(58,125,68,0.18);
+      animation: pulseRing 3s ease-out infinite;
+      pointer-events: none;
+    }
+
+    main {
+      display: block;
+    }
+
+    section {
+      position: relative;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      align-items: center;
+      padding: 120px 0 72px;
+    }
+
+    .hero-inner {
+      width: var(--container);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 55% 45%;
+      gap: 28px;
+      align-items: center;
+    }
+
+    .hero-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 26px;
+    }
+
+    .hero-label::before {
+      content: "";
+      width: 32px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    .hero-title {
+      font-family: 'Lora', serif;
+      font-size: clamp(3.2rem, 5.6vw, 4rem);
+      font-weight: 400;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 24px;
+    }
+
+    .hero-title em {
+      color: var(--accent);
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      font-weight: 300;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      max-width: 380px;
+      margin-bottom: 30px;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .trust-row,
+    .cta-trust {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .trust-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .trust-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--text-muted);
+      flex: none;
+    }
+
+    .trust-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--border-hover);
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 640px;
+      display: grid;
+      place-items: center;
+    }
+
+    .watercolor-circle {
+      position: absolute;
+      width: min(76vw, 380px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 38% 34%, rgba(255,255,255,0.65), transparent 35%),
+        radial-gradient(circle at 55% 55%, rgba(232,245,233,0.95), rgba(232,245,233,0.75) 55%, rgba(232,245,233,0.5) 70%, transparent 100%);
+      filter: blur(0.2px);
+      z-index: 0;
+    }
+
+    .leaf-illustration {
+      position: relative;
+      width: min(100%, 520px);
+      z-index: 1;
+      overflow: visible;
+    }
+
+    .leaf-illustration svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .disease-spot {
+      opacity: 0;
+      animation: diseaseBloom 4s ease-in-out 2s forwards;
+    }
+
+    .use-cases,
+    .how-it-works,
+    .map-preview,
+    .testimonial,
+    .final-cta,
+    .site-footer {
+      padding: 88px 0;
+    }
+
+    .section-shell {
+      width: var(--container);
+      margin: 0 auto;
+    }
+
+    .section-heading {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .section-heading h2 {
+      font-family: 'Lora', serif;
+      font-size: clamp(2rem, 4vw, 2.25rem);
+      font-weight: 400;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+
+    .section-heading em {
+      color: var(--accent);
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    .use-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .use-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      transition: transform 300ms var(--ease), border-color 300ms var(--ease), box-shadow 300ms var(--ease);
+    }
+
+    .use-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .use-card svg {
+      width: 82px;
+      height: 82px;
+      color: rgba(58,125,68,0.6);
+      margin-bottom: 20px;
+    }
+
+    .use-card h3,
+    .step-card h3,
+    .map-copy h3,
+    .final-cta h2,
+    .footer-brand p {
+      font-family: 'Lora', serif;
+      font-weight: 400;
+      color: var(--text-primary);
+    }
+
+    .use-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .use-card p,
+    .step-card p,
+    .map-copy p,
+    .footer-links a,
+    .footer-meta a {
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+
+    .learn-more {
+      margin-top: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    .learn-more .learn-label {
+      max-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: max-width 300ms var(--ease);
+    }
+
+    .use-card:hover .learn-more .learn-label {
+      max-width: 96px;
+    }
+
+    .steps-line-wrap {
+      position: relative;
+      width: var(--container);
+      margin: 0 auto 10px;
+      height: 56px;
+    }
+
+    .steps-line {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .steps-line path {
+      fill: none;
+      stroke: #b8d4b8;
+      stroke-width: 2;
+      stroke-dasharray: 780;
+      stroke-dashoffset: 780;
+      opacity: 0;
+      transition: opacity 300ms ease;
+    }
+
+    .steps-line-wrap.visible path {
+      opacity: 1;
+      animation: drawPath 1.2s ease forwards;
+    }
+
+    .steps-grid {
+      width: var(--container);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+
+    .step-card {
+      position: relative;
+      padding: 12px 20px 0 20px;
+      min-height: 230px;
+    }
+
+    .step-number {
+      position: absolute;
+      top: 0;
+      left: 0;
+      font-family: 'Lora', serif;
+      font-size: 72px;
+      color: #e8f5e9;
+      line-height: 1;
+      z-index: 0;
+    }
+
+    .step-content {
+      position: relative;
+      z-index: 1;
+      padding-top: 42px;
+    }
+
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .step-card h3 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .map-card {
+      width: min(900px, calc(100vw - 48px));
+      margin: 0 auto;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px;
+      display: grid;
+      grid-template-columns: 1fr 1.05fr;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    .map-copy h3 {
+      font-size: clamp(2rem, 4vw, 2.35rem);
+      line-height: 1.25;
+      margin-bottom: 14px;
+    }
+
+    .map-copy h3 em {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .map-link {
+      margin-top: 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent);
+      font-weight: 400;
+    }
+
+    .map-shell {
+      position: relative;
+      min-height: 320px;
+      border-radius: 20px;
+      overflow: hidden;
+      opacity: 0.4;
+      border: 1px solid rgba(58,125,68,0.08);
+    }
+
+    #preview-map {
+      width: 100%;
+      height: 320px;
+      filter: saturate(0.85) contrast(0.95);
+    }
+
+    .map-stat-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .map-stat strong {
+      display: block;
+      font-size: 24px;
+      font-weight: 400;
+      font-family: 'Lora', serif;
+      color: var(--text-primary);
+    }
+
+    .map-stat span {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .testimonial-inner {
+      width: min(760px, calc(100vw - 48px));
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+    }
+
+    .quote-mark {
+      position: absolute;
+      top: -58px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Lora', serif;
+      font-size: 120px;
+      color: #e8f5e9;
+      line-height: 1;
+      z-index: 0;
+    }
+
+    .quote-text {
+      position: relative;
+      z-index: 1;
+      font-family: 'Lora', serif;
+      font-size: 22px;
+      font-style: italic;
+      color: var(--text-primary);
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto 28px;
+    }
+
+    .quote-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .quote-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .quote-name {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .quote-role {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .final-cta {
+      background:
+        radial-gradient(ellipse at center, rgba(58,125,68,0.3) 0%, transparent 70%),
+        #1a2e1a;
+      color: #f0fdf4;
+      text-align: center;
+    }
+
+    .final-cta-inner {
+      width: min(760px, calc(100vw - 48px));
+      margin: 0 auto;
+    }
+
+    .final-cta h2 {
+      font-size: clamp(2.5rem, 5vw, 2.625rem);
+      line-height: 1.2;
+      color: #f0fdf4;
+      margin-bottom: 18px;
+    }
+
+    .final-cta h2 em {
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    .final-cta p {
+      font-size: 16px;
+      font-weight: 300;
+      line-height: 1.8;
+      color: rgba(240,253,244,0.6);
+      margin-bottom: 28px;
+    }
+
+    .cta-btn-light {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 28px;
+      border-radius: 999px;
+      border: none;
+      background: #ffffff;
+      color: #1a2e1a;
+      font-size: 14px;
+      font-weight: 400;
+      cursor: pointer;
+      transition: transform 300ms var(--ease), background 300ms var(--ease);
+    }
+
+    .cta-btn-light:hover,
+    .cta-btn-light:focus-visible {
+      background: #f0f7f0;
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .cta-trust {
+      justify-content: center;
+      margin-top: 22px;
+      color: rgba(240,253,244,0.7);
+    }
+
+    .cta-trust .trust-icon,
+    .cta-trust .trust-dot {
+      color: rgba(240,253,244,0.55);
+      background: rgba(240,253,244,0.35);
+    }
+
+    .site-footer {
+      padding-top: 0;
+      background: #f7faf7;
+    }
+
+    .footer-top {
+      border-top: 1px solid var(--border);
+      width: var(--container);
+      margin: 0 auto;
+      padding: 34px 0 28px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 28px;
+    }
+
+    .footer-brand .brand {
+      margin-bottom: 12px;
+    }
+
+    .footer-brand p {
+      font-size: 14px;
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 20px;
+      align-content: start;
+    }
+
+    .footer-links a,
+    .footer-side a {
+      transition: color 200ms ease;
+    }
+
+    .footer-links a:hover,
+    .footer-links a:focus-visible,
+    .footer-side a:hover,
+    .footer-side a:focus-visible,
+    .footer-meta a:hover,
+    .footer-meta a:focus-visible {
+      color: var(--accent);
+      outline: none;
+    }
+
+    .footer-side {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      justify-items: start;
+    }
+
+    .footer-meta {
+      width: var(--container);
+      margin: 0 auto;
+      padding: 18px 0 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 500ms ease-out, transform 500ms ease-out;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes pulseRing {
+      0% { opacity: 0.28; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.18); }
+    }
+
+    @keyframes diseaseBloom {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes drawPath {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @media (max-width: 1024px) {
+      .hero-inner,
+      .map-card,
+      .footer-top {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-visual {
+        min-height: 520px;
+      }
+
+      .use-grid,
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .steps-line-wrap {
+        display: none;
+      }
+    }
+
+    @media (max-width: 780px) {
+      .nav-inner {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 14px 0;
+      }
+
+      .nav-links,
+      .nav-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .hero {
+        padding-top: 164px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .map-card {
+        width: min(900px, calc(100vw - 24px));
+        padding: 28px;
+      }
+
+      .footer-meta {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    @media (max-width: 560px) {
+      :root {
+        --container: min(1180px, calc(100vw - 24px));
+      }
+
+      .hero-title {
+        font-size: 2.65rem;
+      }
+
+      .quote-text {
+        font-size: 19px;
+      }
+
+      .use-card,
+      .map-card {
+        padding: 24px;
+      }
+    }
+  </style>
+  </style>
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html" aria-label="Foliage Care home">
+        <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M18.7 4.2c-5.5.1-10.2 3.1-12.3 7.6-1 2.2-1.2 4.7-.4 7 2.4-1.3 4.1-3.3 5-5.9 2 .9 4.4.9 6.5-.1 3.5-1.7 5.7-5.4 5.5-9.3-1.5.4-2.9.6-4.3.7Z"/>
+        </svg>
+        <span class="brand-copy">
+          <strong>Foliage Care</strong>
+          <span>फोलिएज केयर</span>
+        </span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="start.html">Diagnose</a></li>
+        <li><a href="dashboard_cinematic_3.html">My Garden</a></li>
+        <li><a href="about.html">About</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a class="ghost-btn" href="login.html">Login</a>
+        <a class="solid-btn" href="start.html">Diagnose free</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-copy reveal" data-delay="0">
+          <div class="hero-label">Plant health intelligence</div>
+          <h1 class="hero-title">
+            Diagnose what's<br>
+            wrong with your<br>
+            plant, <em>instantly.</em>
+          </h1>
+          <p class="hero-sub">
+            Upload a photo. Foliage Care identifies the disease, explains what it sees, and gives you a treatment plan tailored to your situation.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-btn" href="start.html">Diagnose your plant</a>
+            <a class="ghost-btn" href="#how-it-works">See how it works</a>
+          </div>
+          <div class="trust-row">
+            <span class="trust-item">
+              <svg class="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3l7 4v5c0 4.5-3 8.3-7 9-4-0.7-7-4.5-7-9V7l7-4Zm-1 11 5-5-1.4-1.4L11 11.2 9.4 9.6 8 11l3 3Z"/></svg>
+              No account required
+            </span>
+            <span class="trust-dot"></span>
+            <span class="trust-item">
+              <svg class="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Zm0 2a1 1 0 0 0-1 1v8h12V7a1 1 0 0 0-1-1H7Zm4 12h2v1h-2v-1Z"/></svg>
+              Works on any device
+            </span>
+            <span class="trust-dot"></span>
+            <span class="trust-item">
+              <svg class="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm1 2h-2v5l4 2 .8-1.8-2.8-1.3V7Z"/></svg>
+              Results in seconds
+            </span>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="watercolor-circle" aria-hidden="true"></div>
+          <div class="leaf-illustration">
+            <svg viewBox="0 0 520 620" aria-label="Botanical leaf illustration">
+              <defs>
+                <filter id="paperShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="rgba(58,125,68,0.08)"/>
+                </filter>
+              </defs>
+
+              <g transform="translate(322 112) rotate(18)" opacity="0.5">
+                <path d="M0 0C-58 48-95 130-96 205c0 85 44 156 118 228 43-89 54-161 35-247C43 111 21 50 0 0Z" fill="rgba(138,170,130,0.16)" stroke="rgba(138,170,130,0.8)" stroke-width="2.2"/>
+                <path d="M5 16c-8 88-8 175 9 284" stroke="rgba(138,170,130,0.55)" stroke-width="1.5" fill="none"/>
+                <path d="M8 90c28 10 48 23 64 39" stroke="rgba(138,170,130,0.45)" stroke-width="1.1" fill="none"/>
+                <path d="M4 148c-26 12-46 30-64 53" stroke="rgba(138,170,130,0.45)" stroke-width="1.1" fill="none"/>
+              </g>
+
+              <g transform="translate(116 380) rotate(-28)" opacity="0.72">
+                <path d="M0 0c-22 18-38 50-39 83 0 39 19 73 50 107 20-39 25-73 15-116C20 42 11 18 0 0Z" fill="rgba(138,170,130,0.15)" stroke="rgba(138,170,130,0.72)" stroke-width="1.8"/>
+                <path d="M1 10c-3 41-2 76 5 124" stroke="rgba(138,170,130,0.5)" stroke-width="1" fill="none"/>
+              </g>
+
+              <g filter="url(#paperShadow)">
+                <path d="M234 70c-82 60-136 170-138 287-1 125 63 231 172 338 63-130 79-236 52-362C299 223 270 131 234 70Z" fill="rgba(58,125,68,0.08)"/>
+                <path d="M234 70c-82 60-136 170-138 287-1 125 63 231 172 338 63-130 79-236 52-362C299 223 270 131 234 70Z" fill="rgba(58,125,68,0.1)" stroke="#3a7d44" stroke-width="3"/>
+                <path d="M239 96c-11 124-12 248 12 398" stroke="#3a7d44" stroke-width="2.1" fill="none"/>
+                <path d="M244 144c58 22 98 53 131 95" stroke="rgba(58,125,68,0.72)" stroke-width="1.4" fill="none"/>
+                <path d="M238 184c-55 24-98 61-136 111" stroke="rgba(58,125,68,0.72)" stroke-width="1.3" fill="none"/>
+                <path d="M246 236c50 18 84 42 112 76" stroke="rgba(58,125,68,0.68)" stroke-width="1.2" fill="none"/>
+                <path d="M242 276c-49 24-82 54-107 93" stroke="rgba(58,125,68,0.68)" stroke-width="1.2" fill="none"/>
+                <path d="M247 330c38 14 66 33 92 61" stroke="rgba(58,125,68,0.64)" stroke-width="1.1" fill="none"/>
+                <path d="M243 360c-38 18-63 42-84 73" stroke="rgba(58,125,68,0.64)" stroke-width="1.1" fill="none"/>
+                <path d="M183 150c26 24 45 55 56 88" stroke="rgba(26,46,26,0.14)" stroke-width="0.9" fill="none"/>
+                <path d="M289 232c20 22 35 48 44 74" stroke="rgba(26,46,26,0.12)" stroke-width="0.9" fill="none"/>
+                <path d="M195 314c18 20 30 44 39 72" stroke="rgba(26,46,26,0.12)" stroke-width="0.9" fill="none"/>
+                <path d="M240 430c18 22 30 45 37 70" stroke="rgba(26,46,26,0.1)" stroke-width="0.9" fill="none"/>
+
+                <g class="disease-spot">
+                  <ellipse cx="286" cy="248" rx="38" ry="30" fill="rgba(200,149,26,0.22)"/>
+                  <ellipse cx="293" cy="255" rx="24" ry="18" fill="rgba(200,149,26,0.34)"/>
+                  <path d="M268 233c18 3 32 14 43 30" stroke="rgba(200,149,26,0.5)" stroke-width="1.2" fill="none"/>
+                  <path d="M278 225c-8 10-13 22-13 37" stroke="rgba(200,149,26,0.28)" stroke-width="1" fill="none"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="use-cases reveal" data-delay="0">
+      <div class="section-shell">
+        <div class="section-heading">
+          <h2>Designed for how <em>you</em> grow</h2>
+        </div>
+        <div class="use-grid">
+          <article class="use-card reveal" data-delay="0">
+            <svg viewBox="0 0 96 96" aria-hidden="true">
+              <path d="M34 22c8 2 14 9 16 17 3-8 10-15 18-17-1 19-12 34-26 38-14-4-25-19-24-38 5 2 10 5 16 10Z" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M30 58h36l-4 22H34l-4-22Z" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M40 80h16" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <h3>Home Gardener</h3>
+            <p>Take a quick photo from your balcony, terrace, or kitchen garden and get a clear explanation of what your plant is showing before the problem spreads.</p>
+            <a class="learn-more" href="start.html"><span class="learn-label">Learn more</span><span>&rarr;</span></a>
+          </article>
+
+          <article class="use-card reveal" data-delay="150">
+            <svg viewBox="0 0 96 96" aria-hidden="true">
+              <path d="M49 14v66" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M49 24c-14 2-22 12-24 26 12-3 20-12 24-26Z" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M49 34c13 2 21 12 23 25-11-2-18-11-23-25Z" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M49 48c-13 3-20 12-21 24 11-2 17-9 21-24Z" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M49 58c11 1 18 8 20 20-10-2-16-8-20-20Z" fill="none" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <h3>Farmer</h3>
+            <p>Spot field issues early, compare symptoms fast, and act with more confidence using treatment suggestions grounded in practical crop care realities.</p>
+            <a class="learn-more" href="dashboard_cinematic_3.html"><span class="learn-label">Learn more</span><span>&rarr;</span></a>
+          </article>
+
+          <article class="use-card reveal" data-delay="300">
+            <svg viewBox="0 0 96 96" aria-hidden="true">
+              <rect x="18" y="44" width="60" height="24" rx="6" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M30 44v24M42 44v24M54 44v24M66 44v24" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M29 31c4 0 7 3 7 7-5 0-9-3-9-7 0-4 4-7 8-7 0 4-2 7-6 7Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M47 28c4 0 8 3 8 8-6 0-10-4-10-8 0-5 4-8 9-8 0 4-3 8-7 8Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M64 32c4 0 7 3 7 7-5 0-9-3-9-7 0-4 4-7 8-7 0 4-2 7-6 7Z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+            <h3>Nursery</h3>
+            <p>Monitor many plants at once, catch recurring patterns across trays, and keep customer-facing plants healthy with a calm, repeatable diagnosis workflow.</p>
+            <a class="learn-more" href="contact.html"><span class="learn-label">Learn more</span><span>&rarr;</span></a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="how-it-works">
+      <div class="section-heading reveal" data-delay="0">
+        <h2>How it works</h2>
+      </div>
+
+      <div class="steps-line-wrap reveal" data-delay="0">
+        <svg class="steps-line" viewBox="0 0 1180 56" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M90 28C250 10 355 10 505 28S770 48 925 28s160-18 210 0"></path>
+        </svg>
+      </div>
+
+      <div class="steps-grid">
+        <article class="step-card reveal" data-delay="0">
+          <span class="step-number">01</span>
+          <div class="step-content">
+            <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5a3 3 0 0 1 3 3v1h1a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3h1V8a3 3 0 0 1 3-3Zm0 2a1 1 0 0 0-1 1v1h2V8a1 1 0 0 0-1-1Z"/></svg>
+            <h3>Upload</h3>
+            <p>Take a photo of the affected leaf and add any quick context that matters, like recent rain, pests, or how fast the symptoms appeared.</p>
+          </div>
+        </article>
+
+        <article class="step-card reveal" data-delay="150">
+          <span class="step-number">02</span>
+          <div class="step-content">
+            <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 4a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 2a6 6 0 1 0 4.24 10.24A6 6 0 0 0 10 6Zm8.7 11.3L22 20.6 20.6 22l-3.3-3.3 1.4-1.4Z"/></svg>
+            <h3>Analyze</h3>
+            <p>Foliage Care reads the visible patterns, identifies probable disease markers, and explains what it noticed so the result feels transparent.</p>
+          </div>
+        </article>
+
+        <article class="step-card reveal" data-delay="300">
+          <span class="step-number">03</span>
+          <div class="step-content">
+            <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 4 6v6c0 5 3.4 9.5 8 10 4.6-.5 8-5 8-10V6l-8-4Zm-1 13-3-3 1.4-1.4L11 12.2l3.6-3.6L16 10l-5 5Z"/></svg>
+            <h3>Act</h3>
+            <p>Get a treatment path that helps you respond early, reduce spread, and decide your next step with more confidence than guesswork can offer.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="map-preview reveal" data-delay="0">
+      <div class="map-card">
+        <div class="map-copy">
+          <div class="eyebrow">Community Intelligence</div>
+          <h3>See disease <em>spreading</em> across India in real time.</h3>
+          <p>Every diagnosis can become signal. Foliage Care aggregates anonymous symptom trends into an early-warning layer that helps growers, nurseries, and KVK-facing teams notice patterns before they escalate.</p>
+          <div class="map-stat-row">
+            <div class="map-stat">
+              <strong data-count="1200">0</strong>
+              <span>weekly scans</span>
+            </div>
+            <div class="map-stat">
+              <strong data-count="27">0</strong>
+              <span>active districts</span>
+            </div>
+            <div class="map-stat">
+              <strong data-count="8">0</strong>
+              <span>crop categories</span>
+            </div>
+          </div>
+          <a class="map-link" href="map.html">View the map &rarr;</a>
+        </div>
+
+        <div class="map-shell">
+          <div id="preview-map" aria-label="Preview map of India"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="testimonial reveal" data-delay="0">
+      <div class="testimonial-inner">
+        <div class="quote-mark" aria-hidden="true">&ldquo;</div>
+        <p class="quote-text">For the first time, I could show growers what the disease looked like, why it was happening, and what to do next without making them feel overwhelmed.</p>
+        <div class="quote-meta">
+          <div class="quote-avatar">SP</div>
+          <div>
+            <span class="quote-name">Shweta Patel</span>
+            <span class="quote-role">Nursery advisor, Nashik</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="final-cta reveal" data-delay="0">
+      <div class="final-cta-inner">
+        <h2>Your plant is waiting <em>for answers.</em></h2>
+        <p>Start with a single photo. Get a clearer diagnosis, practical next steps, and reassurance that you're acting on something real.</p>
+        <a class="cta-btn-light" href="start.html">Diagnose now - it's free.</a>
+        <div class="cta-trust">
+          <span class="trust-item">
+            <svg class="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3l7 4v5c0 4.5-3 8.3-7 9-4-0.7-7-4.5-7-9V7l7-4Z"/></svg>
+            No account required
+          </span>
+          <span class="trust-dot"></span>
+          <span class="trust-item">
+            <svg class="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"/></svg>
+            Works on any device
+          </span>
+          <span class="trust-dot"></span>
+          <span class="trust-item">
+            <svg class="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z"/></svg>
+            Results in seconds
+          </span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M18.7 4.2c-5.5.1-10.2 3.1-12.3 7.6-1 2.2-1.2 4.7-.4 7 2.4-1.3 4.1-3.3 5-5.9 2 .9 4.4.9 6.5-.1 3.5-1.7 5.7-5.4 5.5-9.3-1.5.4-2.9.6-4.3.7Z"/>
+          </svg>
+          <span class="brand-copy">
+            <strong>Foliage Care</strong>
+            <span>फोलिएज केयर</span>
+          </span>
+        </a>
+        <p>Because every leaf tells a story.</p>
+      </div>
+
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="start.html">Diagnose</a>
+        <a href="dashboard_cinematic_3.html">My Garden</a>
+        <a href="about.html">About</a>
+        <a href="map.html">Map</a>
+        <a href="contact.html">Connect</a>
+      </div>
+
+      <div class="footer-side">
+        <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="playground.html">Live demo</a>
+        <a href="contact.html">Connect page</a>
+      </div>
+    </div>
+
+    <div class="footer-meta">
+      <span>&copy; 2025 Foliage Care. Built by Swarom Firagannavar.</span>
+      <a href="https://foliage-care.example.com">foliage-care.example.com</a>
+    </div>
+  </footer>
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script>
+    const nav = document.querySelector('.site-nav');
+    const revealItems = document.querySelectorAll('.reveal');
+    const stepsLineWrap = document.querySelector('.steps-line-wrap');
+    const statItems = document.querySelectorAll('[data-count]');
+    let statsStarted = false;
+
+    function updateNavState() {
+      nav.classList.toggle('scrolled', window.scrollY > 80);
+    }
+
+    window.addEventListener('scroll', updateNavState, { passive: true });
+    updateNavState();
+
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const delay = Number(entry.target.dataset.delay || 0);
+        window.setTimeout(() => entry.target.classList.add('visible'), delay);
+        revealObserver.unobserve(entry.target);
+      });
+    }, { threshold: 0.18 });
+
+    revealItems.forEach((item) => revealObserver.observe(item));
+
+    const lineObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        stepsLineWrap.classList.add('visible');
+        lineObserver.disconnect();
+      }
+    }, { threshold: 0.35 });
+
+    if (stepsLineWrap) {
+      lineObserver.observe(stepsLineWrap);
+    }
+
+    function countUp(element, target) {
+      const startTime = performance.now();
+      const duration = 1400;
+
+      function tick(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        element.textContent = Math.round(target * eased);
+        if (progress < 1) {
+          requestAnimationFrame(tick);
+        }
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    const statsObserver = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting || statsStarted) return;
+      statsStarted = true;
+      statItems.forEach((item) => countUp(item, Number(item.dataset.count)));
+      statsObserver.disconnect();
+    }, { threshold: 0.45 });
+
+    if (statItems.length) {
+      statsObserver.observe(document.querySelector('.map-card'));
+    }
+
+    function createPulseIcon(color) {
+      return L.divIcon({
+        className: 'map-pulse-icon',
+        html: `
+          <span style="
+            position: relative;
+            display: block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: ${color};
+            box-shadow: 0 0 0 0 ${color}55;
+          ">
+            <span style="
+              position: absolute;
+              inset: -9px;
+              border-radius: 50%;
+              border: 2px solid ${color};
+              opacity: .35;
+              animation: pulseRing 2.6s ease-out infinite;
+            "></span>
+          </span>
+        `,
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+    }
+
+    function initMap() {
+      const mapEl = document.getElementById('preview-map');
+      if (!mapEl || typeof L === 'undefined') return;
+
+      const map = L.map(mapEl, {
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        tap: false,
+        touchZoom: false
+      }).setView([22.7, 79.5], 4.5);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 10
+      }).addTo(map);
+
+      [
+        { lat: 28.61, lng: 77.2, color: '#c8951a' },
+        { lat: 19.07, lng: 72.88, color: '#3a7d44' },
+        { lat: 17.38, lng: 78.48, color: '#c0543a' },
+        { lat: 13.08, lng: 80.27, color: '#c8951a' },
+        { lat: 22.57, lng: 88.36, color: '#3a7d44' }
+      ].forEach((point) => {
+        L.marker([point.lat, point.lng], { icon: createPulseIcon(point.color) }).addTo(map);
+      });
+    }
+
+    initMap();
+  </script>
+</body>
+</html>

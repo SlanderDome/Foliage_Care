@@ -45,6 +45,32 @@ let conversationHistory = [];
 let lastDiagnosisResult = null;
 let currentLocationWeather = "";
 
+// Feature 3: Structured weather data for alert badges
+let currentWeatherData = null;
+
+// Feature 4: Persona memory cache — avoids duplicate API calls
+let personaCache = {};  // { home_gardener: planHTML, farmer: planHTML, ... }
+let lastPlanEntry = null; // The DOM entry for the expert plan
+
+// ═══════════ PLANT IDENTITY (Phase 1 — Garden Dashboard) ═══════════
+// Set by the plant-selector UI on start.html before a scan begins.
+let selectedPlantId = null;      // Firestore doc ID from 'plants' collection
+let selectedPlantNickname = '';  // Human-readable nickname for display
+let selectedPlantIcon = '🌿';
+let selectedPlantSpecies = '';
+
+// Expose so start.html inline script can inject plant selection
+window.setSelectedPlant = (id, nickname, meta = {}) => {
+    selectedPlantId = id;
+    selectedPlantNickname = nickname;
+    selectedPlantIcon = meta.icon || '🌿';
+    selectedPlantSpecies = meta.species || '';
+    console.log(`🌿 Plant selected: "${nickname}" [${id || 'new'}]`);
+};
+
+// Expose conversationHistory read for dashboard chat-replay
+window.getConversationHistory = () => [...conversationHistory];
+
 // ═══════════ HELPERS ═══════════
 
 function getUserLocation() {
@@ -99,6 +125,48 @@ async function getWeatherTrend(lat, lng) {
     }
 }
 
+// ═══════════ FEATURE 3: LIVE WEATHER + ALERT DATA ═══════════
+
+async function getLiveWeather(lat, lng) {
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code&daily=temperature_2m_max,precipitation_sum&past_days=1&forecast_days=1&timezone=auto`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Weather fetch failed');
+        const data = await response.json();
+
+        const current = data.current || {};
+        const temp = current.temperature_2m || 0;
+        const humidity = current.relative_humidity_2m || 0;
+        const precip = current.precipitation || 0;
+
+        // Past 24h rainfall from daily data
+        const dailyRain = data.daily?.precipitation_sum?.[0] || 0;
+        // Today's max temp
+        const todayMax = data.daily?.temperature_2m_max?.[0] || temp;
+
+        // Store structured weather data for Feature 3 alert badges
+        currentWeatherData = {
+            temp,
+            humidity,
+            precipitation: precip,
+            dailyRain,
+            todayMax,
+            // Significant event thresholds (hardened against "banner blindness")
+            isHeatWave: todayMax >= 42,     // True heatwave, not just "hot"
+            isHeavyRain: dailyRain >= 10,   // Meaningful rain event
+            isColdSnap: temp <= 5,          // Cold enough to damage plants
+        };
+
+        console.log('🌡️ Structured Weather:', currentWeatherData);
+
+        // Return narrative for the backend prompt
+        return `Current: ${temp}°C, ${humidity}% humidity, ${precip}mm rain. Daily max: ${todayMax}°C, 24h rain: ${dailyRain}mm.`;
+    } catch (error) {
+        console.warn('⚠️ getLiveWeather failed:', error);
+        return null;
+    }
+}
+
 function getTimeString() {
     return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
@@ -111,6 +179,25 @@ function getUserName() {
 function getUserType() {
     const selected = document.querySelector('.user-type-pill.selected');
     return selected ? selected.dataset.value : "home_gardener";
+}
+
+function sanitizePlantNickname(name) {
+    if (!name) return '';
+    return String(name)
+        .replace(/^[^\w\s]+\s*/u, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function buildPlantIcon(label = '', fallback = '🌿') {
+    const species = String(label || '').toLowerCase();
+    if (species.includes('tomato')) return '🍅';
+    if (species.includes('rose')) return '🌹';
+    if (species.includes('cactus')) return '🌵';
+    if (species.includes('sunflower')) return '🌻';
+    if (species.includes('clover')) return '🍀';
+    if (species.includes('rice') || species.includes('wheat') || species.includes('grass')) return '🌾';
+    return fallback;
 }
 
 function setThreadActionState(button, label, isLoading) {
@@ -208,6 +295,24 @@ function buildSeverityBadge(severity) {
 // --- Action plan renderer ---
 function buildActionPlanHTML(actionPlan) {
     if (!actionPlan) return '';
+
+    // ── Feature 3: Build weather alert badges ──
+    function getWeatherBadge(theme) {
+        if (!currentWeatherData) return '';
+        const w = currentWeatherData;
+
+        if (theme === 'warning' && w.isHeavyRain) {
+            return `<span class="weather-alert-badge weather-rain">🌧️ Heavy Rain Alert</span>`;
+        }
+        if (theme === 'danger' && w.isHeatWave) {
+            return `<span class="weather-alert-badge weather-heat">🔥 Heat Wave Alert</span>`;
+        }
+        if (theme === 'danger' && w.isColdSnap) {
+            return `<span class="weather-alert-badge weather-cold">❄️ Cold Snap Alert</span>`;
+        }
+        return '';
+    }
+
     const steps = [
         { icon: '<i class="fas fa-bolt"></i>', title: 'Do this today', body: actionPlan.immediate_action, theme: 'danger' },
         { icon: '<i class="fas fa-leaf"></i>', title: 'Desi / organic treatment', body: actionPlan.desi_remedy, theme: 'success' },
@@ -220,15 +325,19 @@ function buildActionPlanHTML(actionPlan) {
         },
     ];
 
-    const stepsHTML = steps.filter(s => s.body).map(s => `
+    const stepsHTML = steps.filter(s => s.body).map(s => {
+        const badge = getWeatherBadge(s.theme);
+        return `
         <div class="action-card theme-${s.theme}">
             <div class="action-card-header">
                 <span class="action-icon">${s.icon}</span>
                 <span class="action-title">${s.title}</span>
+                ${badge}
             </div>
             <div class="action-card-body">${s.body}</div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     const seasonTip = actionPlan.seasonal_tip
         ? `<div class="seasonal-tip">
@@ -241,6 +350,32 @@ function buildActionPlanHTML(actionPlan) {
 }
 
 // --- Trust signals renderer ---
+// ═══════════ FEATURE 2: SYMPTOM PILL PROCESSOR ═══════════
+
+function wrapSymptomsAsPills(text) {
+    if (!text) return '';
+    // Match quoted phrases, or common symptom patterns like "brown spots", "yellow edges"
+    const symptomPatterns = [
+        /"([^"]{4,60})"/g,                                    // Quoted phrases
+        /\b((?:circular|oval|angular|irregular|small|large|dark|light|reddish|yellowish|brownish|whitish)[\-\s]?(?:brown|green|yellow|white|black|gray|purple)?[\s-]?(?:spots?|patches?|lesions?|edges?|margins?|tips?|streaks?|rings?|blotch(?:es)?|powder|mold|rot|wilt(?:ing)?|curl(?:ing)?|scorch(?:ing)?|necrosis|chlorosis|blight|canker))\b/gi,
+    ];
+
+    let result = text;
+    const alreadyWrapped = new Set();
+
+    symptomPatterns.forEach(pattern => {
+        result = result.replace(pattern, (match, capturedGroup) => {
+            const symptom = capturedGroup || match;
+            const key = symptom.toLowerCase().trim();
+            if (alreadyWrapped.has(key)) return match;
+            alreadyWrapped.add(key);
+            return `<span class="symptom-pill" data-symptom="${symptom.replace(/"/g, '&quot;')}" title="Click for treatment info">${symptom}</span>`;
+        });
+    });
+
+    return result;
+}
+
 function buildTrustSignalsHTML(trustSignals) {
     if (!trustSignals) return '';
     const items = [
@@ -250,10 +385,11 @@ function buildTrustSignalsHTML(trustSignals) {
     ].filter(i => i.text && i.text !== 'None');
     if (!items.length) return '';
 
+    // Feature 2: Wrap symptom keywords as clickable pills
     const rows = items.map(i => `
         <div class="trust-row">
             <span class="trust-icon" style="color:${i.color}">${i.icon}</span>
-            <span class="trust-text">${i.text}</span>
+            <span class="trust-text">${wrapSymptomsAsPills(i.text)}</span>
         </div>
     `).join('');
 
@@ -264,6 +400,112 @@ function buildTrustSignalsHTML(trustSignals) {
         </details>
     `;
 }
+
+// ═══════════ FEATURE 2: BOTTOM SHEET ═══════════
+
+function createSymptomSheet() {
+    // Only create the sheet DOM once
+    if (document.getElementById('symptom-sheet-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'symptom-sheet-overlay';
+    overlay.className = 'symptom-sheet-overlay';
+
+    const sheet = document.createElement('div');
+    sheet.id = 'symptom-sheet';
+    sheet.className = 'symptom-sheet';
+    sheet.innerHTML = `
+        <div class="symptom-sheet-handle"></div>
+        <div class="symptom-sheet-header">
+            <span class="symptom-sheet-title">Treatment Details</span>
+            <button class="symptom-sheet-close" id="symptom-sheet-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="symptom-sheet-body">
+            <div id="symptom-sheet-content" class="symptom-sheet-content"></div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+
+    // Close handlers
+    const close = () => {
+        overlay.classList.remove('active');
+        sheet.classList.remove('active');
+    };
+    overlay.addEventListener('click', close);
+    document.getElementById('symptom-sheet-close').addEventListener('click', close);
+}
+
+async function showSymptomSheet(symptomText) {
+    createSymptomSheet();
+
+    const overlay = document.getElementById('symptom-sheet-overlay');
+    const sheet = document.getElementById('symptom-sheet');
+    const content = document.getElementById('symptom-sheet-content');
+
+    // Show with skeleton loader
+    content.innerHTML = `
+        <div class="symptom-sheet-pill-tag"><i class="fas fa-search"></i> ${symptomText}</div>
+        <div class="symptom-skeleton">
+            <div class="symptom-skeleton-line"></div>
+            <div class="symptom-skeleton-line"></div>
+            <div class="symptom-skeleton-line"></div>
+            <div class="symptom-skeleton-line"></div>
+            <div class="symptom-skeleton-line"></div>
+        </div>
+    `;
+
+    overlay.classList.add('active');
+    requestAnimationFrame(() => sheet.classList.add('active'));
+
+    // Call /followup for treatment details
+    try {
+        const userName = getUserName();
+        const userType = getUserType();
+        const response = await fetch('http://localhost:8000/followup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                question: `I'm seeing this symptom: "${symptomText}". What are the specific organic and chemical treatments for this exact symptom? Give me step-by-step treatment instructions with Indian-available products.`,
+                disease: detectedDiseaseName,
+                conversation_history: conversationHistory.slice(-4),
+                user_name: userName,
+                user_type: userType,
+                latitude: userCoordinates ? userCoordinates.lat : null,
+                longitude: userCoordinates ? userCoordinates.lng : null,
+            }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            content.innerHTML = `
+                <div class="symptom-sheet-pill-tag"><i class="fas fa-search"></i> ${symptomText}</div>
+                ${formatMarkdown(data.reply)}
+            `;
+        } else {
+            content.innerHTML = `
+                <div class="symptom-sheet-pill-tag"><i class="fas fa-search"></i> ${symptomText}</div>
+                <p style="color:var(--ember);">Could not fetch treatment details. Please try again.</p>
+            `;
+        }
+    } catch (e) {
+        console.error('Symptom sheet fetch error:', e);
+        content.innerHTML = `
+            <div class="symptom-sheet-pill-tag"><i class="fas fa-search"></i> ${symptomText}</div>
+            <p style="color:var(--ember);">Connection error. Is the server running?</p>
+        `;
+    }
+}
+
+// Delegate click handler for symptom pills (attached once after DOM is ready)
+document.addEventListener('click', (e) => {
+    const pill = e.target.closest('.symptom-pill');
+    if (pill) {
+        const symptom = pill.dataset.symptom;
+        if (symptom) showSymptomSheet(symptom);
+    }
+});
 
 
 // --- Region overlay (replaces Grad-CAM) ---
@@ -535,7 +777,7 @@ function addThreadEntry(type, content, extraHTML = '') {
     } else if (type === 'diagnosis') {
         entry.className = 'thread-entry ai-entry';
         entry.innerHTML = `<div class="entry-meta"><div class="entry-icon">AI</div><span>Diagnosis Report</span><span class="entry-time">${time}</span></div><div class="entry-body">${content}</div>${extraHTML}`;
-        conversationHistory.push({ role: 'ai', text: content });
+        conversationHistory.push({ role: 'diagnosis', text: content, html: extraHTML || '' });
     } else if (type === 'warning') {
         entry.className = 'thread-entry warning-entry';
         entry.innerHTML = `<div class="entry-meta"><div class="entry-icon"><i class="fas fa-exclamation-triangle"></i></div><span>Validation Warning</span><span class="entry-time">${time}</span></div><div class="entry-body">${content}</div>`;
@@ -582,12 +824,71 @@ async function saveScanToHistory(diseaseResult, confidenceVal, severityVal) {
         const user = window.firebaseAuth.currentUser;
         const db = window.db;
         const confidenceStr = (typeof confidenceVal === 'number') ? (confidenceVal * 100).toFixed(2) + '%' : confidenceVal;
+        const activePersona = getUserType();
 
+        // ── Phase 1: Resolve / create plant document ──────────────────────────
+        let plantId = selectedPlantId || null;
+        const plantNickname = sanitizePlantNickname(selectedPlantNickname) || sanitizePlantNickname(detectedPlantName) || 'My Plant';
+        const plantSpecies = selectedPlantSpecies || detectedPlantName || '';
+        const plantIcon = buildPlantIcon(plantSpecies || plantNickname, selectedPlantIcon || '🌿');
+
+        if (!plantId && window.addDoc && window.collection) {
+            // No plant selected → auto-create one named after the detected species
+            const newPlantRef = await window.addDoc(window.collection(db, 'plants'), {
+                userId: user.uid,
+                nickname: plantNickname,
+                species: plantSpecies,
+                icon: plantIcon,
+                createdAt: window.serverTimestamp(),
+                lastScannedAt: window.serverTimestamp(),
+                lastStatus: severityVal || 'unknown',
+                lastDisease: diseaseResult,
+                totalScans: 1,
+            });
+            plantId = newPlantRef.id;
+            selectedPlantId = plantId;
+            selectedPlantNickname = plantNickname;
+            console.log('🌱 Auto-created plant doc:', plantId);
+        } else if (plantId) {
+            // Update existing plant doc with latest scan stats
+            const plantRef = window.doc(db, 'plants', plantId);
+            const plantSnap = await window.getDoc(plantRef);
+            const existingPlant = plantSnap.exists() ? plantSnap.data() : {};
+            const prevTotal = existingPlant.totalScans || 0;
+            await window.setDoc(plantRef, {
+                userId: existingPlant.userId || user.uid,
+                nickname: existingPlant.nickname || plantNickname,
+                species: existingPlant.species || plantSpecies,
+                icon: existingPlant.icon || plantIcon,
+                createdAt: existingPlant.createdAt || window.serverTimestamp(),
+                lastScannedAt: window.serverTimestamp(),
+                lastStatus: severityVal || 'unknown',
+                lastDisease: diseaseResult,
+                totalScans: prevTotal + 1,
+            }, { merge: true });
+            console.log('✏️ Updated plant doc:', plantId);
+        }
+
+        // Cap the replay payload to avoid oversized Firestore documents.
+        const chatThread = conversationHistory.slice(-20).map(m => ({
+            role: m.role,
+            text: typeof m.text === 'string' ? m.text.substring(0, 2000) : '',
+            html: typeof m.html === 'string' ? m.html.substring(0, 12000) : '',
+        }));
+
+        // ── Phase 1: Save scan with plantId + chatThread ──────────────────────
         await window.addDoc(window.collection(db, 'scans'), {
-            userId: user.uid, plantName: detectedPlantName || 'Plant Scan',
-            disease: diseaseResult, confidence: confidenceStr, severity: severityVal || 'unknown',
+            userId: user.uid,
+            plantId: plantId || null,
+            plantName: plantNickname,
+            species: plantSpecies,
+            disease: diseaseResult,
+            confidence: confidenceStr,
+            severity: severityVal || 'unknown',
+            persona: activePersona,
             timestamp: window.serverTimestamp(),
             icon: diseaseResult.toLowerCase().includes('healthy') ? 'fas fa-seedling' : 'fas fa-exclamation-triangle',
+            chatThread,
         });
 
         if (userCoordinates) {
@@ -599,7 +900,7 @@ async function saveScanToHistory(diseaseResult, confidenceVal, severityVal) {
             });
             console.log('🗺️ Community scan contributed.');
         }
-        console.log('✅ Scan saved to history.');
+        console.log('✅ Scan + chatThread saved. plantId:', plantId);
     } catch (error) {
         console.error('❌ Error saving scan:', error);
     }
@@ -654,7 +955,7 @@ analyzeButton.addEventListener('click', async (event) => {
     formData.append('file',      file);
     formData.append('user_name', userName);
     formData.append('user_type', userType);
-    formData.append('context',   fieldNote || ctx);
+    formData.append('context',   fieldNote);
     // In your analyzeButton event listener:
 if (typeof currentLocationWeather !== 'undefined' && currentLocationWeather) {
     formData.append('weather_trend', currentLocationWeather);
@@ -802,7 +1103,15 @@ if (typeof currentLocationWeather !== 'undefined' && currentLocationWeather) {
             drawRegionOverlay(overlayLeaf, evidence.affected_regions);
         }
 
-        saveScanToHistory(diseaseName, confidence, severity);
+        await saveScanToHistory(diseaseName, confidence, severity);
+
+        // ── Feature 1: Trend Timeline ──
+        renderTrendTimeline();
+
+        // ── Feature 5: Embedded Mini-Map ──
+        if (['moderate', 'severe'].includes(severity) && userCoordinates) {
+            injectMiniMapWidget();
+        }
 
         if (unifiedSection) unifiedSection.style.display = 'block';
         if (followupBar) followupBar.style.display = 'flex';
@@ -942,18 +1251,12 @@ simulateBtn.addEventListener('click', async () => {
 });
 
 // ═══════════ EXPERT PLAN — MODULE 3 (/get_expert_plan) ═══════════
+// Feature 4: Smart Persona Switch — refactored for cache + toggle
 
-planBtn.addEventListener('click', async () => {
-    if (!detectedDiseaseName) return;
-
+async function fetchPlanForPersona(userType) {
     const file = fileInput.files[0];
     const noteContext = fieldNoteInput ? fieldNoteInput.value.trim() : '';
     const userName = getUserName();
-    const userType = getUserType();
-
-    setThreadActionState(planBtn, '<span class="thread-action-text"><strong>Building plan...</strong><small>Adding a treatment plan to the thread.</small></span>', true);
-    addTypingIndicator();
-    if (globalLoader) globalLoader.style.display = 'block';
 
     const formData = new FormData();
     formData.append('file', file);
@@ -964,28 +1267,399 @@ planBtn.addEventListener('click', async () => {
     formData.append('user_type', userType);
     if (userCoordinates) { formData.append('latitude', userCoordinates.lat); formData.append('longitude', userCoordinates.lng); }
 
+    const response = await fetch('http://localhost:8000/get_expert_plan', { method: 'POST', body: formData });
+    const data = await response.json();
+    if (data.plan) {
+        return formatMarkdown(data.plan);
+    }
+    throw new Error(data.error || 'Plan generation failed');
+}
+
+function buildPersonaSwitchBar(activeType) {
+    const personas = [
+        { value: 'home_gardener', label: 'Home Garden' },
+        { value: 'farmer', label: 'Farmer' },
+        { value: 'nursery', label: 'Nursery' },
+        { value: 'student', label: 'Student' },
+    ];
+
+    return `
+        <div class="persona-switch-bar" id="persona-switch-bar">
+            <span class="persona-switch-label">View as:</span>
+            ${personas.map(p => {
+                const isActive = p.value === activeType;
+                const isCached = personaCache[p.value] && !isActive;
+                return `<button class="persona-switch-pill ${isActive ? 'active' : ''} ${isCached ? 'cached' : ''}" data-persona="${p.value}">${p.label}</button>`;
+            }).join('')}
+        </div>
+    `;
+}
+
+function attachPersonaSwitchHandlers() {
+    const bar = document.getElementById('persona-switch-bar');
+    if (!bar) return;
+
+    bar.querySelectorAll('.persona-switch-pill').forEach(pill => {
+        pill.addEventListener('click', async () => {
+            const persona = pill.dataset.persona;
+            const wrapper = document.getElementById('persona-plan-content');
+            if (!wrapper || pill.classList.contains('active')) return;
+
+            // Update active state
+            bar.querySelectorAll('.persona-switch-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+
+            // Check cache first — instant swap (zero tokens!)
+            if (personaCache[persona]) {
+                console.log(`⚡ Cache hit for "${persona}" — instant swap`);
+                wrapper.innerHTML = personaCache[persona];
+                return;
+            }
+
+            // No cache — fetch from API
+            pill.innerHTML += '<span class="pill-loader"></span>';
+            wrapper.innerHTML = `<div class="plan-loading-overlay"><i class="fas fa-circle-notch fa-spin"></i></div>` + wrapper.innerHTML;
+
+            try {
+                const planHTML = await fetchPlanForPersona(persona);
+                personaCache[persona] = planHTML;
+                wrapper.innerHTML = planHTML;
+                pill.classList.add('cached');
+                if (window.toast) window.toast.success(`Switched to ${pill.textContent.replace(/\s+/g, ' ').trim()} view`);
+            } catch (e) {
+                console.error(e);
+                wrapper.querySelector('.plan-loading-overlay')?.remove();
+                if (window.toast) window.toast.error('Failed to load plan for this persona.');
+            } finally {
+                // Remove the loader spinner from the pill
+                const loader = pill.querySelector('.pill-loader');
+                if (loader) loader.remove();
+            }
+        });
+    });
+}
+
+planBtn.addEventListener('click', async () => {
+    if (!detectedDiseaseName) return;
+
+    const userType = getUserType();
+
+    setThreadActionState(planBtn, '<span class="thread-action-text"><strong>Building plan...</strong><small>Adding a treatment plan to the thread.</small></span>', true);
+    addTypingIndicator();
+    if (globalLoader) globalLoader.style.display = 'block';
+
+    // Clear persona cache for a fresh plan session
+    personaCache = {};
+
     try {
-        const response = await fetch('http://localhost:8000/get_expert_plan', { method: 'POST', body: formData });
-        const data = await response.json();
+        const planHTML = await fetchPlanForPersona(userType);
         removeTypingIndicator();
 
-        if (data.plan) {
-            const html = formatMarkdown(data.plan);
-            
-            addThreadEntry('ai', '<strong>🧑‍⚕️ Expert care plan</strong><br>' + html);
-            if (window.toast) window.toast.success('Expert plan generated!');
-        } else {
-            addThreadEntry('warning', 'Care plan generation failed. Please try again.');
-            if (window.toast) window.toast.error('Expert plan failed: ' + (data.error || 'Unknown'));
-        }
+        // Cache the first result
+        personaCache[userType] = planHTML;
+
+        // Build the entry with persona switch bar
+        const switchBar = buildPersonaSwitchBar(userType);
+        const entryContent = `
+            <strong>🧑‍⚕️ Expert care plan</strong><br>
+            ${switchBar}
+            <div class="persona-plan-wrapper" id="persona-plan-content">
+                ${planHTML}
+            </div>
+        `;
+
+        lastPlanEntry = addThreadEntry('ai', entryContent);
+
+        // Attach toggle handlers after the DOM is updated
+        setTimeout(() => attachPersonaSwitchHandlers(), 50);
+
+        if (window.toast) window.toast.success('Expert plan generated!');
     } catch (e) {
         console.error(e);
         removeTypingIndicator();
-        addThreadEntry('warning', 'Connection error while generating the care plan.');
-        if (window.toast) window.toast.error('Error connecting to AI expert.');
+        addThreadEntry('warning', 'Care plan generation failed. Please try again.');
+        if (window.toast) window.toast.error('Expert plan failed: ' + e.message);
     } finally {
         removeTypingIndicator();
         setThreadActionState(planBtn, '', false);
         if (globalLoader) globalLoader.style.display = 'none';
     }
 });
+
+
+// ═══════════ FEATURE 1: TREND TIMELINE ═══════════
+
+async function renderTrendTimeline() {
+    // Need Firebase and a logged-in user
+    if (!window.firebaseAuth || !window.firebaseAuth.currentUser) return;
+    if (!window.db || !window.collection || !window.getDocs || !window.query || !window.orderBy || !window.limit || !window.where) return;
+
+    try {
+        const user = window.firebaseAuth.currentUser;
+        const scansRef = window.collection(window.db, 'scans');
+        let snapshot = null;
+
+        if (selectedPlantId) {
+            const qByPlantId = window.query(
+                scansRef,
+                window.where('userId', '==', user.uid),
+                window.where('plantId', '==', selectedPlantId),
+                window.orderBy('timestamp', 'desc'),
+                window.limit(10)
+            );
+            snapshot = await window.getDocs(qByPlantId);
+        }
+
+        if (!snapshot || snapshot.empty) {
+            const qLegacy = window.query(
+                scansRef,
+                window.where('userId', '==', user.uid),
+                window.where('plantName', '==', sanitizePlantNickname(selectedPlantNickname) || detectedPlantName || 'Plant Scan'),
+                window.orderBy('timestamp', 'desc'),
+                window.limit(10)
+            );
+            snapshot = await window.getDocs(qLegacy);
+        }
+
+        if (snapshot.empty || snapshot.docs.length < 2) {
+            console.log('📊 Trend Timeline: < 2 scans exist, skipping render.');
+            return;
+        }
+
+        const scans = snapshot.docs.map(doc => {
+            const d = doc.data();
+            return {
+                disease: d.disease || 'Unknown',
+                severity: d.severity || 'unknown',
+                confidence: d.confidence || '0%',
+                timestamp: d.timestamp?.toMillis?.() || Date.now(),
+                plantName: d.plantName || 'Plant',
+            };
+        }).reverse(); // Oldest first for sparkline
+
+        const severityToNum = { none: 100, healthy: 100, mild: 70, moderate: 40, severe: 15, unknown: 50 };
+        const dataPoints = scans.map(s => severityToNum[s.severity] || 50);
+
+        // ── Build the horizontal card strip ──
+        const cardsHTML = scans.map((s, i) => {
+            const isCurrent = i === scans.length - 1;
+            const date = new Date(s.timestamp).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+            return `
+                <div class="trend-card ${isCurrent ? 'current' : ''}">
+                    <div class="trend-card-date">${date}</div>
+                    <div class="trend-card-disease">${s.disease}</div>
+                    <div class="trend-card-severity">
+                        <span class="trend-severity-dot ${s.severity}"></span>
+                        <span class="trend-severity-label">${s.severity}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // ── Build the SVG sparkline (manual <polyline>) ──
+        const svgW = 300;
+        const svgH = 50;
+        const padX = 10;
+        const padY = 5;
+        const stepX = (svgW - padX * 2) / Math.max(dataPoints.length - 1, 1);
+
+        const points = dataPoints.map((val, i) => {
+            const x = padX + i * stepX;
+            const y = padY + ((100 - val) / 100) * (svgH - padY * 2);
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+
+        // Determine line color based on trend direction
+        const lastVal = dataPoints[dataPoints.length - 1];
+        const prevVal = dataPoints[dataPoints.length - 2];
+        let lineColor = '#7cb342'; // improving
+        if (lastVal < prevVal) lineColor = '#c0543a'; // worsening
+        else if (lastVal === prevVal) lineColor = '#c9a84c'; // stable
+
+        const sparklineSVG = `
+            <svg class="trend-sparkline-svg" viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.2"/>
+                        <stop offset="100%" stop-color="${lineColor}" stop-opacity="0"/>
+                    </linearGradient>
+                </defs>
+                <polygon points="${padX},${svgH - padY} ${points} ${padX + (dataPoints.length - 1) * stepX},${svgH - padY}" fill="url(#sparkFill)" />
+                <polyline points="${points}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                ${dataPoints.map((val, i) => {
+                    const x = padX + i * stepX;
+                    const y = padY + ((100 - val) / 100) * (svgH - padY * 2);
+                    const r = i === dataPoints.length - 1 ? 4 : 3;
+                    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${lineColor}" stroke="${i === dataPoints.length - 1 ? '#fff' : 'none'}" stroke-width="1.5" />`;
+                }).join('')}
+            </svg>
+        `;
+
+        // ── "New Feature Unlocked" badge (only on exactly 2 scans) ──
+        const unlockBadge = scans.length === 2
+            ? '<span class="trend-unlock-badge"><i class="fas fa-lock-open"></i> Trend Tracking Unlocked!</span>'
+            : '';
+
+        // ── Inject into the last diagnosis card ──
+        const diagCards = threadEntries.querySelectorAll('.premium-diagnosis-card');
+        const lastDiagCard = diagCards[diagCards.length - 1];
+        if (!lastDiagCard) return;
+
+        // Don't add twice
+        if (lastDiagCard.querySelector('.trend-timeline-section')) return;
+
+        const timelineSection = document.createElement('div');
+        timelineSection.className = 'trend-timeline-section';
+        timelineSection.innerHTML = `
+            <div class="trend-timeline-header">
+                <span class="trend-timeline-title"><i class="fas fa-chart-line"></i> Scan History</span>
+                ${unlockBadge}
+            </div>
+            <div class="trend-timeline-strip">${cardsHTML}</div>
+            <div class="trend-sparkline-row">
+                <span class="trend-sparkline-label">Health Trend</span>
+                ${sparklineSVG}
+            </div>
+        `;
+
+        lastDiagCard.appendChild(timelineSection);
+
+        // Scroll the strip to show the latest card
+        const strip = timelineSection.querySelector('.trend-timeline-strip');
+        if (strip) setTimeout(() => strip.scrollLeft = strip.scrollWidth, 100);
+
+        console.log(`📊 Trend Timeline rendered with ${scans.length} scans`);
+    } catch (error) {
+        console.warn('⚠️ Trend Timeline error:', error);
+    }
+}
+
+
+// ═══════════ FEATURE 5: EMBEDDED MINI-MAP ═══════════
+
+function initMiniMap(containerId, centerCoords, scans) {
+    const container = document.getElementById(containerId);
+    if (!container || typeof L === 'undefined') {
+        console.warn('⚠️ initMiniMap: Leaflet or container not found');
+        return null;
+    }
+
+    const map = L.map(containerId, {
+        center: [centerCoords.lat, centerCoords.lng],
+        zoom: 9,
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        touchZoom: false,
+        keyboard: false,
+        boxZoom: false,
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19,
+    }).addTo(map);
+
+    // Add user location marker
+    const userIcon = L.divIcon({
+        html: `<div style="width:12px;height:12px;background:#7cb342;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(124,179,66,0.6);"></div>`,
+        className: '',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6],
+    });
+    L.marker([centerCoords.lat, centerCoords.lng], { icon: userIcon }).addTo(map);
+
+    // Add community scan markers
+    scans.forEach(scan => {
+        const sev = (scan.severity || '').toLowerCase();
+        const color = sev === 'severe' ? '#e74c3c' : sev === 'moderate' ? '#c0543a' : '#c9a84c';
+        const icon = L.divIcon({
+            html: `<div style="width:8px;height:8px;background:${color};border-radius:50%;opacity:0.8;box-shadow:0 0 6px ${color}66;"></div>`,
+            className: '',
+            iconSize: [8, 8],
+            iconAnchor: [4, 4],
+        });
+        L.marker([scan.lat, scan.lng], { icon }).addTo(map);
+    });
+
+    // Fix map sizing after inject
+    setTimeout(() => map.invalidateSize(), 200);
+
+    return map;
+}
+
+async function injectMiniMapWidget() {
+    if (!userCoordinates || !detectedDiseaseName) return;
+    if (!window.db || !window.collection || !window.getDocs || !window.query || !window.where) return;
+
+    try {
+        // Query community_scans for matching disease within ~50km radius
+        const lat = userCoordinates.lat;
+        const lng = userCoordinates.lng;
+        const latRange = 0.45; // ~50km
+        const lngRange = 0.45;
+
+        const scansRef = window.collection(window.db, 'community_scans');
+        const snapshot = await window.getDocs(
+            window.query(
+                scansRef,
+                window.where('disease', '==', detectedDiseaseName)
+            )
+        );
+
+        // Filter by distance client-side
+        const nearbyScans = snapshot.docs
+            .map(doc => doc.data())
+            .filter(d => {
+                const dLat = Number(d.latitude);
+                const dLng = Number(d.longitude);
+                return Number.isFinite(dLat) && Number.isFinite(dLng)
+                    && Math.abs(dLat - lat) <= latRange
+                    && Math.abs(dLng - lng) <= lngRange;
+            })
+            .map(d => ({
+                lat: Number(d.latitude),
+                lng: Number(d.longitude),
+                severity: d.severity || 'unknown',
+            }));
+
+        if (nearbyScans.length === 0) {
+            console.log('🗺️ No nearby community scans for this disease.');
+            return;
+        }
+
+        // Generate a unique ID for this minimap
+        const mapId = 'minimap-' + Date.now();
+
+        const mapWidget = `
+            <div class="thread-minimap-card">
+                <div class="thread-minimap-header">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span>${detectedDiseaseName} — Nearby Reports</span>
+                    <span class="minimap-count">${nearbyScans.length} case${nearbyScans.length !== 1 ? 's' : ''} nearby</span>
+                </div>
+                <div class="thread-minimap-container" id="${mapId}"></div>
+                <div class="thread-minimap-footer">
+                    <i class="fas fa-info-circle"></i>
+                    Community-reported cases within ~50km of your location
+                </div>
+            </div>
+        `;
+
+        addThreadEntry('ai',
+            `<strong>🗺️ Outbreak Map</strong><br>We found <strong>${nearbyScans.length}</strong> reported case${nearbyScans.length !== 1 ? 's' : ''} of <em>${detectedDiseaseName}</em> near your area.`,
+            mapWidget
+        );
+
+        // Initialize Leaflet after the DOM renders
+        setTimeout(() => {
+            initMiniMap(mapId, userCoordinates, nearbyScans);
+        }, 200);
+
+        console.log(`🗺️ Mini-map injected with ${nearbyScans.length} nearby scans`);
+    } catch (error) {
+        console.warn('⚠️ Mini-map injection error:', error);
+    }
+}

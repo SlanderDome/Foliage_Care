@@ -466,13 +466,29 @@ function normalizeScanRecord(data, sourceLabel, idHint) {
 
 async function fetchScansFromTopLevel(user) {
   try {
+    console.log('🔍 [PROFILE DEBUG] Fetching scans for user UID:', user.uid);
+    console.log('🔍 [PROFILE DEBUG] window.db exists:', !!window.db);
+    console.log('🔍 [PROFILE DEBUG] window.collection exists:', typeof window.collection);
+    console.log('🔍 [PROFILE DEBUG] window.query exists:', typeof window.query);
+    console.log('🔍 [PROFILE DEBUG] window.where exists:', typeof window.where);
+    console.log('🔍 [PROFILE DEBUG] window.getDocs exists:', typeof window.getDocs);
+
     const scansRef = window.collection(window.db, 'scans');
     const scanQuery = window.query(scansRef, window.where('userId', '==', user.uid));
     const snapshot = await window.getDocs(scanQuery);
 
-    return snapshot.docs.map((docSnap) => normalizeScanRecord(docSnap.data(), 'scan history', docSnap.id));
+    console.log('🔍 [PROFILE DEBUG] Query returned', snapshot.docs.length, 'documents');
+    if (snapshot.docs.length > 0) {
+      console.log('🔍 [PROFILE DEBUG] First doc data:', JSON.stringify(snapshot.docs[0].data()));
+    }
+
+    const results = snapshot.docs.map((docSnap) => normalizeScanRecord(docSnap.data(), 'scan history', docSnap.id));
+    console.log('🔍 [PROFILE DEBUG] Normalized results:', results);
+    return results;
   } catch (error) {
-    console.warn('Top-level scan load failed:', error);
+    console.error('❌ [PROFILE DEBUG] Top-level scan load FAILED:', error);
+    console.error('❌ [PROFILE DEBUG] Error code:', error.code);
+    console.error('❌ [PROFILE DEBUG] Error message:', error.message);
     return [];
   }
 }
@@ -685,6 +701,8 @@ function initAvatarUpload() {
 }
 
 async function handleAuthenticatedUser(user) {
+  console.log('🔍 [PROFILE DEBUG] handleAuthenticatedUser called');
+  console.log('🔍 [PROFILE DEBUG] User:', user.email, user.uid);
   state.user = user;
 
   await Promise.all([
@@ -692,8 +710,12 @@ async function handleAuthenticatedUser(user) {
     loadScans(user)
   ]);
 
+  console.log('🔍 [PROFILE DEBUG] Scans loaded into state:', state.scans.length, 'records');
+  console.log('🔍 [PROFILE DEBUG] State scans:', state.scans);
+
   fillSettingsForm();
   renderAll();
+  console.log('🔍 [PROFILE DEBUG] renderAll() complete');
 }
 
 function bindProfileAuth() {

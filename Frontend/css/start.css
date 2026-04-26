@@ -3507,3 +3507,595 @@ textarea[readonly] {
 }
 /* Hide the previous boxy diagnosis visual if it accidentally renders */
 .diagnosis-visuals { display: none !important; }
+
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FEATURE 1 — TREND TIMELINE (Sparkline with Historical Scans)     ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+.trend-timeline-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.trend-timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.trend-timeline-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ff-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+}
+
+.trend-timeline-title i {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.trend-unlock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--r-pill);
+  padding: 3px 10px;
+  animation: unlockPulse 2s ease-in-out 3;
+}
+
+@keyframes unlockPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 179, 66, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(124, 179, 66, 0); }
+}
+
+.trend-timeline-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-dim) transparent;
+}
+
+.trend-timeline-strip::-webkit-scrollbar {
+  height: 4px;
+}
+.trend-timeline-strip::-webkit-scrollbar-thumb {
+  background: var(--accent-dim);
+  border-radius: 4px;
+}
+
+.trend-card {
+  flex: 0 0 140px;
+  scroll-snap-align: start;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-card);
+  border-radius: var(--r-md);
+  padding: 14px;
+  cursor: default;
+  transition: transform var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+
+.trend-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-accent);
+  background: rgba(124, 179, 66, 0.03);
+}
+
+.trend-card.current {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 20px rgba(124, 179, 66, 0.08);
+}
+
+.trend-card-date {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.trend-card-disease {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
+}
+
+.trend-card-severity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trend-severity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.trend-severity-dot.none   { background: var(--accent); }
+.trend-severity-dot.mild   { background: var(--gold); }
+.trend-severity-dot.moderate { background: var(--ember); }
+.trend-severity-dot.severe { background: #e74c3c; }
+
+.trend-severity-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.trend-sparkline-row {
+  margin-top: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-card);
+  border-radius: var(--r-md);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.trend-sparkline-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.trend-sparkline-svg {
+  flex: 1;
+  height: 50px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FEATURE 2 — INTERACTIVE SYMPTOM PILLS + BOTTOM SHEET            ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+.symptom-pill {
+  display: inline;
+  cursor: pointer;
+  color: var(--accent);
+  border-bottom: 1.5px dashed rgba(124, 179, 66, 0.5);
+  padding: 0 2px;
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+  font-weight: 500;
+}
+
+.symptom-pill:hover {
+  background: var(--accent-soft);
+  border-bottom-color: var(--accent);
+  color: #a8d460;
+}
+
+/* Bottom Sheet Overlay */
+.symptom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--t-med), visibility var(--t-med);
+}
+
+.symptom-sheet-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.symptom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9001;
+  max-height: 65vh;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-card);
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  box-shadow: 0 -16px 56px rgba(0, 0, 0, 0.6);
+  transform: translateY(100%);
+  transition: transform var(--t-med) var(--ease-out);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.symptom-sheet.active {
+  transform: translateY(0);
+}
+
+.symptom-sheet-handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 8px;
+  cursor: grab;
+}
+
+.symptom-sheet-handle::after {
+  content: '';
+  width: 36px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.symptom-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.symptom-sheet-title {
+  font-family: var(--ff-heading);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.symptom-sheet-close {
+  background: none;
+  border: 1px solid var(--border-card);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.symptom-sheet-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.symptom-sheet-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.symptom-sheet-content {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.symptom-sheet-content strong {
+  color: var(--text-primary);
+}
+
+.symptom-sheet-content ul,
+.symptom-sheet-content ol {
+  padding-left: 18px;
+  margin: 12px 0;
+}
+
+.symptom-sheet-content li {
+  margin-bottom: 8px;
+}
+
+/* Skeleton Loader inside Bottom Sheet */
+.symptom-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0;
+}
+
+.symptom-skeleton-line {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.03) 0%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.03) 100%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+}
+
+.symptom-skeleton-line:nth-child(1) { width: 90%; }
+.symptom-skeleton-line:nth-child(2) { width: 75%; }
+.symptom-skeleton-line:nth-child(3) { width: 85%; }
+.symptom-skeleton-line:nth-child(4) { width: 60%; }
+.symptom-skeleton-line:nth-child(5) { width: 70%; }
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.symptom-sheet-pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--r-pill);
+  padding: 4px 12px;
+  margin-bottom: 16px;
+}
+
+.symptom-sheet-pill-tag i {
+  font-size: 0.65rem;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FEATURE 3 — DYNAMIC WEATHER ALERT BADGES                         ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+.weather-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  animation: weatherBadgePulse 3s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+@keyframes weatherBadgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.weather-alert-badge.weather-rain {
+  background: rgba(52, 152, 219, 0.12);
+  color: #5dade2;
+  border: 1px solid rgba(52, 152, 219, 0.25);
+}
+
+.weather-alert-badge.weather-heat {
+  background: rgba(243, 156, 18, 0.12);
+  color: #f39c12;
+  border: 1px solid rgba(243, 156, 18, 0.25);
+}
+
+.weather-alert-badge.weather-cold {
+  background: rgba(142, 204, 255, 0.12);
+  color: #85c1e9;
+  border: 1px solid rgba(142, 204, 255, 0.25);
+}
+
+.action-card-header {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FEATURE 4 — SMART PERSONA SWITCH (Post-Diagnosis Toggle)        ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+.persona-switch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-card);
+  border-radius: var(--r-lg);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.persona-switch-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+.persona-switch-pill {
+  border: 1px solid var(--border-card);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--ff-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease-out);
+  position: relative;
+  white-space: nowrap;
+}
+
+.persona-switch-pill:hover {
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+  background: rgba(124, 179, 66, 0.04);
+}
+
+.persona-switch-pill.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  color: var(--text-on-accent);
+  border-color: var(--accent);
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(124, 179, 66, 0.2);
+}
+
+.persona-switch-pill.cached::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--bg-card);
+}
+
+.persona-switch-pill .pill-loader {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.persona-plan-wrapper {
+  position: relative;
+  min-height: 60px;
+}
+
+.persona-plan-wrapper .plan-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 5, 4, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-md);
+  z-index: 5;
+}
+
+.persona-plan-wrapper .plan-loading-overlay i {
+  font-size: 1.2rem;
+  color: var(--accent);
+}
+
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FEATURE 5 — EMBEDDED MINI-MAP (Thread Widget)                    ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+.thread-minimap-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.thread-minimap-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.thread-minimap-header i {
+  color: var(--ember);
+  font-size: 0.8rem;
+}
+
+.thread-minimap-header span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+}
+
+.thread-minimap-header .minimap-count {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-pill);
+  padding: 2px 8px;
+}
+
+.thread-minimap-container {
+  width: 100%;
+  height: 200px;
+  position: relative;
+}
+
+/* Dark theme overrides for embedded Leaflet */
+.thread-minimap-container .leaflet-control-attribution {
+  display: none !important;
+}
+
+.thread-minimap-container .leaflet-tile-pane {
+  filter: brightness(0.85) contrast(1.1);
+}
+
+.thread-minimap-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thread-minimap-footer i {
+  color: var(--accent-dim);
+  font-size: 0.65rem;
+}
+
+.minimap-empty-state {
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.minimap-empty-state i {
+  font-size: 1.5rem;
+  opacity: 0.4;
+}
+
+.minimap-empty-state span {
+  font-size: 0.75rem;
+}

@@ -1,4 +1,4 @@
-﻿# ==========================================
+# ==========================================
 #  FOLIAGE CARE — API GATEWAY v2.1
 #  No CNN. Pure Gemini Vision.
 #  M1: /predict         — Diagnosis + region overlay

@@ -1,0 +1,2137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foliage Care | The Living Lab</title>
+  <meta
+    name="description"
+    content="The Living Lab playground for Foliage Care, showcasing AI diagnosis, disease forecasting, and outbreak intelligence in a bioluminescent greenhouse experience."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:wght@300;400;500&family=DM+Sans:wght@400;500;700&family=Noto+Serif+Devanagari:wght@300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/892926.png" type="image/png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 90%, rgba(124,179,66,.08), transparent 55%),
+        radial-gradient(ellipse 60% 50% at 85% 10%, rgba(201,168,76,.04), transparent 50%),
+        linear-gradient(155deg, rgba(2,3,2,.4) 0%, rgba(4,5,4,.5) 20%, #080a08 40%, #162010 60%, #1e2e16 80%, #11180d 100%);
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      color: #e8e6dc;
+      min-height: 100vh;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: .035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 180px 180px;
+    }
+
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      display: block;
+    }
+
+    #ui-overlay {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      pointer-events: none;
+    }
+
+    button, a, input, .clickable, .feat-card { pointer-events: all; }
+
+    .page-shell {
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 0 56px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0 48px;
+      min-height: 64px;
+      background: rgba(5, 6, 4, .9);
+      backdrop-filter: blur(20px) saturate(1.6);
+      -webkit-backdrop-filter: blur(20px) saturate(1.6);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      box-shadow: 0 1px 0 rgba(255,255,255,.03);
+      margin-bottom: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background:
+        radial-gradient(circle at 35% 35%, rgba(74,222,128,0.6), transparent 38%),
+        linear-gradient(140deg, rgba(10,26,15,0.95), rgba(7,17,11,0.9));
+      border: 1px solid rgba(74,222,128,0.25);
+      position: relative;
+      box-shadow: 0 0 28px rgba(74,222,128,0.12);
+      overflow: hidden;
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      inset: 7px 12px 9px 12px;
+      border-radius: 50% 50% 50% 10%;
+      border: 1px solid rgba(74,222,128,0.65);
+      transform: rotate(-38deg);
+    }
+
+    .brand-mark::after {
+      inset: 18px 18px 8px 18px;
+      border-radius: 999px;
+      background: rgba(45,212,191,0.22);
+      border: none;
+      filter: blur(4px);
+      transform: none;
+    }
+
+    .brand-copy {
+      display: grid;
+      gap: 2px;
+    }
+
+    .brand-copy strong {
+      font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+      font-size: 1.65rem;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #e8e6dc;
+    }
+
+    .brand-copy span {
+      font-family: 'Noto Serif Devanagari', serif;
+      font-size: .72rem;
+      font-weight: 400;
+      color: rgba(160,160,144,.65);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-wrap: wrap;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: flex;
+      align-items: center;
+      color: #a0a090;
+      text-decoration: none;
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      border-radius: 8px;
+      position: relative;
+      transition: color .2s ease, background .2s ease;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      transform: translateX(-50%);
+      background: #7cb342;
+      border-radius: 2px;
+      transition: width .4s cubic-bezier(.16,1,.3,1);
+    }
+
+    .nav-links a:hover,
+    .nav-links a:focus-visible {
+      color: #e8e6dc;
+      background: rgba(255,255,255,.04);
+      outline: none;
+    }
+
+    .nav-links a:hover::after,
+    .nav-links a.active::after {
+      width: 50%;
+    }
+
+    .nav-links a.active {
+      color: #7cb342;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 24px;
+      align-items: start;
+      min-height: 82vh;
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 88px 72px 96px;
+    }
+
+    #hero {
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at center, transparent 30%, rgba(2,3,2,.8) 100%);
+    }
+
+    .hero-copy {
+      max-width: 50%;
+      position: relative;
+      z-index: 1;
+      padding: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(74,222,128,0.08);
+      border: 1px solid rgba(74,222,128,0.25);
+      border-radius: 100px;
+      padding: 6px 18px;
+      margin-bottom: 28px;
+      animation: fadeDown 0.8s ease both;
+      pointer-events: none;
+      box-shadow: 0 0 24px rgba(124,179,66,.08);
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: blink 2.5s ease-in-out infinite;
+    }
+
+    .badge span:last-child {
+      font-size: 11px;
+      font-weight: 500;
+      color: #7cb342;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(124,179,66,.7);
+      animation: fadeDown 0.8s ease 0.05s both;
+    }
+
+    .section-label::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: rgba(124,179,66,.35);
+      box-shadow: 0 0 16px rgba(124,179,66,.2);
+    }
+
+    .hero-title {
+      font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+      font-size: clamp(3rem, 5.2vw, 5rem);
+      font-weight: 400;
+      color: #fff;
+      line-height: 1.05;
+      letter-spacing: -1px;
+      margin: 24px 0 20px;
+      animation: fadeDown 0.8s ease 0.1s both;
+      max-width: none;
+    }
+
+    .hero-title em,
+    .hero-title strong {
+      font-style: normal;
+      font-weight: 400;
+      background: linear-gradient(135deg, #8cc63f 0%, #c9a84c 50%, #7cb342 100%);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 6s ease-in-out infinite;
+    }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      font-weight: 400;
+      color: #a0a090;
+      line-height: 1.85;
+      max-width: 480px;
+      animation: fadeDown 0.8s ease 0.2s both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 34px;
+      animation: fadeDown 0.8s ease 0.28s both;
+    }
+
+    .hero-btn,
+    .hero-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 54px;
+      padding: 16px 38px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-size: .88rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform .2s cubic-bezier(.34,1.56,.64,1), border-color .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease;
+    }
+
+    .hero-btn {
+      border: none;
+      background: linear-gradient(135deg, #8cc63f, #5a8a2f);
+      color: #111310;
+      box-shadow:
+        0 6px 24px rgba(124,179,66,.25),
+        inset 0 1px 0 rgba(255,255,255,.15);
+      font-family: 'DM Sans', system-ui, sans-serif;
+    }
+
+    .hero-link {
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(8,10,8,.75);
+      color: #a0a090;
+    }
+
+    .hero-btn:hover,
+    .hero-link:hover,
+    .hero-btn:focus-visible,
+    .hero-link:focus-visible {
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .hero-btn:hover,
+    .hero-btn:focus-visible {
+      background: linear-gradient(135deg, #8cc63f, #5a8a2f);
+      box-shadow: 0 12px 36px rgba(124,179,66,.35);
+    }
+
+    .hero-link:hover,
+    .hero-link:focus-visible {
+      color: #e8e6dc;
+      border-color: rgba(124,179,66,.2);
+      background: rgba(12,15,12,.95);
+    }
+
+    .hero-side {
+      display: grid;
+      gap: 18px;
+      animation: fadeUp 0.9s ease 0.34s both;
+    }
+
+    .hero-panel,
+    .status-panel {
+      background: rgba(8,10,8,.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 28px;
+      box-shadow:
+        0 16px 48px rgba(0,0,0,.4),
+        0 0 0 1px rgba(255,255,255,.03);
+    }
+
+    .hero-panel {
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      min-height: 540px;
+    }
+
+    .hero-panel::before {
+      content: "";
+      position: absolute;
+      inset: -20% auto auto -12%;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,179,66,.12), rgba(124,179,66,0));
+      pointer-events: none;
+    }
+
+    .panel-head,
+    .status-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-head { margin-bottom: 18px; }
+    .status-head { margin-bottom: 18px; }
+
+    .panel-head strong,
+    .status-head strong {
+      font-size: 15px;
+      font-weight: 400;
+      color: #e8e6dc;
+    }
+
+    .panel-head span,
+    .status-head span {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(124,179,66,.7);
+    }
+
+    #leaf-anchor {
+      height: 320px;
+      position: relative;
+      margin: 18px 0 26px;
+      border-radius: 24px;
+      border: 1px dashed rgba(255,255,255,.08);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(124,179,66,.08), transparent 44%),
+        linear-gradient(180deg, rgba(7,18,10,0.26), rgba(6,12,8,0.08));
+      overflow: hidden;
+    }
+
+    .leaf-anchor-glow {
+      position: absolute;
+      inset: auto 18% 12% 18%;
+      height: 58px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,179,66,.12), rgba(124,179,66,0));
+      filter: blur(18px);
+      pointer-events: none;
+    }
+
+    .rings {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(74,222,128,0.12);
+      transform: translate(-50%, -50%);
+      animation: expandRing 3.5s ease-out infinite;
+      box-shadow: 0 0 40px rgba(74,222,128,0.05);
+    }
+
+    .r1 { width: 280px; height: 280px; animation-delay: 0s; }
+    .r2 { width: 400px; height: 400px; animation-delay: 1s; }
+    .r3 { width: 520px; height: 520px; animation-delay: 2s; }
+
+    .hero-readout {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .readout {
+      padding: 14px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(5,6,5,.65);
+    }
+
+    .readout .label {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(240,253,244,0.3);
+      margin-bottom: 6px;
+    }
+
+    .readout .value {
+      display: block;
+      font-size: 26px;
+      font-weight: 500;
+      font-family: 'Courier New', monospace;
+      color: #7cb342;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+      margin-bottom: 4px;
+    }
+
+    .readout .hint {
+      display: block;
+      font-size: 12px;
+      font-weight: 300;
+      line-height: 1.6;
+      color: #a0a090;
+    }
+
+    .status-panel { padding: 20px 22px; }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .status-copy {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .status-copy p,
+    .lab-card p {
+      font-size: 14px;
+      font-weight: 300;
+      line-height: 1.7;
+      color: #a0a090;
+    }
+
+    .status-copy strong { color: #e8e6dc; font-weight: 400; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(124,179,66,.2);
+      background: rgba(124,179,66,.08);
+      color: #7cb342;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 0 rgba(124,179,66,.4);
+      animation: blink 2.2s ease-in-out infinite;
+    }
+
+    .timeline {
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(5,6,5,.7);
+      padding: 14px 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .timeline-item .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 5px;
+      background: rgba(124,179,66,.25);
+      box-shadow: 0 0 18px rgba(124,179,66,.1);
+      transition: background 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+    }
+
+    .timeline-item.active .dot {
+      background: #7cb342;
+      box-shadow: 0 0 18px rgba(124,179,66,.35);
+      transform: scale(1.15);
+    }
+
+    .timeline-item span {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(160,160,144,.55);
+      margin-bottom: 4px;
+    }
+
+    .timeline-item p {
+      font-size: 13px;
+      font-weight: 300;
+      line-height: 1.6;
+      color: #a0a090;
+    }
+
+    #features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      padding: 56px 48px;
+      background: rgba(1,2,1,.82);
+      border-top: 1px solid rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      max-width: 1360px;
+      margin: 0 auto 40px;
+    }
+
+    .feat-card {
+      background: rgba(8,10,8,.78);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition:
+        transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 400ms ease,
+        border-color 300ms ease;
+      animation: fadeUp 0.8s ease both;
+      pointer-events: all;
+      box-shadow:
+        0 16px 48px rgba(0,0,0,.4),
+        0 0 0 1px rgba(255,255,255,.03);
+      min-height: 410px;
+    }
+
+    .feat-card::after {
+      content: "";
+      position: absolute;
+      inset: auto 12% 14px 12%;
+      height: 18px;
+      background: radial-gradient(circle, rgba(124,179,66,.12), rgba(124,179,66,0));
+      filter: blur(16px);
+      opacity: 0;
+      transition: opacity 300ms ease;
+      pointer-events: none;
+    }
+
+    .feat-card:hover {
+      transform: translateY(-8px) scale(1.01);
+      border-color: rgba(124,179,66,.28);
+      box-shadow:
+        0 24px 56px rgba(0,0,0,.5),
+        0 0 24px rgba(124,179,66,.08);
+    }
+
+    .feat-card:hover::after { opacity: 1; }
+
+    .card-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 160px;
+      opacity: 0.6;
+    }
+
+    .card-content { position: relative; padding: 180px 24px 28px; }
+
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      margin-bottom: 16px;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .card-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .card-icon.green { color: #7cb342; border-color: rgba(124,179,66,.18); background: rgba(124,179,66,.08); }
+    .card-icon.amber { color: #c9a84c; border-color: rgba(201,168,76,.18); background: rgba(201,168,76,.08); }
+    .card-icon.teal { color: #7cb342; border-color: rgba(124,179,66,.18); background: rgba(124,179,66,.08); }
+
+    .card-tag {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 100px;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    .card-tag.green { background: rgba(124,179,66,.1); color: #7cb342; border: 1px solid rgba(124,179,66,.2); }
+    .card-tag.amber { background: rgba(201,168,76,.1); color: #c9a84c; border: 1px solid rgba(201,168,76,.2); }
+    .card-tag.teal { background: rgba(124,179,66,.1); color: #7cb342; border: 1px solid rgba(124,179,66,.2); }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 500;
+      color: #e8e6dc;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      font-weight: 300;
+      color: #a0a090;
+      line-height: 1.7;
+      margin-bottom: 20px;
+      min-height: 88px;
+    }
+
+    .card-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 14px;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid;
+      background: transparent;
+      transition: transform 80ms cubic-bezier(0.4,0,1,1), background 200ms ease;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: 'DM Sans', system-ui, sans-serif;
+    }
+
+    .card-btn:active { transform: scale(0.97) translateY(2px); }
+    .card-btn:not(:active) { transition: transform 400ms cubic-bezier(0.34,1.56,0.64,1), background 200ms ease; }
+    .card-btn.green { color: #7cb342; border-color: rgba(124,179,66,.3); }
+    .card-btn.green:hover { background: rgba(124,179,66,.1); }
+    .card-btn.amber { color: #c9a84c; border-color: rgba(201,168,76,.3); }
+    .card-btn.amber:hover { background: rgba(201,168,76,.1); }
+    .card-btn.teal { color: #7cb342; border-color: rgba(124,179,66,.3); }
+    .card-btn.teal:hover { background: rgba(124,179,66,.1); }
+
+    #stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      margin: 0 auto 40px;
+      background: rgba(124,179,66,.08);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 20px;
+      overflow: hidden;
+      animation: fadeUp 0.8s ease 0.78s both;
+      max-width: 1264px;
+      box-shadow:
+        inset 0 1px 0 rgba(124,179,66,.06),
+        0 18px 42px rgba(0,0,0,.25);
+    }
+
+    .stat-cell {
+      background: rgba(8,10,8,.88);
+      padding: 28px 24px;
+      text-align: center;
+      transition: background 0.3s;
+    }
+
+    .stat-cell:hover { background: rgba(12,15,12,.95); }
+
+    .stat-num {
+      display: block;
+      font-size: 36px;
+      font-weight: 500;
+      font-family: 'Courier New', monospace;
+      color: #7cb342;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 300;
+      color: #696960;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .lab-strip {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+      padding-bottom: 18px;
+      max-width: 1264px;
+      margin: 0 auto;
+    }
+
+    .lab-card {
+      padding: 24px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(8,10,8,.75);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow:
+        0 16px 48px rgba(0,0,0,.4),
+        0 0 0 1px rgba(255,255,255,.03);
+    }
+
+    .lab-card p { max-width: 62ch; }
+
+    .lab-card .section-label {
+      animation: none;
+      margin-bottom: 14px;
+    }
+
+    .legend {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+
+    .legend-row:last-child { border-bottom: none; }
+
+    .legend-row strong {
+      font-size: 12px;
+      font-weight: 400;
+      color: #e8e6dc;
+    }
+
+    .legend-row span {
+      font-size: 12px;
+      font-weight: 300;
+      color: #a0a090;
+    }
+
+    .legend-key {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      margin-right: 10px;
+      display: inline-block;
+      vertical-align: middle;
+      box-shadow: 0 0 14px currentColor;
+    }
+
+    .status-health { color: #7cb342; background: rgba(124,179,66,.08); }
+    .status-watch { color: #c9a84c; background: rgba(201,168,76,.08); }
+    .status-critical { color: #c0543a; background: rgba(192,84,58,.08); }
+
+    .hero-deva {
+      display: block;
+      font-family: 'Noto Serif Devanagari', serif;
+      font-size: clamp(1.1rem, 2vw, 1.5rem);
+      font-weight: 300;
+      color: rgba(124,179,66,.35);
+      letter-spacing: 2px;
+      margin-top: -8px;
+      margin-bottom: 18px;
+      animation: fadeDown 0.8s ease 0.15s both;
+    }
+
+    .deva-inline {
+      display: inline;
+      font-family: 'Noto Serif Devanagari', serif;
+      font-size: .68rem;
+      font-weight: 400;
+      opacity: .55;
+      margin-left: 4px;
+    }
+
+    .footer {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 34px 24px 24px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      margin-top: 48px;
+      background: rgba(1,2,1,.74);
+    }
+
+    .footer p a {
+      color: #e8e6dc;
+      text-decoration: none;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: 1.05rem;
+      position: relative;
+      overflow: hidden;
+      transition: color .2s ease;
+    }
+
+    .footer p a::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 1px;
+      background: #7cb342;
+      bottom: 0;
+      left: -100%;
+      transition: left .4s cubic-bezier(.16,1,.3,1);
+    }
+
+    .footer p a:hover::before { left: 0; }
+    .footer p a:hover { color: #7cb342; }
+
+    .footer .social-icons {
+      margin: 14px 0 16px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .footer .social-icons a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      color: #a0a090;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 50%;
+      transition: all .2s cubic-bezier(.34,1.56,.64,1);
+      font-size: .78rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .footer .social-icons a:hover {
+      color: #7cb342;
+      border-color: #5a8a2f;
+      background: rgba(124,179,66,.08);
+      transform: translateY(-3px) scale(1.1);
+      box-shadow: 0 4px 16px rgba(124,179,66,.15);
+    }
+
+    .footer > p:last-child {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: .8rem;
+      color: #696960;
+      letter-spacing: .3px;
+      margin-top: 6px;
+    }
+
+    .float-entry { opacity: 0; transform: translateY(24px); }
+
+    .loaded .float-entry {
+      animation: fadeUp 0.8s ease forwards;
+    }
+
+    .loaded .hero-copy .float-entry:nth-child(1) { animation-delay: 0.02s; }
+    .loaded .hero-copy .float-entry:nth-child(2) { animation-delay: 0.1s; }
+    .loaded .hero-copy .float-entry:nth-child(3) { animation-delay: 0.16s; }
+    .loaded .hero-copy .float-entry:nth-child(4) { animation-delay: 0.24s; }
+    .loaded .hero-copy .float-entry:nth-child(5) { animation-delay: 0.32s; }
+
+    .feat-card:nth-child(1) { animation-delay: 0.4s; }
+    .feat-card:nth-child(2) { animation-delay: 0.55s; }
+    .feat-card:nth-child(3) { animation-delay: 0.7s; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,222,128,0.5); }
+      50% { opacity: 0.6; box-shadow: 0 0 0 8px rgba(74,222,128,0); }
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    @keyframes expandRing {
+      0% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.7); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @media (max-width: 1100px) {
+      .hero-grid,
+      .lab-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-copy {
+        max-width: 100%;
+        padding-top: 20px;
+      }
+
+      .hero-title {
+        max-width: 14ch;
+      }
+
+      .hero-grid {
+        padding: 64px 40px 72px;
+      }
+    }
+
+    @media (max-width: 920px) {
+      #features,
+      #stats-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        padding: 10px 18px;
+        min-height: auto;
+      }
+
+      .topbar,
+      .nav-links {
+        align-items: center;
+        flex-direction: column;
+      }
+
+      .hero-grid {
+        padding: 48px 20px 56px;
+      }
+
+      .hero-title { font-size: 42px; }
+      .hero-panel { min-height: auto; }
+
+      .hero-readout,
+      #features,
+      #stats-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .card-desc { min-height: auto; }
+      #leaf-anchor { height: 280px; }
+    }
+
+    @media (max-width: 520px) {
+      .hero-title { font-size: 36px; }
+
+      .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .hero-btn,
+      .hero-link {
+        justify-content: center;
+      }
+
+      .hero-panel,
+      .status-panel,
+      .lab-card {
+        padding: 18px;
+      }
+
+      .card-content { padding: 176px 20px 24px; }
+      .stat-cell { padding: 22px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <div id="ui-overlay">
+    <div class="page-shell">
+      <nav class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div class="brand-copy">
+            <strong>Foliage Care</strong>
+            <span>AI plant diagnostics for Indian growers and gardeners</span>
+          </div>
+        </div>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="start.html">Diagnose</a>
+          <a href="dashboard_cinematic_3.html">My Garden</a>
+          <a href="dashboard_cinematic_3.html" class="active">Playground</a>
+          <a href="map.html">Map</a>
+          <a href="contact.html">Connect</a>
+        </div>
+      </nav>
+
+      <section id="hero">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <div class="badge float-entry">
+              <span class="badge-dot"></span>
+              <span>The Living Lab</span>
+            </div>
+            <div class="section-label float-entry">Bioluminescent Greenhouse Interface</div>
+            <h1 class="hero-title float-entry">
+              Explore the <em>intelligence</em> behind every <strong>leaf</strong>
+            </h1>
+            <span class="hero-deva float-entry">जीवित प्रयोगशाला में एआई की धड़कन देखें</span>
+            <p class="hero-sub float-entry">
+              Interact with the AI systems that power Foliage Care. Watch diagnostic energy flow through a living specimen,
+              trigger a disease forecast, and explore the surveillance signals behind community-wide outbreak detection.
+            </p>
+            <div class="hero-actions float-entry">
+              <button class="hero-btn clickable" type="button" onclick="triggerDiagnose()">Run AI diagnosis <span class="deva-inline">जांच शुरू करें</span></button>
+              <a class="hero-link clickable" href="#features">Enter the modules <span class="deva-inline">मॉड्यूल देखें</span></a>
+            </div>
+          </div>
+
+          <div class="hero-side">
+            <div class="hero-panel">
+              <div class="panel-head">
+                <div>
+                  <span>Central Specimen</span>
+                  <strong>Interactive Leaf Core</strong>
+                </div>
+                <div class="status-pill" id="status-pill">Healthy Signal</div>
+              </div>
+
+              <div id="leaf-anchor">
+                <div class="rings">
+                  <div class="ring r1"></div>
+                  <div class="ring r2"></div>
+                  <div class="ring r3"></div>
+                </div>
+                <div class="leaf-anchor-glow"></div>
+              </div>
+
+              <div class="hero-readout">
+                <div class="readout">
+                  <span class="label">Infection Load</span>
+                  <span class="value" id="infection-load">0%</span>
+                  <span class="hint">Updates live as the disease field spreads across the specimen.</span>
+                </div>
+                <div class="readout">
+                  <span class="label">AI Confidence</span>
+                  <span class="value" id="confidence-value">92%</span>
+                  <span class="hint">Vision stack confidence on the current symptom pattern.</span>
+                </div>
+                <div class="readout">
+                  <span class="label">Outbreak Noise</span>
+                  <span class="value" id="pulse-rate">12</span>
+                  <span class="hint">Community telemetry pulses feeding the intelligence layer.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="status-panel">
+              <div class="status-head">
+                <div>
+                  <span>System Telemetry</span>
+                  <strong id="status-title">Leaf stable and ready for interaction</strong>
+                </div>
+                <span id="status-time">00:00</span>
+              </div>
+
+              <div class="status-grid">
+                <div class="status-copy">
+                  <p id="status-copy">
+                    The specimen is currently showing a <strong>healthy spectral signature</strong>. Move your cursor to tilt the leaf,
+                    then trigger a module to see how the diagnosis and forecasting stack reacts in real time.
+                  </p>
+                </div>
+
+                <div class="timeline" id="timeline">
+                  <div class="timeline-item active" data-step="diagnose">
+                    <div class="dot"></div>
+                    <div>
+                      <span>Stage 1</span>
+                      <p>Vision model locks onto visible tissue stress and lesion geometry.</p>
+                    </div>
+                  </div>
+                  <div class="timeline-item" data-step="simulate">
+                    <div class="dot"></div>
+                    <div>
+                      <span>Stage 2</span>
+                      <p>Forecast engine estimates seven-day spread when left untreated.</p>
+                    </div>
+                  </div>
+                  <div class="timeline-item" data-step="map">
+                    <div class="dot"></div>
+                    <div>
+                      <span>Stage 3</span>
+                      <p>Community scans aggregate into a live outbreak intelligence field.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features">
+        <div class="feat-card" id="card-diagnose" onclick="triggerDiagnose()">
+          <canvas class="card-canvas" id="canvas-diagnose"></canvas>
+          <div class="card-content">
+            <div class="card-icon green" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M6 15c5.5 0 8-3.5 12-11 1.5 11-3.5 17-10 17-2.4 0-4-1.5-4-4 0-4 4-8 9-9"></path>
+              </svg>
+            </div>
+            <div class="card-tag green">AI Diagnosis</div>
+            <h3 class="card-title">Disease Detector</h3>
+            <p class="card-desc">Upload any leaf image. Gemini Vision identifies the pathology, marks infected regions, and explains its reasoning.</p>
+            <button class="card-btn green" type="button">Try it live</button>
+          </div>
+        </div>
+
+        <div class="feat-card" id="card-simulate" onclick="triggerSimulate()">
+          <canvas class="card-canvas" id="canvas-simulate"></canvas>
+          <div class="card-content">
+            <div class="card-icon amber" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3v7"></path>
+                <path d="M12 14c-3 0-5 2.2-5 4.8 0 1.2.8 2.2 2 2.2h6c2.2 0 4-1.8 4-4 0-2.8-2.1-5.1-5-5.7"></path>
+                <path d="M9 6h6"></path>
+              </svg>
+            </div>
+            <div class="card-tag amber">Simulation</div>
+            <h3 class="card-title">7-Day Forecast</h3>
+            <p class="card-desc">See what happens if you don't treat. The disease progression pipeline generates a visual prediction of untreated pathology.</p>
+            <button class="card-btn amber" type="button">Simulate spread</button>
+          </div>
+        </div>
+
+        <div class="feat-card" id="card-map" onclick="triggerMap()">
+          <canvas class="card-canvas" id="canvas-map"></canvas>
+          <div class="card-content">
+            <div class="card-icon teal" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M6 6l5-2 7 3v11l-5 2-7-3V6Z"></path>
+                <path d="M11 4v11"></path>
+                <path d="M18 7v11"></path>
+              </svg>
+            </div>
+            <div class="card-tag teal">Intelligence</div>
+            <h3 class="card-title">Outbreak Map</h3>
+            <p class="card-desc">Live community data from diagnosed scans, aggregated into a geospatial disease surveillance layer across India.</p>
+            <button class="card-btn teal" type="button">View outbreaks</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="stats-bar">
+        <div class="stat-cell">
+          <span class="stat-num" id="stat-accuracy">0</span>
+          <span class="stat-label">% diagnosis accuracy</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-num" id="stat-diseases">0</span>
+          <span class="stat-label">disease categories</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-num" id="stat-crops">0</span>
+          <span class="stat-label">crop types supported</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-num" id="stat-speed">0</span>
+          <span class="stat-label">ms avg inference time</span>
+        </div>
+      </section>
+
+      <section class="lab-strip">
+        <div class="lab-card">
+          <div class="section-label">Why This Matters</div>
+          <p>
+            Foliage Care turns AI from a black box into a living interface. Diagnosis is visual, prediction is tangible,
+            and outbreak intelligence feels immediate. The leaf stays center stage because that is the real unit of trust:
+            if growers can see how the system thinks, they can act faster with more confidence.
+          </p>
+        </div>
+        <div class="lab-card">
+          <div class="section-label">Signal Legend</div>
+          <div class="legend">
+            <div class="legend-row">
+              <div><span class="legend-key status-health"></span><strong>Healthy tissue</strong></div>
+              <span>Emerald spectral response</span>
+            </div>
+            <div class="legend-row">
+              <div><span class="legend-key status-watch"></span><strong>Watch zone</strong></div>
+              <span>Early lesion expansion</span>
+            </div>
+            <div class="legend-row">
+              <div><span class="legend-key status-critical"></span><strong>Critical spread</strong></div>
+              <span>Untreated infection cluster</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p><a href="contact.html">Connect with us</a></p>
+        <div class="social-icons">
+          <a href="index.html" aria-label="Home">HM</a>
+          <a href="start.html" aria-label="Diagnose">DX</a>
+          <a href="map.html" aria-label="Map">MP</a>
+        </div>
+        <p>&copy; 2025 Foliage Care. All rights reserved.</p>
+      </footer>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const body = document.body;
+    const anchor = document.getElementById('leaf-anchor');
+    const statusTitle = document.getElementById('status-title');
+    const statusCopy = document.getElementById('status-copy');
+    const statusTime = document.getElementById('status-time');
+    const statusPill = document.getElementById('status-pill');
+    const infectionLoadEl = document.getElementById('infection-load');
+    const confidenceValueEl = document.getElementById('confidence-value');
+    const pulseRateEl = document.getElementById('pulse-rate');
+    const timeline = document.getElementById('timeline');
+
+    const mouse = { x: 0, y: 0 };
+    const isMobile = window.innerWidth < 768;
+    const PARTICLE_COUNT = isMobile ? 1200 : 4000;
+    const cardAnimations = [];
+    let diseaseInterval = null;
+    let infectionIntensity = 0;
+    let outbreakPulse = 12;
+    let confidenceValue = 92;
+    let hoverInfectionBoost = 0;
+    let isRendering = true;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 5;
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: document.getElementById('bg-canvas'),
+      antialias: true,
+      alpha: true
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x050f08, 1);
+
+    const ambient = new THREE.AmbientLight(0x1a4731, 0.4);
+    const mainLight = new THREE.DirectionalLight(0x4ade80, 0.8);
+    mainLight.position.set(-3, 4, 2);
+    const underLight = new THREE.PointLight(0x2dd4bf, 1.2, 8);
+    underLight.position.set(0, -2, 1);
+    scene.add(ambient, mainLight, underLight);
+
+    function createParticleSystem() {
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(PARTICLE_COUNT * 3);
+      const sizes = new Float32Array(PARTICLE_COUNT);
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 20;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 15;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 8;
+        sizes[i] = Math.random() * 3 + 1;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uMouse: { value: new THREE.Vector2(0, 0) },
+          uColor: { value: new THREE.Color(0x4ade80) },
+          uOpacity: { value: 0 }
+        },
+        vertexShader: `
+          attribute float size;
+          uniform float uTime;
+          uniform vec2 uMouse;
+          varying float vOpacity;
+
+          void main() {
+            vec3 pos = position;
+            pos.y = mod(pos.y + uTime * 0.3, 15.0) - 7.5;
+
+            vec2 mouseWorld = uMouse * vec2(10.0, 7.5);
+            vec2 diff = pos.xy - mouseWorld;
+            float dist = length(diff);
+            if (dist < 2.0) {
+              pos.xy += normalize(diff) * (2.0 - dist) * 0.3;
+            }
+
+            vOpacity = (pos.z + 4.0) / 8.0 * 0.3 + 0.05;
+
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            gl_PointSize = size * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 uColor;
+          uniform float uOpacity;
+          varying float vOpacity;
+
+          void main() {
+            vec2 uv = gl_PointCoord - 0.5;
+            float d = length(uv);
+            if (d > 0.5) discard;
+
+            float alpha = (0.5 - d) / 0.5;
+            alpha = pow(alpha, 2.0) * vOpacity * uOpacity;
+            gl_FragColor = vec4(uColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+
+      return new THREE.Points(geometry, material);
+    }
+
+    function createOrb(color, radius, position) {
+      const geometry = new THREE.SphereGeometry(radius, 32, 32);
+      const material = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.06
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(position[0], position[1], position[2]);
+      return mesh;
+    }
+
+    function createLeafTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#183d27';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const grad = ctx.createLinearGradient(40, 40, 470, 470);
+      grad.addColorStop(0, '#2c6f47');
+      grad.addColorStop(0.55, '#1d5134');
+      grad.addColorStop(1, '#0e2418');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(74,222,128,0.2)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(255, 80);
+      ctx.bezierCurveTo(265, 180, 272, 260, 258, 430);
+      ctx.stroke();
+
+      for (let i = 0; i < 8; i++) {
+        const y = 140 + i * 35;
+        ctx.beginPath();
+        ctx.moveTo(256, y);
+        ctx.quadraticCurveTo(175, y - 26, 110, y - 58);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(256, y + 5);
+        ctx.quadraticCurveTo(340, y - 20, 400, y - 52);
+        ctx.stroke();
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    function createLeaf() {
+      const geometry = new THREE.PlaneGeometry(2.5, 3.5, 64, 64);
+      const positions = geometry.attributes.position;
+
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+        const normalizedX = x / 1.25;
+        const normalizedY = (y + 1.75) / 3.5;
+        const distFromCenter = Math.abs(normalizedX);
+        const curvature = distFromCenter * distFromCenter * 0.3;
+
+        positions.setZ(i, -curvature + Math.sin(normalizedY * Math.PI) * 0.1);
+
+        if (Math.abs(x) < 0.08) {
+          positions.setZ(i, positions.getZ(i) + 0.05);
+        }
+      }
+
+      geometry.computeVertexNormals();
+
+      const alphaCanvas = document.createElement('canvas');
+      alphaCanvas.width = 512;
+      alphaCanvas.height = 512;
+      const alphaCtx = alphaCanvas.getContext('2d');
+      alphaCtx.fillStyle = 'black';
+      alphaCtx.fillRect(0, 0, 512, 512);
+      alphaCtx.fillStyle = 'white';
+      alphaCtx.beginPath();
+      alphaCtx.moveTo(256, 480);
+      alphaCtx.bezierCurveTo(200, 400, 80, 320, 60, 200);
+      alphaCtx.bezierCurveTo(40, 100, 150, 20, 256, 10);
+      alphaCtx.bezierCurveTo(362, 20, 472, 100, 452, 200);
+      alphaCtx.bezierCurveTo(432, 320, 312, 400, 256, 480);
+      alphaCtx.fill();
+      const alphaTexture = new THREE.CanvasTexture(alphaCanvas);
+
+      const diseaseCanvas = document.createElement('canvas');
+      diseaseCanvas.width = 256;
+      diseaseCanvas.height = 256;
+      const diseaseCtx = diseaseCanvas.getContext('2d');
+      diseaseCtx.fillStyle = 'rgba(0,0,0,0)';
+      diseaseCtx.fillRect(0, 0, 256, 256);
+      const diseaseTexture = new THREE.CanvasTexture(diseaseCanvas);
+
+      window.diseaseCtx = diseaseCtx;
+      window.diseaseTexture = diseaseTexture;
+
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: createLeafTexture(),
+        roughness: 0.75,
+        metalness: 0,
+        alphaMap: alphaTexture,
+        transparent: true,
+        side: THREE.DoubleSide,
+        emissive: 0x0a2a18,
+        emissiveIntensity: 0.3,
+        emissiveMap: diseaseTexture
+      });
+
+      const leaf = new THREE.Mesh(geometry, material);
+      const midribPoints = [];
+      for (let t = 0; t <= 1; t += 0.05) {
+        midribPoints.push(new THREE.Vector3(
+          Math.sin(t * 0.3) * 0.1,
+          t * 3.2 - 1.6,
+          0.06
+        ));
+      }
+
+      const branchSegments = [];
+      for (let t = 0.18; t <= 0.82; t += 0.14) {
+        const y = t * 3.2 - 1.6;
+        const offset = Math.sin(t * Math.PI) * 0.95;
+        branchSegments.push(new THREE.Vector3(0.04, y, 0.055), new THREE.Vector3(offset * 0.65, y + 0.28, -0.03));
+        branchSegments.push(new THREE.Vector3(-0.04, y + 0.02, 0.055), new THREE.Vector3(-offset * 0.65, y + 0.3, -0.03));
+      }
+
+      const midribGeo = new THREE.BufferGeometry().setFromPoints(midribPoints);
+      const veinGeo = new THREE.BufferGeometry().setFromPoints(branchSegments);
+      const veinMat = new THREE.LineBasicMaterial({
+        color: 0x4ade80,
+        transparent: true,
+        opacity: 0.25
+      });
+      const midrib = new THREE.Line(midribGeo, veinMat);
+      const veins = new THREE.LineSegments(veinGeo, veinMat);
+
+      const group = new THREE.Group();
+      group.add(leaf, midrib, veins);
+      group.position.set(0, 0.5, 0);
+      group.scale.setScalar(0.95);
+
+      return { group, material };
+    }
+
+    const particleSystem = createParticleSystem();
+    const orb1 = createOrb(0x22c55e, 4, [-6, 3, -3]);
+    const orb2 = createOrb(0x2dd4bf, 3, [5, -3, -4]);
+    scene.add(particleSystem, orb1, orb2);
+
+    const leafBundle = createLeaf();
+    const leafGroup = leafBundle.group;
+    scene.add(leafGroup);
+
+    function seedDiseaseCluster(cx, cy, radius, strength) {
+      const ctx = window.diseaseCtx;
+      if (!ctx) return;
+
+      const gradient = ctx.createRadialGradient(cx, cy, 4, cx, cy, radius);
+      gradient.addColorStop(0, `rgba(${Math.round(220 + strength * 20)}, ${Math.round(90 - strength * 30)}, 20, 0.88)`);
+      gradient.addColorStop(0.4, 'rgba(249,115,22,0.45)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+      window.diseaseTexture.needsUpdate = true;
+    }
+
+    function calculateInfectionLoad() {
+      const ctx = window.diseaseCtx;
+      if (!ctx) return 0;
+      const imageData = ctx.getImageData(0, 0, 256, 256).data;
+      let infectedPixels = 0;
+      const totalPixels = imageData.length / 4;
+
+      for (let i = 0; i < imageData.length; i += 4) {
+        if (imageData[i] > 45 || imageData[i + 1] > 25) {
+          infectedPixels++;
+        }
+      }
+
+      return Math.min(100, Math.round((infectedPixels / totalPixels) * 100 * 1.65));
+    }
+
+    function updateInfectionUI() {
+      infectionIntensity = calculateInfectionLoad();
+      infectionLoadEl.textContent = Math.round(infectionIntensity) + '%';
+      confidenceValueEl.textContent = Math.round(confidenceValue) + '%';
+      pulseRateEl.textContent = Math.round(outbreakPulse).toString();
+    }
+
+    function spreadDisease() {
+      const ctx = window.diseaseCtx;
+      if (!ctx) return;
+
+      const imageData = ctx.getImageData(0, 0, 256, 256);
+      const data = imageData.data;
+      const infected = [];
+
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 80) infected.push(i);
+      }
+
+      if (infected.length === 0) {
+        const seedX = 120 + Math.floor(Math.random() * 18);
+        const seedY = 86 + Math.floor(Math.random() * 20);
+        seedDiseaseCluster(seedX, seedY, 18, 1);
+        updateInfectionUI();
+        return;
+      }
+
+      infected.forEach((idx) => {
+        if (Math.random() > 0.72 - hoverInfectionBoost) return;
+        const pixel = idx / 4;
+        const x = pixel % 256;
+        const y = Math.floor(pixel / 256);
+        const offsets = [
+          [-1, 0], [1, 0], [0, -1], [0, 1],
+          [-1, -1], [1, 1], [-1, 1], [1, -1]
+        ];
+        const chosen = offsets[Math.floor(Math.random() * offsets.length)];
+        const nx = Math.min(255, Math.max(0, x + chosen[0]));
+        const ny = Math.min(255, Math.max(0, y + chosen[1]));
+        const n = (ny * 256 + nx) * 4;
+
+        data[n] = Math.min(255, data[n] + 26);
+        data[n + 1] = Math.min(190, data[n + 1] + 9);
+        data[n + 2] = Math.min(50, data[n + 2] + 2);
+        data[n + 3] = Math.min(255, data[n + 3] + 20);
+      });
+
+      ctx.putImageData(imageData, 0, 0);
+
+      if (Math.random() > 0.55) {
+        seedDiseaseCluster(105 + Math.random() * 40, 78 + Math.random() * 42, 9 + Math.random() * 16, Math.random());
+      }
+
+      window.diseaseTexture.needsUpdate = true;
+      updateInfectionUI();
+    }
+
+    function startDiseaseSimulation() {
+      if (diseaseInterval) return;
+      diseaseInterval = window.setInterval(spreadDisease, 80);
+    }
+
+    function stopDiseaseSimulation() {
+      if (!diseaseInterval) return;
+      window.clearInterval(diseaseInterval);
+      diseaseInterval = null;
+    }
+
+    function updateTimeline(step) {
+      timeline.querySelectorAll('.timeline-item').forEach((item) => {
+        item.classList.toggle('active', item.dataset.step === step);
+      });
+    }
+
+    function setStatus(mode) {
+      if (mode === 'diagnose') {
+        statusTitle.textContent = 'Vision model isolating suspicious lesion structures';
+        statusCopy.innerHTML = 'The detector has entered <strong>symptom analysis mode</strong>. Watch for rising confidence and a soft amber warning signature as the AI highlights likely stress clusters.';
+        statusPill.textContent = 'Diagnostic Scan';
+        statusPill.style.color = '#4ade80';
+        statusPill.style.background = 'rgba(74,222,128,0.08)';
+        statusPill.style.borderColor = 'rgba(74,222,128,0.2)';
+        confidenceValue = 94;
+        outbreakPulse = 18;
+        updateTimeline('diagnose');
+      } else if (mode === 'simulate') {
+        statusTitle.textContent = 'Forecast engine projecting untreated disease spread';
+        statusCopy.innerHTML = 'Simulation mode expands infected zones using a <strong>cellular growth model</strong>. This helps growers visualize what a seven-day delay in treatment might cost.';
+        statusPill.textContent = 'Forecast Active';
+        statusPill.style.color = '#fbbf24';
+        statusPill.style.background = 'rgba(251,191,36,0.08)';
+        statusPill.style.borderColor = 'rgba(251,191,36,0.2)';
+        confidenceValue = 88;
+        outbreakPulse = 26;
+        updateTimeline('simulate');
+      } else if (mode === 'map') {
+        statusTitle.textContent = 'Community telemetry syncing into outbreak surveillance';
+        statusCopy.innerHTML = 'The intelligence layer is now emphasizing <strong>regional outbreak correlation</strong>, showing how individual diagnoses turn into a national awareness surface for farmers and extension teams.';
+        statusPill.textContent = 'Telemetry Sync';
+        statusPill.style.color = '#2dd4bf';
+        statusPill.style.background = 'rgba(45,212,191,0.08)';
+        statusPill.style.borderColor = 'rgba(45,212,191,0.2)';
+        confidenceValue = 91;
+        outbreakPulse = 34;
+        updateTimeline('map');
+      } else {
+        statusTitle.textContent = 'Leaf stable and ready for interaction';
+        statusCopy.innerHTML = 'The specimen is currently showing a <strong>healthy spectral signature</strong>. Move your cursor to tilt the leaf, then trigger a module to see how the diagnosis and forecasting stack reacts in real time.';
+        statusPill.textContent = 'Healthy Signal';
+        statusPill.style.color = '#4ade80';
+        statusPill.style.background = 'rgba(74,222,128,0.08)';
+        statusPill.style.borderColor = 'rgba(74,222,128,0.2)';
+        confidenceValue = 92;
+        outbreakPulse = 12;
+        updateTimeline('diagnose');
+      }
+
+      updateInfectionUI();
+    }
+
+    function resetDiseaseField() {
+      const ctx = window.diseaseCtx;
+      if (!ctx) return;
+      ctx.clearRect(0, 0, 256, 256);
+      seedDiseaseCluster(124, 86, 12, 0.75);
+      seedDiseaseCluster(142, 100, 8, 0.3);
+      updateInfectionUI();
+    }
+
+    window.triggerDiagnose = function triggerDiagnose() {
+      stopDiseaseSimulation();
+      resetDiseaseField();
+      hoverInfectionBoost = 0.08;
+      setStatus('diagnose');
+    };
+
+    window.triggerSimulate = function triggerSimulate() {
+      if (infectionIntensity < 4) {
+        resetDiseaseField();
+      }
+      hoverInfectionBoost = 0.16;
+      setStatus('simulate');
+      startDiseaseSimulation();
+    };
+
+    window.triggerMap = function triggerMap() {
+      stopDiseaseSimulation();
+      hoverInfectionBoost = 0;
+      setStatus('map');
+    };
+
+    function countUp(elementId, target, duration, suffix = '') {
+      const el = document.getElementById(elementId);
+      const start = performance.now();
+
+      function update(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target) + suffix;
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        countUp('stat-accuracy', 90, 1800);
+        countUp('stat-diseases', 38, 1500);
+        countUp('stat-crops', 7, 1000);
+        countUp('stat-speed', 500, 2000);
+        observer.disconnect();
+      }
+    }, { threshold: 0.5 });
+    observer.observe(document.getElementById('stats-bar'));
+
+    function createCanvasController(id, draw) {
+      const canvas = document.getElementById(id);
+      const ctx = canvas.getContext('2d');
+      const state = { width: 0, height: 160 };
+
+      function resize() {
+        const width = Math.max(10, Math.round(canvas.getBoundingClientRect().width));
+        canvas.width = width;
+        canvas.height = 160;
+        state.width = width;
+        state.height = 160;
+      }
+
+      resize();
+      cardAnimations.push({ resize });
+
+      const animation = { active: true };
+      const intersection = new IntersectionObserver((entries) => {
+        animation.active = entries[0].isIntersecting;
+      }, { threshold: 0.1 });
+      intersection.observe(canvas);
+
+      function frame(time) {
+        if (animation.active) {
+          draw(ctx, state, time);
+        }
+        requestAnimationFrame(frame);
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    const diagnoseParticles = [];
+    function initDiseaseCanvas() {
+      createCanvasController('canvas-diagnose', (ctx, state) => {
+        ctx.clearRect(0, 0, state.width, state.height);
+
+        if (diagnoseParticles.length < 60 && Math.random() > 0.85) {
+          diagnoseParticles.push({
+            x: Math.random() * state.width,
+            y: Math.random() * state.height,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: (Math.random() - 0.5) * 1.5,
+            r: Math.random() * 4 + 2,
+            life: 1,
+            decay: Math.random() * 0.008 + 0.004,
+            color: Math.random() > 0.5 ? '#f97316' : '#dc2626'
+          });
+        }
+
+        for (let i = diagnoseParticles.length - 1; i >= 0; i--) {
+          const p = diagnoseParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= p.decay;
+
+          if (p.life <= 0) {
+            diagnoseParticles.splice(i, 1);
+            continue;
+          }
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.life * 0.7;
+          ctx.shadowBlur = 18;
+          ctx.shadowColor = p.color;
+          ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      });
+    }
+
+    function initRecoveryCanvas() {
+      createCanvasController('canvas-simulate', (ctx, state, time) => {
+        const t = time * 0.0016;
+        ctx.clearRect(0, 0, state.width, state.height);
+
+        const progress = (Math.sin(t) + 1) / 2;
+        const splitX = progress * state.width;
+
+        ctx.fillStyle = 'rgba(220,38,38,0.15)';
+        ctx.fillRect(0, 0, splitX, state.height);
+
+        ctx.fillStyle = 'rgba(74,222,128,0.12)';
+        ctx.fillRect(splitX, 0, state.width - splitX, state.height);
+
+        ctx.beginPath();
+        ctx.moveTo(splitX, 0);
+        for (let y = 0; y <= state.height; y += 2) {
+          const waviness = Math.sin(y * 0.05 + t * 3) * 15;
+          ctx.lineTo(splitX + waviness, y);
+        }
+        ctx.strokeStyle = 'rgba(251,191,36,0.5)';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = 'rgba(251,191,36,0.38)';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      });
+    }
+
+    function drawIndiaSilhouette(ctx, width, height) {
+      ctx.save();
+      ctx.translate(width * 0.08, height * 0.06);
+      ctx.scale(width / 210, height / 170);
+      ctx.beginPath();
+      ctx.moveTo(86, 9);
+      ctx.lineTo(118, 13);
+      ctx.lineTo(136, 27);
+      ctx.lineTo(149, 44);
+      ctx.lineTo(160, 68);
+      ctx.lineTo(151, 87);
+      ctx.lineTo(142, 95);
+      ctx.lineTo(136, 114);
+      ctx.lineTo(124, 125);
+      ctx.lineTo(118, 144);
+      ctx.lineTo(106, 158);
+      ctx.lineTo(99, 146);
+      ctx.lineTo(92, 126);
+      ctx.lineTo(78, 110);
+      ctx.lineTo(65, 96);
+      ctx.lineTo(54, 79);
+      ctx.lineTo(47, 57);
+      ctx.lineTo(52, 42);
+      ctx.lineTo(67, 35);
+      ctx.lineTo(74, 23);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(45,212,191,0.06)';
+      ctx.strokeStyle = 'rgba(45,212,191,0.18)';
+      ctx.lineWidth = 1.2;
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function initMapCanvas() {
+      const hotspots = [
+        { x: 0.45, y: 0.35, color: '#f97316' },
+        { x: 0.38, y: 0.65, color: '#4ade80' },
+        { x: 0.52, y: 0.72, color: '#dc2626' },
+        { x: 0.58, y: 0.82, color: '#fbbf24' },
+        { x: 0.62, y: 0.58, color: '#4ade80' },
+        { x: 0.30, y: 0.45, color: '#f97316' },
+        { x: 0.48, y: 0.55, color: '#fbbf24' }
+      ];
+
+      const pulses = hotspots.map((hotspot) => ({
+        x: hotspot.x,
+        y: hotspot.y,
+        color: hotspot.color,
+        r: 0,
+        maxR: 20 + Math.random() * 15,
+        speed: 0.3 + Math.random() * 0.3
+      }));
+
+      createCanvasController('canvas-map', (ctx, state) => {
+        ctx.clearRect(0, 0, state.width, state.height);
+        drawIndiaSilhouette(ctx, state.width, state.height);
+
+        pulses.forEach((pulse) => {
+          pulse.r += pulse.speed;
+          if (pulse.r > pulse.maxR) {
+            pulse.r = 0;
+          }
+
+          const cx = pulse.x * state.width;
+          const cy = pulse.y * state.height;
+          const alpha = (1 - pulse.r / pulse.maxR) * 0.6;
+
+          ctx.beginPath();
+          ctx.arc(cx, cy, pulse.r, 0, Math.PI * 2);
+          ctx.strokeStyle = pulse.color;
+          ctx.globalAlpha = alpha;
+          ctx.lineWidth = 1.5;
+          ctx.shadowBlur = 14;
+          ctx.shadowColor = pulse.color;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+          ctx.fillStyle = pulse.color;
+          ctx.globalAlpha = 0.9;
+          ctx.fill();
+        });
+
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      });
+    }
+
+    function gsapLike(obj, prop, from, to, duration) {
+      const start = performance.now();
+      obj[prop] = from;
+
+      function update(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        obj[prop] = from + (to - from) * eased;
+        if (t < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    function debounce(fn, delay) {
+      let timer = null;
+      return function debounced() {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, arguments), delay);
+      };
+    }
+
+    function syncLeafToAnchor() {
+      const rect = anchor.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const normalizedX = (centerX / window.innerWidth) * 2 - 1;
+      const normalizedY = -(centerY / window.innerHeight) * 2 + 1;
+      const distance = camera.position.z;
+      const visibleHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * distance;
+      const visibleWidth = visibleHeight * camera.aspect;
+      return {
+        x: normalizedX * visibleWidth * 0.5,
+        y: normalizedY * visibleHeight * 0.5
+      };
+    }
+
+    window.addEventListener('mousemove', (event) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      particleSystem.material.uniforms.uMouse.value.set(mouse.x, mouse.y);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      isRendering = !document.hidden;
+    });
+
+    window.addEventListener('resize', debounce(() => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      syncLeafToAnchor();
+      cardAnimations.forEach((entry) => entry.resize());
+    }, 200));
+
+    if (!CSS.supports('backdrop-filter', 'blur(1px)')) {
+      document.querySelectorAll('.feat-card, .hero-panel, .status-panel, .lab-card, .topbar').forEach((card) => {
+        card.style.background = 'rgba(5,20,10,0.92)';
+      });
+    }
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!isRendering) return;
+
+      const time = clock.getElapsedTime();
+      statusTime.textContent = Math.round(time).toString().padStart(2, '0') + ':00';
+      const anchorPos = syncLeafToAnchor();
+
+      particleSystem.material.uniforms.uTime.value = time;
+      orb1.material.opacity = 0.06 + Math.sin(time * 0.5) * 0.02;
+      orb2.material.opacity = 0.04 + Math.sin(time * 0.4 + 2) * 0.015;
+      orb1.scale.setScalar(1 + Math.sin(time * 0.3) * 0.05);
+      orb2.scale.setScalar(1 + Math.sin(time * 0.35 + 1) * 0.06);
+
+      leafGroup.position.x += (anchorPos.x - leafGroup.position.x) * 0.08;
+      leafGroup.position.y += (anchorPos.y + Math.sin(time * 0.8) * 0.12 - leafGroup.position.y) * 0.08;
+      leafGroup.rotation.z = Math.sin(time * 0.5) * 0.04;
+      const targetX = -mouse.y * 0.3;
+      const targetY = mouse.x * 0.4;
+      leafGroup.rotation.x += (targetX - leafGroup.rotation.x) * 0.05;
+      leafGroup.rotation.y += (targetY - leafGroup.rotation.y) * 0.05;
+      leafBundle.material.emissiveIntensity = 0.26 + Math.sin(time * 0.6) * 0.03 + Math.min(infectionIntensity / 200, 0.12);
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('load', () => {
+      body.classList.add('loaded');
+      setStatus('idle');
+      initDiseaseCanvas();
+      initRecoveryCanvas();
+      initMapCanvas();
+      resetDiseaseField();
+      const initialAnchor = syncLeafToAnchor();
+      leafGroup.position.set(initialAnchor.x, initialAnchor.y, 0);
+
+      setTimeout(() => {
+        gsapLike(particleSystem.material.uniforms.uOpacity, 'value', 0, 1, 800);
+      }, 300);
+
+      setTimeout(() => {
+        gsapLike(orb1.material, 'opacity', 0, 0.06, 900);
+        gsapLike(orb2.material, 'opacity', 0, 0.04, 900);
+      }, 600);
+
+      setTimeout(() => {
+        leafGroup.scale.setScalar(0.68);
+        gsapLike(leafGroup.scale, 'x', 0.68, 0.95, 900);
+        gsapLike(leafGroup.scale, 'y', 0.68, 0.95, 900);
+        gsapLike(leafGroup.scale, 'z', 0.68, 0.95, 900);
+      }, 900);
+
+      animate();
+    });
+  </script>
+</body>
+</html>
