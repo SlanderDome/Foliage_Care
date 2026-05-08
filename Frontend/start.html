@@ -286,7 +286,16 @@
               <button type="button" class="user-type-pill" data-value="student">Student/Research</button>
             </div>
           </div>
-
+          <!-- AI Engine Selector -->
+          <div class="user-type-group" id="engine-selector-group">
+            <label class="user-type-label"><i class="fas fa-robot" style="margin-right:6px;opacity:.7;"></i>AI Engine:</label>
+            <div class="user-type-pills" id="engine-pills">
+              <button type="button" class="user-type-pill selected" data-engine="auto">&#x26A1; Auto</button>
+              <button type="button" class="user-type-pill" data-engine="gemini">&#x2728; Gemini</button>
+              <button type="button" class="user-type-pill" data-engine="groq">&#x1F999; Groq</button>
+              <button type="button" class="user-type-pill" data-engine="openai">&#x1F916; GPT-4o</button>
+            </div>
+          </div>
           <!-- Action Buttons -->
           <div class="action-buttons">
             <button class="cta-button cta-secondary" type="button" id="upload-photo"
@@ -431,6 +440,28 @@
         this.classList.add('selected');
       });
     });
+  </script>
+  <script>
+    // AI Engine Toggle
+    document.querySelectorAll('#engine-pills .user-type-pill').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('#engine-pills .user-type-pill').forEach(function(b){ b.classList.remove('selected'); });
+        this.classList.add('selected');
+        var chosen = this.getAttribute('data-engine');
+        localStorage.setItem('fc_model', chosen);
+        // Sync with up.js activeModel if loaded
+        if (typeof window !== 'undefined') { try { window._fcSetModel && window._fcSetModel(chosen); } catch(e){} }
+      });
+    });
+    // Restore saved selection on load
+    (function() {
+      var saved = localStorage.getItem('fc_model') || 'auto';
+      var btn = document.querySelector('#engine-pills [data-engine="' + saved + '"]');
+      if (btn) {
+        document.querySelectorAll('#engine-pills .user-type-pill').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+      }
+    })();
   </script>
   <!-- PLANT SELECTOR STYLES + LOGIC (Phase 1 - Garden Dashboard) -->
   <style>

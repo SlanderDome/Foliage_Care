@@ -59,6 +59,12 @@ let selectedPlantNickname = '';  // Human-readable nickname for display
 let selectedPlantIcon = '🌿';
 let selectedPlantSpecies = '';
 
+// ═══════════ AI ENGINE SELECTION ═══════════
+// Options: 'auto' | 'gemini' | 'groq' | 'openai'
+let activeModel = localStorage.getItem('fc_model') || 'auto';
+// Allow inline scripts to update the active model
+window._fcSetModel = (m) => { activeModel = m; };
+
 // Expose so start.html inline script can inject plant selection
 window.setSelectedPlant = (id, nickname, meta = {}) => {
     selectedPlantId = id;
@@ -474,6 +480,7 @@ async function showSymptomSheet(symptomText) {
                 user_type: userType,
                 latitude: userCoordinates ? userCoordinates.lat : null,
                 longitude: userCoordinates ? userCoordinates.lng : null,
+                model_preference: activeModel,
             }),
         });
 
@@ -956,6 +963,7 @@ analyzeButton.addEventListener('click', async (event) => {
     formData.append('user_name', userName);
     formData.append('user_type', userType);
     formData.append('context',   fieldNote);
+    formData.append('model_preference', activeModel);
     // In your analyzeButton event listener:
 if (typeof currentLocationWeather !== 'undefined' && currentLocationWeather) {
     formData.append('weather_trend', currentLocationWeather);
@@ -1153,6 +1161,7 @@ async function sendFollowUp() {
                 user_name: userName, user_type: userType,
                 latitude: userCoordinates ? userCoordinates.lat : null,
                 longitude: userCoordinates ? userCoordinates.lng : null,
+                model_preference: activeModel,
             }),
         });
         removeTypingIndicator();
@@ -1265,6 +1274,7 @@ async function fetchPlanForPersona(userType) {
     formData.append('context', noteContext);
     formData.append('user_name', userName);
     formData.append('user_type', userType);
+    formData.append('model_preference', activeModel);
     if (userCoordinates) { formData.append('latitude', userCoordinates.lat); formData.append('longitude', userCoordinates.lng); }
 
     const response = await fetch('https://foliage-care-775030113450.asia-south1.run.app/get_expert_plan', { method: 'POST', body: formData });

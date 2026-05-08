@@ -26,6 +26,7 @@ from google.genai import types
 from PIL import Image
 from huggingface_hub import InferenceClient
 from openai import AsyncOpenAI
+from groq import AsyncGroq
 
 # ─────────────────────────────────────────
 #  1. STARTUP
@@ -49,6 +50,7 @@ app.add_middleware(
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 HF_TOKEN       = os.getenv("HF_TOKEN")
 OPEN_API_KEY   = os.getenv("OPEN_API_KEY")
+GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
 
 # ─────────────────────────────────────────
 #  2. GEMINI CLIENT
@@ -75,6 +77,19 @@ if OPEN_API_KEY:
         print(f"⚠️  OpenAI Init Failed (fallback unavailable): {e}")
 else:
     print("⚠️  OPEN_API_KEY not set — fallback engine unavailable")
+
+# ─────────────────────────────────────────
+#  2c. GROQ CLIENT (Llama Vision)
+# ─────────────────────────────────────────
+groq_client = None
+if GROQ_API_KEY:
+    try:
+        groq_client = AsyncGroq(api_key=GROQ_API_KEY)
+        print("✅ Groq Client Ready (llama-3.2-11b-vision-preview)")
+    except Exception as e:
+        print(f"⚠️  Groq Init Failed: {e}")
+else:
+    print("⚠️  GROQ_API_KEY not set — Groq engine unavailable")
 
 # ─────────────────────────────────────────
 #  2c. CIRCUIT BREAKER STATE
@@ -437,17 +452,74 @@ async def openai_predict_fallback(prompt: str, image_bytes: bytes) -> dict:
 
 
 # ─────────────────────────────────────────
-#  5. ENDPOINTS
+#  4c. GROQ FALLBACK HELPERS (Llama Vision)
+# ─────────────────────────────────────────
+
+async def groq_predict_fallback(prompt: str, image_bytes: bytes) -> dict:
+    """Groq Llama 3.2 Vision — structured JSON diagnosis."""
+    if not groq_client:
+        raise Exception("Groq client not initialized")
+    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+    response = await groq_client.chat.completions.create(
+        model="llama-3.2-11b-vision-preview",
+        temperature=0.1,
+        max_tokens=4096,
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": [
+                {"type": "text", "text": "Analyze this plant leaf image and return the diagnosis JSON."},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+            ]},
+        ],
+    )
+    return json.loads(response.choices[0].message.content)
+
+
+async def groq_expert_plan_fallback(prompt: str, image_bytes: bytes) -> str:
+    """Groq Llama 3.2 Vision — markdown treatment plan."""
+    if not groq_client:
+        raise Exception("Groq client not initialized")
+    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+    response = await groq_client.chat.completions.create(
+        model="llama-3.2-11b-vision-preview",
+        temperature=0.3,
+        max_tokens=2048,
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": [
+                {"type": "text", "text": "Examine this plant and write the treatment plan in Markdown."},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+            ]},
+        ],
+    )
+    return response.choices[0].message.content.strip()
+
+
+async def groq_followup_fallback(prompt: str) -> str:
+    """Groq Llama 3.2 — text-only follow-up chat."""
+    if not groq_client:
+        raise Exception("Groq client not initialized")
+    response = await groq_client.chat.completions.create(
+        model="llama-3.2-11b-vision-preview",
+        temperature=0.4,
+        max_tokens=1024,
+        messages=[{"role": "system", "content": prompt}],
+    )
+    return response.choices[0].message.content.strip()
+
 # ─────────────────────────────────────────
 
 @app.get("/")
 def home():
     return {
-        "status":  "FoliageCare API v2.2 Online",
+        "status":  "FoliageCare API v2.3 Online",
         "engine": {
-            "primary": "gemini-2.5-flash",
-            "fallback": "gpt-4o-mini",
+            "primary":     "gemini-2.5-flash",
+            "secondary":   "llama-3.2-11b-vision-preview (Groq)",
+            "fallback":    "gpt-4o-mini",
             "gemini_ready": gemini_client is not None,
+            "groq_ready":   groq_client is not None,
             "openai_ready": openai_client is not None,
             "circuit_open": gemini_breaker.is_open,
         },
@@ -464,14 +536,15 @@ def home():
 # ── MODULE 1 ── DIAGNOSIS ──────────────────────────────────────
 @app.post("/predict")
 async def predict(
-    file:      UploadFile     = File(...),
-    user_name: str            = Form("Farmer"),
-    user_type: str            = Form("home_gardener"),
-    location:  Optional[str] = Form(None),
-    context:   Optional[str] = Form(None),
-    latitude:  Optional[str] = Form(None),
-    longitude: Optional[str] = Form(None),
-    weather:   Optional[str]  = Form(None),
+    file:             UploadFile     = File(...),
+    user_name:        str            = Form("Farmer"),
+    user_type:        str            = Form("home_gardener"),
+    location:         Optional[str] = Form(None),
+    context:          Optional[str] = Form(None),
+    latitude:         Optional[str] = Form(None),
+    longitude:        Optional[str] = Form(None),
+    weather:          Optional[str]  = Form(None),
+    model_preference: str            = Form("auto"),  # auto | gemini | groq | openai
 ):
     """
     Module 1 — Full plant disease diagnosis via Gemini Vision.
@@ -562,8 +635,13 @@ COORDINATE RULES for affected_regions:
 - Do NOT change the JSON schema. Curate the wording inside the existing fields for the user type.
 """
 
+    # ── ENGINE ROUTING ──
+    use_gemini = model_preference in ("auto", "gemini")
+    use_groq   = model_preference in ("auto", "groq")
+    use_openai = model_preference in ("auto", "openai")
+
     # ── ATTEMPT 1: Primary Engine (Gemini) ──
-    if gemini_client and not gemini_breaker.should_skip_primary():
+    if use_gemini and gemini_client and not gemini_breaker.should_skip_primary():
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
@@ -572,7 +650,7 @@ COORDINATE RULES for affected_regions:
                     contents=[prompt, image],
                     config=PREDICT_CONFIG,
                 ),
-                timeout=15.0,  # 15-second hard ceiling
+                timeout=15.0,
             )
             gemini_breaker.record_success()
             result = json.loads(response.text)
@@ -580,7 +658,6 @@ COORDINATE RULES for affected_regions:
             return result
 
         except json.JSONDecodeError:
-            # Try to clean markdown fences from Gemini response
             raw = getattr(response, "text", "")
             clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
             try:
@@ -589,10 +666,9 @@ COORDINATE RULES for affected_regions:
                 result["_engine"] = "gemini"
                 return result
             except Exception:
-                pass  # Fall through to OpenAI
-
+                pass
             gemini_breaker.record_failure()
-            print(f"⚠️ Gemini returned non-JSON. Falling back to OpenAI...")
+            print("\u26a0\ufe0f Gemini returned non-JSON. Trying Groq...")
 
         except Exception as gemini_error:
             err_str = str(gemini_error)
@@ -600,23 +676,30 @@ COORDINATE RULES for affected_regions:
                 gemini_breaker.permanent_disable("Geo-restriction on this server region")
             else:
                 gemini_breaker.record_failure()
-            print(f"\u26a0\ufe0f Gemini failed: {gemini_error}. Initiating fallback...")
-    else:
-        if gemini_breaker.is_open:
-            print("⏭️ Circuit open — skipping Gemini, going straight to OpenAI")
+            print(f"\u26a0\ufe0f Gemini failed: {gemini_error}. Trying Groq...")
 
-    # ── ATTEMPT 2: Fallback Engine (OpenAI) ──
-    try:
-        result = await openai_predict_fallback(prompt, image_bytes)
-        result["_engine"] = "openai_fallback"
-        return result
+    # ── ATTEMPT 2: Groq (Llama Vision) ──
+    if use_groq and groq_client:
+        try:
+            result = await groq_predict_fallback(prompt, image_bytes)
+            result["_engine"] = "groq_llama"
+            return result
+        except Exception as groq_error:
+            print(f"\u26a0\ufe0f Groq failed: {groq_error}. Trying OpenAI...")
 
-    except Exception as openai_error:
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=503,
-            detail="Both AI engines are currently unavailable. Please try again in a few minutes.",
-        )
+    # ── ATTEMPT 3: OpenAI (GPT-4o-mini) ──
+    if use_openai and openai_client:
+        try:
+            result = await openai_predict_fallback(prompt, image_bytes)
+            result["_engine"] = "openai_fallback"
+            return result
+        except Exception as openai_error:
+            traceback.print_exc()
+
+    raise HTTPException(
+        status_code=503,
+        detail="All AI engines are currently unavailable. Please try again in a few minutes.",
+    )
 
 
 # ── MODULE 2 ── DISEASE PROGRESSION SIMULATION ────────────────
@@ -760,15 +843,16 @@ NO markdown. NO explanation. Just the prompt string.
 # ── MODULE 3 ── EXPERT TREATMENT PLAN ─────────────────────────
 @app.post("/get_expert_plan")
 async def get_expert_plan(
-    file:      UploadFile     = File(...),
-    disease:   str            = Form(...),
-    location:  str            = Form("India"),
-    context:   str            = Form(""),
-    user_name: str            = Form("Farmer"),
-    user_type: str            = Form("home_gardener"),
-    latitude:  Optional[str] = Form(None),
-    longitude: Optional[str] = Form(None),
-    weather:   Optional[str]  = Form(None),
+    file:             UploadFile     = File(...),
+    disease:          str            = Form(...),
+    location:         str            = Form("India"),
+    context:          str            = Form(""),
+    user_name:        str            = Form("Farmer"),
+    user_type:        str            = Form("home_gardener"),
+    latitude:         Optional[str] = Form(None),
+    longitude:        Optional[str] = Form(None),
+    weather:          Optional[str]  = Form(None),
+    model_preference: str            = Form("auto"),
 ):
     """
     Module 3 — Full expert treatment plan with image context.
@@ -835,8 +919,12 @@ Match the tone and detail level to user type: {profile["label"]}
 End on an encouraging note — the user can fix this.
 """
 
+    use_gemini = model_preference in ("auto", "gemini")
+    use_groq   = model_preference in ("auto", "groq")
+    use_openai = model_preference in ("auto", "openai")
+
     # ── ATTEMPT 1: Gemini ──
-    if gemini_client and not gemini_breaker.should_skip_primary():
+    if use_gemini and gemini_client and not gemini_breaker.should_skip_primary():
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
@@ -858,26 +946,35 @@ End on an encouraging note — the user can fix this.
                 gemini_breaker.record_failure()
             print(f"\u26a0\ufe0f Expert plan Gemini failed: {gemini_error}")
 
-    # ── ATTEMPT 2: OpenAI fallback ──
-    try:
-        base64_img = base64.b64encode(image_bytes).decode("utf-8")
-        response = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.3,
-            max_tokens=2048,
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": [
-                    {"type": "text", "text": "Examine this plant and write the treatment plan in Markdown."},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}}
-                ]}
-            ],
-        )
-        return {"plan": response.choices[0].message.content.strip(), "_engine": "openai_fallback"}
+    # ── ATTEMPT 2: Groq ──
+    if use_groq and groq_client:
+        try:
+            plan = await groq_expert_plan_fallback(prompt, image_bytes)
+            return {"plan": plan, "_engine": "groq_llama"}
+        except Exception as groq_error:
+            print(f"\u26a0\ufe0f Groq expert plan failed: {groq_error}")
 
-    except Exception as openai_error:
-        traceback.print_exc()
-        raise HTTPException(status_code=503, detail="AI consultation unavailable.")
+    # ── ATTEMPT 3: OpenAI ──
+    if use_openai and openai_client:
+        try:
+            base64_img = base64.b64encode(image_bytes).decode("utf-8")
+            response = await openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                temperature=0.3,
+                max_tokens=2048,
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": "Examine this plant and write the treatment plan in Markdown."},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}}
+                    ]}
+                ],
+            )
+            return {"plan": response.choices[0].message.content.strip(), "_engine": "openai_fallback"}
+        except Exception as openai_error:
+            traceback.print_exc()
+
+    raise HTTPException(status_code=503, detail="AI consultation unavailable.")
 
 
 # ── MODULE 4 ── FOLLOW-UP CHAT ─────────────────────────────────
@@ -891,6 +988,7 @@ class FollowUpRequest(BaseModel):
     latitude:             Optional[float] = None
     longitude:            Optional[float] = None
     context:              Optional[str]   = None
+    model_preference:     str             = "auto"
 
 
 @app.post("/followup")
@@ -957,8 +1055,12 @@ ROLE-SPECIFIC FOLLOW-UP FOCUS:
 {profile["followup_focus"]}
 """
 
+    use_gemini = req.model_preference in ("auto", "gemini")
+    use_groq   = req.model_preference in ("auto", "groq")
+    use_openai = req.model_preference in ("auto", "openai")
+
     # ── ATTEMPT 1: Gemini ──
-    if gemini_client and not gemini_breaker.should_skip_primary():
+    if use_gemini and gemini_client and not gemini_breaker.should_skip_primary():
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
@@ -980,19 +1082,28 @@ ROLE-SPECIFIC FOLLOW-UP FOCUS:
                 gemini_breaker.record_failure()
             print(f"\u26a0\ufe0f Followup Gemini failed: {gemini_error}")
 
-    # ── ATTEMPT 2: OpenAI fallback ──
-    try:
-        response = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.4,
-            max_tokens=1024,
-            messages=[{"role": "system", "content": prompt}],
-        )
-        return {"reply": response.choices[0].message.content.strip(), "_engine": "openai_fallback"}
+    # ── ATTEMPT 2: Groq ──
+    if use_groq and groq_client:
+        try:
+            reply = await groq_followup_fallback(prompt)
+            return {"reply": reply, "_engine": "groq_llama"}
+        except Exception as groq_error:
+            print(f"\u26a0\ufe0f Groq followup failed: {groq_error}")
 
-    except Exception:
-        traceback.print_exc()
-        raise HTTPException(status_code=503, detail="AI consultation unavailable.")
+    # ── ATTEMPT 3: OpenAI ──
+    if use_openai and openai_client:
+        try:
+            response = await openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                temperature=0.4,
+                max_tokens=1024,
+                messages=[{"role": "system", "content": prompt}],
+            )
+            return {"reply": response.choices[0].message.content.strip(), "_engine": "openai_fallback"}
+        except Exception:
+            traceback.print_exc()
+
+    raise HTTPException(status_code=503, detail="AI consultation unavailable.")
 
 
 # ─────────────────────────────────────────
