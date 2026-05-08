@@ -463,7 +463,7 @@ async function showSymptomSheet(symptomText) {
     try {
         const userName = getUserName();
         const userType = getUserType();
-        const response = await fetch('https://foliage-care-backend.onrender.com/followup', {
+        const response = await fetch('https://foliage-care-775030113450.asia-south1.run.app/followup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -972,7 +972,7 @@ if (typeof currentLocationWeather !== 'undefined' && currentLocationWeather) {
     analyzeButton.disabled = true;
 
     try {
-        const response = await fetch('https://foliage-care-backend.onrender.com/predict', { method: 'POST', body: formData });
+        const response = await fetch('https://foliage-care-775030113450.asia-south1.run.app/predict', { method: 'POST', body: formData });
         removeTypingIndicator();
 
         if (!response.ok) {
@@ -1144,7 +1144,7 @@ async function sendFollowUp() {
     followupSend.disabled = true;
 
     try {
-        const response = await fetch('https://foliage-care-backend.onrender.com/followup', {
+        const response = await fetch('https://foliage-care-775030113450.asia-south1.run.app/followup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1219,7 +1219,7 @@ simulateBtn.addEventListener('click', async () => {
 
     try {
         setStep(4);
-        const response = await fetch('https://foliage-care-backend.onrender.com/simulate', { method: 'POST', body: formData });
+        const response = await fetch('https://foliage-care-775030113450.asia-south1.run.app/simulate', { method: 'POST', body: formData });
         const data = await response.json();
         removeTypingIndicator();
 
@@ -1267,7 +1267,7 @@ async function fetchPlanForPersona(userType) {
     formData.append('user_type', userType);
     if (userCoordinates) { formData.append('latitude', userCoordinates.lat); formData.append('longitude', userCoordinates.lng); }
 
-    const response = await fetch('https://foliage-care-backend.onrender.com/get_expert_plan', { method: 'POST', body: formData });
+    const response = await fetch('https://foliage-care-775030113450.asia-south1.run.app/get_expert_plan', { method: 'POST', body: formData });
     const data = await response.json();
     if (data.plan) {
         return formatMarkdown(data.plan);
