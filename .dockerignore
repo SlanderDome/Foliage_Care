@@ -1,0 +1,37 @@
+# Git
+.git
+.gitignore
+
+# Python virtual env (huge, not needed in container)
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Frontend (not needed in backend container)
+Frontend/
+
+# Dev / local files
+.vscode
+.agents
+backup/
+docs/
+graphify-out/
+*.png
+*.jpg
+
+# Local scripts not needed in prod
+fix_up.py
+test_predict.py
+verify_local.py
+Backend/test_render.py
+Backend/verify_local.py
+
+# Secrets — NEVER ship .env to container
+Backend/.env
+.env
+
+# Render config (not needed for Cloud Run)
+render.yaml
+runtime.txt
