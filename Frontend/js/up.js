@@ -44,6 +44,7 @@ let userCoordinates = null;
 let conversationHistory = [];
 let lastDiagnosisResult = null;
 let currentLocationWeather = "";
+let lastSavedScanDocId = null;  // Track Firestore scan doc for chatThread updates
 
 // Feature 3: Structured weather data for alert badges
 let currentWeatherData = null;
@@ -884,7 +885,7 @@ async function saveScanToHistory(diseaseResult, confidenceVal, severityVal) {
         }));
 
         // ── Phase 1: Save scan with plantId + chatThread ──────────────────────
-        await window.addDoc(window.collection(db, 'scans'), {
+        const scanDocRef = await window.addDoc(window.collection(db, 'scans'), {
             userId: user.uid,
             plantId: plantId || null,
             plantName: plantNickname,
@@ -897,6 +898,7 @@ async function saveScanToHistory(diseaseResult, confidenceVal, severityVal) {
             icon: diseaseResult.toLowerCase().includes('healthy') ? 'fas fa-seedling' : 'fas fa-exclamation-triangle',
             chatThread,
         });
+        lastSavedScanDocId = scanDocRef.id;
 
         if (userCoordinates) {
             const confNum = (typeof confidenceVal === 'number') ? confidenceVal : parseFloat(confidenceVal) / 100;
@@ -907,11 +909,40 @@ async function saveScanToHistory(diseaseResult, confidenceVal, severityVal) {
             });
             console.log('🗺️ Community scan contributed.');
         }
-        console.log('✅ Scan + chatThread saved. plantId:', plantId);
+        console.log('✅ Scan + chatThread saved. scanDocId:', lastSavedScanDocId, 'plantId:', plantId);
     } catch (error) {
         console.error('❌ Error saving scan:', error);
     }
 }
+
+// ═══════════ CHAT THREAD SYNC (live update to Firestore) ═══════════
+
+async function updateChatThreadInFirestore() {
+    if (!lastSavedScanDocId) return;
+    if (!window.firebaseAuth?.currentUser || !window.db || !window.updateDoc) return;
+    try {
+        const chatThread = conversationHistory.slice(-20).map(m => ({
+            role: m.role,
+            text: typeof m.text === 'string' ? m.text.substring(0, 2000) : '',
+            html: typeof m.html === 'string' ? m.html.substring(0, 12000) : '',
+        }));
+        const scanRef = window.doc(window.db, 'scans', lastSavedScanDocId);
+        await window.updateDoc(scanRef, { chatThread });
+        console.log('💬 chatThread synced to Firestore (' + chatThread.length + ' entries)');
+    } catch (err) {
+        console.warn('⚠️ chatThread sync failed:', err);
+    }
+}
+
+// Sync chat thread when user leaves the page (safety net)
+window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        updateChatThreadInFirestore();
+    }
+});
+window.addEventListener('beforeunload', () => {
+    updateChatThreadInFirestore();
+});
 
 // ═══════════ FILE UPLOAD LISTENER ═══════════
 
@@ -1177,6 +1208,7 @@ async function sendFollowUp() {
         addThreadEntry('warning', 'Connection error. Is the server running?');
     } finally {
         followupSend.disabled = false;
+        updateChatThreadInFirestore();  // Sync updated thread to Firestore
     }
 }
 
