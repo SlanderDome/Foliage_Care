@@ -15,8 +15,8 @@
         rel="stylesheet">
 
     <link rel="stylesheet" href="css/start.css">
-    <link rel="stylesheet" href="css/profile.css">
     <link rel="stylesheet" href="css/map.css">
+    <link rel="stylesheet" href="css/profile.css">
     <link rel="stylesheet" href="css/cursor.css">
     <link rel="icon" href="assets/892926.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -65,7 +65,7 @@
                 <div class="identity-copy">
                     <div class="identity-heading">
                         <div>
-                            <p class="eyebrow">Grower profile</p>
+                            <p class="eyebrow">Account workspace</p>
                             <h1 id="profile-name">Loading...</h1>
                         </div>
                         <button class="ghost-btn" id="heroLogoutBtn" type="button">
@@ -89,7 +89,7 @@
                         </a>
                         <button class="secondary-btn" id="jump-to-settings" type="button">
                             <i class="fas fa-user-gear"></i>
-                            <span>Edit profile</span>
+                            <span>Profile settings</span>
                         </button>
                     </div>
                 </div>
@@ -134,7 +134,7 @@
                         <div class="section-head">
                             <div>
                                 <p class="section-kicker">Garden snapshot</p>
-                                <h2>Your growing overview</h2>
+                                <h2>Profile overview</h2>
                             </div>
                         </div>
                         <div class="snapshot-grid">
@@ -254,21 +254,21 @@
                                     <p class="map-subtext">Review community scan patterns and compare healthy, warning, and critical reports across regions.</p>
                                 </div>
                                 <div class="map-filters" id="profile-map-filters">
-                                    <button class="filter-pill active" data-filter="all"><span class="pill-dot all"></span> All</button>
-                                    <button class="filter-pill" data-filter="healthy"><span class="pill-dot healthy"></span> Healthy</button>
-                                    <button class="filter-pill" data-filter="warning"><span class="pill-dot warning"></span> Warning</button>
-                                    <button class="filter-pill" data-filter="critical"><span class="pill-dot critical"></span> Critical</button>
+                                    <button class="filter-pill active" data-filter="all" type="button"><span class="pill-dot all"></span> All</button>
+                                    <button class="filter-pill" data-filter="healthy" type="button"><span class="pill-dot healthy"></span> Healthy</button>
+                                    <button class="filter-pill" data-filter="warning" type="button"><span class="pill-dot warning"></span> Warning</button>
+                                    <button class="filter-pill" data-filter="critical" type="button"><span class="pill-dot critical"></span> Critical</button>
                                 </div>
                             </header>
                             
                             <div class="stat-bar profile-map-stats">
-                                <div class="stat-item"><span class="stat-val" id="intel-total">—</span><span class="stat-label">Total</span></div>
+                                <div class="stat-item"><span class="stat-val" id="intel-total">-</span><span class="stat-label">Total</span></div>
                                 <div class="stat-divider"></div>
-                                <div class="stat-item"><span class="stat-val" id="intel-diseases">—</span><span class="stat-label">Diseases</span></div>
+                                <div class="stat-item"><span class="stat-val" id="intel-diseases">-</span><span class="stat-label">Diseases</span></div>
                                 <div class="stat-divider"></div>
-                                <div class="stat-item"><span class="stat-val" id="intel-critical">—</span><span class="stat-label">Critical</span></div>
+                                <div class="stat-item"><span class="stat-val" id="intel-critical">-</span><span class="stat-label">Critical</span></div>
                                 <div class="stat-divider"></div>
-                                <div class="stat-item"><span class="stat-val" id="intel-today">—</span><span class="stat-label">Today</span></div>
+                                <div class="stat-item"><span class="stat-val" id="intel-today">-</span><span class="stat-label">Today</span></div>
                             </div>
 
                             <div id="profile-leaflet-map" class="profile-leaflet-map"></div>
@@ -298,7 +298,7 @@
                         <div class="section-head">
                             <div>
                                 <p class="section-kicker">Profile details</p>
-                                <h2>Update your grower account</h2>
+                                <h2>Profile settings</h2>
                             </div>
                         </div>
 

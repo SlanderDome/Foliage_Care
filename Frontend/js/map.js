@@ -227,6 +227,11 @@
         if (skeleton) skeleton.remove();
         feed.innerHTML = "";
 
+        if (!scans.length) {
+            feed.innerHTML = '<div class="feed-item"><div class="feed-info"><div class="feed-disease">No community scans yet</div><div class="feed-meta"><span>Map updates as reports arrive</span></div></div></div>';
+            return;
+        }
+
         [...scans].sort((a, b) => b.timestamp - a.timestamp).forEach((scan) => {
             const severity = getSeverity(scan.disease, scan.confidence, scan.severity);
             const confidence = Math.round((scan.confidence || 0) * 100);
@@ -301,6 +306,11 @@
 
         const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4);
         const max = sorted[0]?.[1] || 1;
+
+        if (!sorted.length) {
+            container.innerHTML = '<div class="top-disease-row"><span class="top-disease-name">No pathogen reports</span><div class="top-disease-bar-wrap"><div class="top-disease-bar" style="width:0"></div></div><span class="top-disease-count">0</span></div>';
+            return;
+        }
 
         container.innerHTML = sorted.map(([disease, count]) => `
             <div class="top-disease-row">
