@@ -1,3 +1,55 @@
+const NAVBAR_MIN_SKELETON_MS = 250;
+const NAVBAR_AUTH_TIMEOUT_MS = 4000;
+
+function estimateSkeletonWidth(item) {
+  const anchor = item.querySelector("a");
+  const label = (anchor ? anchor.textContent : item.textContent).replace(/\s+/g, " ").trim();
+  const width = Math.max(56, Math.min(148, 24 + label.length * 6));
+  return `${width}px`;
+}
+
+function ensureSkeletonSlots() {
+  const navLinks = document.querySelector(".nav-links");
+  const realItems = Array.from(document.querySelectorAll(".nav-real"));
+
+  if (!navLinks || realItems.length === 0) return;
+
+  const skeletons = Array.from(navLinks.querySelectorAll(".nav-skeleton"));
+  const targetCount = realItems.length;
+
+  if (skeletons.length < targetCount) {
+    const insertBefore = realItems[0];
+    for (let i = skeletons.length; i < targetCount; i += 1) {
+      const li = document.createElement("li");
+      li.className = "nav-skeleton";
+      li.setAttribute("aria-hidden", "true");
+      navLinks.insertBefore(li, insertBefore);
+      skeletons.push(li);
+    }
+  } else if (skeletons.length > targetCount) {
+    skeletons.slice(targetCount).forEach((item) => item.remove());
+  }
+
+  Array.from(navLinks.querySelectorAll(".nav-skeleton")).forEach((item, index) => {
+    const sourceItem = realItems[index];
+    item.style.width = estimateSkeletonWidth(sourceItem);
+  });
+}
+
+function showLoadingNav() {
+  const navLinks = document.querySelector(".nav-links");
+  const realItems = document.querySelectorAll(".nav-real");
+
+  ensureSkeletonSlots();
+
+  if (navLinks) {
+    navLinks.style.visibility = "visible";
+    navLinks.setAttribute("aria-busy", "true");
+  }
+
+  realItems.forEach((item) => item.classList.add("hidden"));
+}
+
 function showResolvedNav() {
   const navLinks = document.querySelector(".nav-links");
   const skeletons = document.querySelectorAll(".nav-skeleton");
@@ -5,6 +57,7 @@ function showResolvedNav() {
 
   if (navLinks) {
     navLinks.style.visibility = "visible";
+    navLinks.setAttribute("aria-busy", "false");
   }
 
   skeletons.forEach((item) => item.remove());
@@ -47,7 +100,7 @@ function bindFullMapRedirect() {
   });
 }
 
-function attachAuthListener() {
+function attachAuthListener(onResolved) {
   if (!window.firebaseReady || !window.firebaseAuth || !window.onAuthStateChanged) {
     return false;
   }
@@ -55,7 +108,7 @@ function attachAuthListener() {
   try {
     window.onAuthStateChanged(window.firebaseAuth, (user) => {
       updateAuthUi(user && !user.isAnonymous ? user : null);
-      showResolvedNav();
+      onResolved();
     });
     return true;
   } catch (error) {
@@ -65,22 +118,32 @@ function attachAuthListener() {
 }
 
 function initNavbar() {
-  showResolvedNav();
+  const startedAt = Date.now();
+  let hasResolved = false;
+
+  function resolveNav() {
+    if (hasResolved) return;
+    hasResolved = true;
+    const elapsed = Date.now() - startedAt;
+    const remaining = Math.max(0, NAVBAR_MIN_SKELETON_MS - elapsed);
+    window.setTimeout(showResolvedNav, remaining);
+  }
+
+  showLoadingNav();
   updateAuthUi(null);
   bindFullMapRedirect();
 
-  if (attachAuthListener()) return;
+  if (attachAuthListener(resolveNav)) return;
 
-  const startedAt = Date.now();
   const timer = setInterval(() => {
-    if (attachAuthListener()) {
+    if (attachAuthListener(resolveNav)) {
       clearInterval(timer);
       return;
     }
 
-    if (Date.now() - startedAt > 4000) {
+    if (Date.now() - startedAt > NAVBAR_AUTH_TIMEOUT_MS) {
       clearInterval(timer);
-      showResolvedNav();
+      resolveNav();
     }
   }, 100);
 }

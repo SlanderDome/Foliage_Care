@@ -1,7 +1,17 @@
 services:
-  - name: foliage-backend
+  - name: foliage-care-backend
     type: web
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn Backend.main:app --host 0.0.0.0 --port 10000"
+    startCommand: "cd Backend && uvicorn main:app --host 0.0.0.0 --port 10000"
     pythonVersion: 3.11.9
+    healthCheckPath: /
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPEN_API_KEY
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: REPLICATE_API_TOKEN
+        sync: false

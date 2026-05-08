@@ -65,7 +65,7 @@
                 <div class="identity-copy">
                     <div class="identity-heading">
                         <div>
-                            <p class="eyebrow">Your account</p>
+                            <p class="eyebrow">Grower profile</p>
                             <h1 id="profile-name">Loading...</h1>
                         </div>
                         <button class="ghost-btn" id="heroLogoutBtn" type="button">
@@ -75,7 +75,7 @@
                     </div>
 
                     <p class="identity-email" id="profile-email"></p>
-                    <p class="identity-bio" id="profile-bio">Add a short note about your garden or growing focus.</p>
+                    <p class="identity-bio" id="profile-bio">Add a short note about your plants, crops, or growing focus.</p>
 
                     <div class="identity-meta">
                         <span class="meta-pill" id="member-since">Member since -</span>
@@ -134,7 +134,7 @@
                         <div class="section-head">
                             <div>
                                 <p class="section-kicker">Garden snapshot</p>
-                                <h2>What your profile actually needs</h2>
+                                <h2>Your growing overview</h2>
                             </div>
                         </div>
                         <div class="snapshot-grid">
@@ -161,7 +161,7 @@
                         <div class="section-head">
                             <div>
                                 <p class="section-kicker">Quick actions</p>
-                                <h2>Stay focused</h2>
+                                <h2>Keep your records moving</h2>
                             </div>
                         </div>
                         <div class="action-stack">
@@ -244,11 +244,16 @@
             </section>
 
             <section class="tab-panel" id="panel-intel-map">
-                <article class="surface-card spread-card reveal" style="padding: 1.5rem;">
-                    <div class="map-layout" style="display: flex; gap: 2rem; flex-wrap: wrap;">
-                        <div class="map-container" style="flex: 1; min-width: 300px; display: flex; flex-direction: column;">
+                <article class="surface-card spread-card reveal">
+                    <div class="map-layout">
+                        <div class="map-container">
                             <header class="map-header">
-                                <div class="map-filters" id="profile-map-filters" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                                <div class="map-copy">
+                                    <p class="section-kicker">Regional activity</p>
+                                    <h2>Outbreak intelligence map</h2>
+                                    <p class="map-subtext">Review community scan patterns and compare healthy, warning, and critical reports across regions.</p>
+                                </div>
+                                <div class="map-filters" id="profile-map-filters">
                                     <button class="filter-pill active" data-filter="all"><span class="pill-dot all"></span> All</button>
                                     <button class="filter-pill" data-filter="healthy"><span class="pill-dot healthy"></span> Healthy</button>
                                     <button class="filter-pill" data-filter="warning"><span class="pill-dot warning"></span> Warning</button>
@@ -256,7 +261,7 @@
                                 </div>
                             </header>
                             
-                            <div class="stat-bar" style="margin-bottom: 1rem; border-radius: 8px;">
+                            <div class="stat-bar profile-map-stats">
                                 <div class="stat-item"><span class="stat-val" id="intel-total">—</span><span class="stat-label">Total</span></div>
                                 <div class="stat-divider"></div>
                                 <div class="stat-item"><span class="stat-val" id="intel-diseases">—</span><span class="stat-label">Diseases</span></div>
@@ -266,21 +271,21 @@
                                 <div class="stat-item"><span class="stat-val" id="intel-today">—</span><span class="stat-label">Today</span></div>
                             </div>
 
-                            <div id="profile-leaflet-map" style="height: 500px; width: 100%; border-radius: 12px; z-index: 1;"></div>
+                            <div id="profile-leaflet-map" class="profile-leaflet-map"></div>
                         </div>
 
-                        <aside class="map-sidebar" style="width: 320px; flex-shrink: 0; background: transparent; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; display: flex; flex-direction: column;">
-                            <div class="sidebar-header" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <aside class="map-sidebar">
+                            <div class="sidebar-header">
                                 <div class="sidebar-title-group">
                                     <i class="fas fa-satellite-dish sidebar-icon"></i>
-                                    <h3>Live Intel</h3>
+                                    <h3>Live forest intel</h3>
                                 </div>
                                 <span class="scan-count-badge" id="intel-badge">0 scans</span>
                             </div>
-                            <div class="sidebar-feed" id="intel-feed" style="max-height: 250px; overflow-y: auto;"></div>
-                            <div class="sidebar-section" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem; margin-top: auto;">
-                                <h4 class="sidebar-section-title" style="margin-left: 1.5rem;"><i class="fas fa-chart-bar"></i> Top Pathogens</h4>
-                                <div class="top-diseases" id="intel-top-diseases" style="margin-left: 1.5rem; margin-right: 1.5rem; margin-bottom: 1.5rem;"></div>
+                            <div class="sidebar-feed" id="intel-feed"></div>
+                            <div class="sidebar-section">
+                                <h4 class="sidebar-section-title"><i class="fas fa-chart-bar"></i> Top Pathogens</h4>
+                                <div class="top-diseases" id="intel-top-diseases"></div>
                             </div>
                         </aside>
                     </div>
@@ -293,7 +298,7 @@
                         <div class="section-head">
                             <div>
                                 <p class="section-kicker">Profile details</p>
-                                <h2>Keep it simple</h2>
+                                <h2>Update your grower account</h2>
                             </div>
                         </div>
 
@@ -331,7 +336,7 @@
                         <div class="section-head">
                             <div>
                                 <p class="section-kicker">Account tools</p>
-                                <h2>Useful actions only</h2>
+                                <h2>Account actions</h2>
                             </div>
                         </div>
                         <div class="account-stack">

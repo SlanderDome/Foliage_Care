@@ -1,6 +1,6 @@
 # ==========================================
-#  FOLIAGE CARE — API GATEWAY v2.1
-#  No CNN. Pure Gemini Vision.
+#  FOLIAGE CARE — API GATEWAY v2.2
+#  No CNN. Pure Gemini Vision + OpenAI Fallback.
 #  M1: /predict         — Diagnosis + region overlay
 #  M2: /simulate        — Disease progression image
 #  M3: /get_expert_plan — Full treatment plan
@@ -11,11 +11,13 @@ import os
 import io
 import json
 import base64
+import time
+import asyncio
 import traceback
 from datetime import datetime
 from typing import Optional, List
 
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -23,6 +25,7 @@ from google import genai
 from google.genai import types
 from PIL import Image
 from huggingface_hub import InferenceClient
+from openai import AsyncOpenAI
 
 # ─────────────────────────────────────────
 #  1. STARTUP
@@ -31,8 +34,8 @@ load_dotenv()
 
 app = FastAPI(
     title="FoliageCare API",
-    version="2.1.0",
-    description="Plant health consultation API — India-specific, Gemini Vision powered",
+    version="2.2.0",
+    description="Plant health consultation API — India-specific, Gemini Vision + OpenAI fallback",
 )
 
 app.add_middleware(
@@ -45,6 +48,7 @@ app.add_middleware(
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 HF_TOKEN       = os.getenv("HF_TOKEN")
+OPEN_API_KEY   = os.getenv("OPEN_API_KEY")
 
 # ─────────────────────────────────────────
 #  2. GEMINI CLIENT
@@ -57,7 +61,56 @@ if GEMINI_API_KEY:
     except Exception as e:
         print(f"❌ Gemini Init Failed: {e}")
 else:
-    print("⚠️  GEMINI_API_KEY not set — all AI endpoints will return errors")
+    print("⚠️  GEMINI_API_KEY not set — primary engine unavailable")
+
+# ─────────────────────────────────────────
+#  2b. OPENAI FALLBACK CLIENT
+# ─────────────────────────────────────────
+openai_client = None
+if OPEN_API_KEY:
+    try:
+        openai_client = AsyncOpenAI(api_key=OPEN_API_KEY)
+        print("✅ OpenAI Fallback Client Ready")
+    except Exception as e:
+        print(f"⚠️  OpenAI Init Failed (fallback unavailable): {e}")
+else:
+    print("⚠️  OPEN_API_KEY not set — fallback engine unavailable")
+
+# ─────────────────────────────────────────
+#  2c. CIRCUIT BREAKER STATE
+# ─────────────────────────────────────────
+class CircuitBreaker:
+    """Simple circuit breaker for the primary Gemini engine."""
+    def __init__(self, failure_threshold=3, recovery_timeout=300):
+        self.failure_threshold = failure_threshold   # 3 consecutive failures
+        self.recovery_timeout = recovery_timeout     # 5 minutes cooldown
+        self.failure_count = 0
+        self.last_failure_time = 0
+        self.is_open = False                         # open = skip Gemini
+
+    def record_failure(self):
+        self.failure_count += 1
+        self.last_failure_time = time.time()
+        if self.failure_count >= self.failure_threshold:
+            self.is_open = True
+            print(f"🔴 Circuit OPEN — skipping Gemini for {self.recovery_timeout}s")
+
+    def record_success(self):
+        self.failure_count = 0
+        self.is_open = False
+
+    def should_skip_primary(self) -> bool:
+        if not self.is_open:
+            return False
+        if time.time() - self.last_failure_time > self.recovery_timeout:
+            print("🟢 Circuit HALF-OPEN — retrying Gemini")
+            self.is_open = False
+            self.failure_count = 0
+            return False
+        return True
+
+gemini_breaker = CircuitBreaker()
+
 
 # ─────────────────────────────────────────
 #  3. GENERATION CONFIGS (per module)
@@ -333,14 +386,62 @@ You must use the 'Weather Trend/weather' and 'Location' to influence your diagno
 
 
 # ─────────────────────────────────────────
+#  4b. OPENAI FALLBACK HELPERS
+# ─────────────────────────────────────────
+
+async def openai_predict_fallback(prompt: str, image_bytes: bytes) -> dict:
+    """
+    Fallback: Send the same diagnosis prompt to OpenAI GPT-4o-mini.
+    Uses the same prompt text to ensure schema consistency.
+    """
+    if not openai_client:
+        raise Exception("OpenAI client not initialized")
+
+    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+
+    response = await openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format={"type": "json_object"},
+        temperature=0.1,
+        max_tokens=4096,
+        messages=[
+            {
+                "role": "system",
+                "content": prompt,
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Analyze this plant leaf image and return the diagnosis JSON."},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
+                ],
+            },
+        ],
+    )
+
+    return json.loads(response.choices[0].message.content)
+
+
+# ─────────────────────────────────────────
 #  5. ENDPOINTS
 # ─────────────────────────────────────────
 
 @app.get("/")
 def home():
     return {
-        "status":  "FoliageCare API v2.1 Online",
-        "engine":  "Gemini Vision — no CNN",
+        "status":  "FoliageCare API v2.2 Online",
+        "engine": {
+            "primary": "gemini-2.5-flash",
+            "fallback": "gpt-4o-mini",
+            "gemini_ready": gemini_client is not None,
+            "openai_ready": openai_client is not None,
+            "circuit_open": gemini_breaker.is_open,
+        },
         "season":  get_indian_season(),
         "modules": {
             "POST /predict":         "Diagnosis + region overlay + trust signals",
@@ -372,8 +473,8 @@ async def predict(
     - trust_signals: why this diagnosis, alternative ruled out, confidence explanation
     - action_plan: immediate, desi remedy, organic, chemical (last resort), seasonal tip
     """
-    if not gemini_client:
-        return {"error": "Gemini client not initialized. Check GEMINI_API_KEY."}
+    if not gemini_client and not openai_client:
+        return {"error": "No AI engine available. Check GEMINI_API_KEY or OPEN_API_KEY."}
 
     image_bytes = await file.read()
     image       = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -452,30 +553,57 @@ COORDINATE RULES for affected_regions:
 - Do NOT change the JSON schema. Curate the wording inside the existing fields for the user type.
 """
 
-    try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[prompt, image],
-            config=PREDICT_CONFIG,
-        )
-        # response_mime_type=application/json guarantees valid JSON in response.text
-        return json.loads(response.text)
-
-    except json.JSONDecodeError as e:
-        raw = getattr(response, "text", "")
-        # Attempt to strip any accidental markdown fences and re-parse
-        clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+    # ── ATTEMPT 1: Primary Engine (Gemini) ──
+    if gemini_client and not gemini_breaker.should_skip_primary():
         try:
-            return json.loads(clean)
-        except Exception:
-            return {
-                "error":        "Gemini returned non-JSON output.",
-                "raw_response": raw[:500],
-                "detail":       str(e),
-            }
-    except Exception as e:
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    gemini_client.models.generate_content,
+                    model="gemini-2.5-flash",
+                    contents=[prompt, image],
+                    config=PREDICT_CONFIG,
+                ),
+                timeout=15.0,  # 15-second hard ceiling
+            )
+            gemini_breaker.record_success()
+            result = json.loads(response.text)
+            result["_engine"] = "gemini"
+            return result
+
+        except json.JSONDecodeError:
+            # Try to clean markdown fences from Gemini response
+            raw = getattr(response, "text", "")
+            clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+            try:
+                result = json.loads(clean)
+                gemini_breaker.record_success()
+                result["_engine"] = "gemini"
+                return result
+            except Exception:
+                pass  # Fall through to OpenAI
+
+            gemini_breaker.record_failure()
+            print(f"⚠️ Gemini returned non-JSON. Falling back to OpenAI...")
+
+        except Exception as gemini_error:
+            gemini_breaker.record_failure()
+            print(f"⚠️ Gemini failed: {gemini_error}. Initiating fallback...")
+    else:
+        if gemini_breaker.is_open:
+            print("⏭️ Circuit open — skipping Gemini, going straight to OpenAI")
+
+    # ── ATTEMPT 2: Fallback Engine (OpenAI) ──
+    try:
+        result = await openai_predict_fallback(prompt, image_bytes)
+        result["_engine"] = "openai_fallback"
+        return result
+
+    except Exception as openai_error:
         traceback.print_exc()
-        return {"error": str(e)}
+        raise HTTPException(
+            status_code=503,
+            detail="Both AI engines are currently unavailable. Please try again in a few minutes.",
+        )
 
 
 # ── MODULE 2 ── DISEASE PROGRESSION SIMULATION ────────────────
@@ -638,8 +766,8 @@ async def get_expert_plan(
     - Season-specific prevention tips
     - KVK referral section
     """
-    if not gemini_client:
-        return {"error": "Gemini client not initialized."}
+    if not gemini_client and not openai_client:
+        return {"error": "No AI engine available."}
 
     image_bytes = await file.read()
     image       = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -694,17 +822,45 @@ Match the tone and detail level to user type: {profile["label"]}
 End on an encouraging note — the user can fix this.
 """
 
-    try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[prompt, image],
-            config=EXPERT_PLAN_CONFIG,
-        )
-        return {"plan": response.text.strip()}
+    # ── ATTEMPT 1: Gemini ──
+    if gemini_client and not gemini_breaker.should_skip_primary():
+        try:
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    gemini_client.models.generate_content,
+                    model="gemini-2.5-flash",
+                    contents=[prompt, image],
+                    config=EXPERT_PLAN_CONFIG,
+                ),
+                timeout=20.0,
+            )
+            gemini_breaker.record_success()
+            return {"plan": response.text.strip(), "_engine": "gemini"}
 
-    except Exception as e:
+        except Exception as gemini_error:
+            gemini_breaker.record_failure()
+            print(f"⚠️ Expert plan Gemini failed: {gemini_error}")
+
+    # ── ATTEMPT 2: OpenAI fallback ──
+    try:
+        base64_img = base64.b64encode(image_bytes).decode("utf-8")
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.3,
+            max_tokens=2048,
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": [
+                    {"type": "text", "text": "Examine this plant and write the treatment plan in Markdown."},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}}
+                ]}
+            ],
+        )
+        return {"plan": response.choices[0].message.content.strip(), "_engine": "openai_fallback"}
+
+    except Exception as openai_error:
         traceback.print_exc()
-        return {"error": str(e)}
+        raise HTTPException(status_code=503, detail="AI consultation unavailable.")
 
 
 # ── MODULE 4 ── FOLLOW-UP CHAT ─────────────────────────────────
@@ -729,8 +885,8 @@ async def followup(req: FollowUpRequest):
     Always responds with India-specific, season-aware advice.
     Gently redirects completely off-topic questions back to plant care.
     """
-    if not gemini_client:
-        return {"error": "Gemini client not initialized."}
+    if not gemini_client and not openai_client:
+        return {"error": "No AI engine available."}
 
     profile = get_user_type_profile(req.user_type)
     india_ctx = build_indian_context(
@@ -784,17 +940,38 @@ ROLE-SPECIFIC FOLLOW-UP FOCUS:
 {profile["followup_focus"]}
 """
 
-    try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=FOLLOWUP_CONFIG,
-        )
-        return {"reply": response.text.strip()}
+    # ── ATTEMPT 1: Gemini ──
+    if gemini_client and not gemini_breaker.should_skip_primary():
+        try:
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    gemini_client.models.generate_content,
+                    model="gemini-2.5-flash",
+                    contents=prompt,
+                    config=FOLLOWUP_CONFIG,
+                ),
+                timeout=12.0,
+            )
+            gemini_breaker.record_success()
+            return {"reply": response.text.strip(), "_engine": "gemini"}
 
-    except Exception as e:
+        except Exception as gemini_error:
+            gemini_breaker.record_failure()
+            print(f"⚠️ Followup Gemini failed: {gemini_error}")
+
+    # ── ATTEMPT 2: OpenAI fallback ──
+    try:
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.4,
+            max_tokens=1024,
+            messages=[{"role": "system", "content": prompt}],
+        )
+        return {"reply": response.choices[0].message.content.strip(), "_engine": "openai_fallback"}
+
+    except Exception:
         traceback.print_exc()
-        return {"error": str(e)}
+        raise HTTPException(status_code=503, detail="AI consultation unavailable.")
 
 
 # ─────────────────────────────────────────

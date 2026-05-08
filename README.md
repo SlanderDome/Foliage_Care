@@ -84,6 +84,17 @@ Each stage is weather-influenced, season-aware, and personalized to the user's r
 - Supports **multilingual interaction** — auto-detects and responds in the user's language (Hindi, English, or regional).
 - Gently redirects off-topic queries back to plant health while remaining conversational and helpful.
 
+### Module 5 — "My Garden" Dashboard & Tracking
+
+- Integrates with **Firebase Firestore** to maintain individual plant records for each user.
+- Allows users to track the progression of specific plants over time by grouping scans under unique plant documents.
+- Features a dynamic **Plant Selector** on the scanning interface, seamlessly linking new visual analyses to existing plant histories or generating new entries.
+
+### Module 6 — Graphify Knowledge Graph Visualization
+
+- Integrates **Graphify** to represent the complex relationships between plant species, identified pathologies, and recommended treatments.
+- Renders an interactive `graph.html` visualization, enabling users to explore disease networks and common cross-species vulnerabilities visually.
+
 ---
 
 ## 👤 Role-Adaptive Intelligence
@@ -136,7 +147,9 @@ This transforms individual diagnoses into **collective agricultural intelligence
 | **Frontend** | HTML5, CSS3, Vanilla JavaScript (ES6) | Responsive UI with dynamic result rendering and image overlays |
 | **Typography & Icons** | Google Fonts (Playfair Display, Roboto), Font Awesome | Premium visual aesthetics |
 | **Authentication** | Firebase Authentication (Google OAuth 2.0) | Secure multi-provider user management |
+| **Database** | Firebase Firestore | NoSQL document database for user profiles, plant collections, and scan history |
 | **Geospatial** | Leaflet.js, OpenStreetMap | Interactive outbreak mapping and location-based services |
+| **Visualization** | Graphify | Interactive knowledge graph rendering |
 | **Backend API** | FastAPI (Python 3.11+) | High-performance async REST API gateway |
 | **ASGI Server** | Uvicorn | Production-grade async server |
 | **Primary AI Engine** | Google Gemini 2.5 Flash (Vision) | Multimodal diagnosis, treatment generation, and conversational AI |
@@ -151,7 +164,7 @@ This transforms individual diagnoses into **collective agricultural intelligence
 ```
 Foliage_Care/
 ├── Backend/
-│   ├── main.py                  # API gateway — all 4 endpoint modules
+│   ├── main.py                  # API gateway — all endpoints
 │   ├── utils/
 │   │   ├── gradcam.py           # Grad-CAM visualization utilities
 │   │   ├── weather.py           # Weather data integration
@@ -160,16 +173,18 @@ Foliage_Care/
 │   └── models/                  # Model weights and class indices
 ├── Frontend/
 │   ├── index.html               # Landing page
-│   ├── start.html               # Diagnosis interface
-│   ├── profile.html             # User profile & diagnosis history
+│   ├── start.html               # Diagnosis interface (with Plant Selector)
+│   ├── profile.html             # User profile & My Garden dashboard
 │   ├── map.html                 # Outbreak map visualization
 │   ├── playbook.html            # Treatment playbook
 │   ├── login.html               # Authentication
 │   ├── about.html               # Project information
 │   ├── contact.html             # Feedback & connect
 │   ├── css/                     # Stylesheets
-│   ├── js/                      # Client-side modules
+│   ├── js/                      # Client-side modules (incl. up.js w/ Firestore)
 │   └── assets/                  # Static media
+├── graphify-out/
+│   └── graph.html               # Knowledge graph visualization
 ├── requirements.txt
 ├── render.yaml                  # Render deployment configuration
 └── README.md
