@@ -172,6 +172,7 @@ const state = {
   profile: {},
   scans: [],
   historyFilter: 'all',
+  scansLoaded: false,
   tabsReady: false,
   exportBound: false,
   settingsBound: false,
@@ -197,6 +198,7 @@ function activateTab(tabName) {
   buttons.forEach((button) => {
     const active = button.dataset.tab === tabName;
     button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
 
     if (active && indicator) {
       indicator.style.width = `${button.offsetWidth}px`;
@@ -205,7 +207,9 @@ function activateTab(tabName) {
   });
 
   panels.forEach((panel) => {
-    panel.classList.toggle('active', panel.id === `panel-${tabName}`);
+    const active = panel.id === `panel-${tabName}`;
+    panel.classList.toggle('active', active);
+    panel.hidden = !active;
   });
 
   document.dispatchEvent(new CustomEvent('profile:tab-change', { detail: { tabName } }));
@@ -214,8 +218,11 @@ function initTabs() {
   if (state.tabsReady) return;
   state.tabsReady = true;
 
-  document.querySelectorAll('.tab-btn').forEach((button) => {
-    button.addEventListener('click', () => activateTab(button.dataset.tab));
+  const tabs = document.querySelector('.profile-tabs');
+  tabs?.addEventListener('click', (event) => {
+    const button = event.target.closest('.tab-btn');
+    if (!button || !tabs.contains(button)) return;
+    activateTab(button.dataset.tab);
   });
 
   const initial = document.querySelector('.tab-btn.active');
@@ -407,12 +414,27 @@ function getFilteredHistory() {
 function renderHistory() {
   const list = document.getElementById('history-list');
   const empty = document.getElementById('history-empty');
+  const count = document.getElementById('history-count');
   if (!list || !empty) return;
 
   list.innerHTML = '';
 
   const entries = getFilteredHistory();
-  empty.style.display = entries.length ? 'none' : 'flex';
+  const total = state.scans.length;
+
+  if (count) {
+    if (!state.scansLoaded) {
+      count.textContent = 'Loading records...';
+    } else if (!total) {
+      count.textContent = '0 records';
+    } else if (state.historyFilter === 'all') {
+      count.textContent = `${total} record${total === 1 ? '' : 's'}`;
+    } else {
+      count.textContent = `${entries.length} of ${total} record${total === 1 ? '' : 's'}`;
+    }
+  }
+
+  empty.style.display = state.scansLoaded && !entries.length ? 'flex' : 'none';
   list.style.display = entries.length ? 'grid' : 'none';
 
   entries.forEach((scan) => {
@@ -449,9 +471,9 @@ function renderAll() {
 }
 
 function normalizeScanRecord(data, sourceLabel, idHint) {
-  const diagnosis = data.disease || data.prediction || 'Diagnosis unavailable';
-  const plantName = data.plantName || data.plant || diagnosis || 'Plant scan';
-  const timestamp = parseTimestamp(data.timestamp) || new Date(0);
+  const diagnosis = data.disease || data.prediction || data.diagnosis?.disease || data.result || 'Diagnosis unavailable';
+  const plantName = data.plantName || data.plant || data.species || data.diagnosis?.plant || 'Plant scan';
+  const timestamp = parseTimestamp(data.timestamp || data.createdAt || data.scannedAt || data.date) || new Date(0);
   const confidence = parseConfidence(data.confidence);
   const severity = inferSeverity(diagnosis, data.severity);
   const sourceId = data.id || idHint || `${diagnosis}-${timestamp.getTime()}`;
@@ -491,6 +513,9 @@ async function fetchLegacyPredictionScans(user) {
 }
 
 async function loadScans(user) {
+  state.scansLoaded = false;
+  renderHistory();
+
   const [topLevel, legacy] = await Promise.all([
     fetchScansFromTopLevel(user),
     fetchLegacyPredictionScans(user)
@@ -504,8 +529,9 @@ async function loadScans(user) {
     return true;
   });
 
-  merged.sort((a, b) => b.timestamp - a.timestamp);
+  merged.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   state.scans = merged;
+  state.scansLoaded = true;
 }
 
 async function loadProfileDoc(user) {

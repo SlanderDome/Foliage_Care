@@ -1,17 +1,13 @@
 import os
-from openai import OpenAI
 from dotenv import load_dotenv
+from google import genai
 
-# Load your .env file
-load_dotenv() 
+# Load the .env file from the same directory
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-# Initialize the client
-client = OpenAI(api_key=os.getenv("OPEN_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-# Fetch the list of models
-models = client.models.list()
-
-# Print the ID of every available model
-print("Available OpenAI Models:")
-for model in models.data:
-    print(f"- {model.id}")
+print("Available Gemini Models:")
+for m in client.models.list():
+    if "gemini" in m.name.lower():
+        print(f"- {m.name} ({m.description})")
