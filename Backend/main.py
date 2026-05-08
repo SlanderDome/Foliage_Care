@@ -452,11 +452,11 @@ async def openai_predict_fallback(prompt: str, image_bytes: bytes) -> dict:
 
 
 # ─────────────────────────────────────────
-#  4c. GROQ FALLBACK HELPERS (Llama Vision)
+#  4c. GROQ FALLBACK HELPERS (Llama 4 Vision)
 # ─────────────────────────────────────────
 
 async def groq_predict_fallback(prompt: str, image_bytes: bytes) -> dict:
-    """Groq Llama 3.2 Vision — structured JSON diagnosis."""
+    """Groq Llama 4 Vision — structured JSON diagnosis."""
     if not groq_client:
         raise Exception("Groq client not initialized")
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
@@ -477,7 +477,7 @@ async def groq_predict_fallback(prompt: str, image_bytes: bytes) -> dict:
 
 
 async def groq_expert_plan_fallback(prompt: str, image_bytes: bytes) -> str:
-    """Groq Llama 3.2 Vision — markdown treatment plan."""
+    """Groq Llama 4 Vision — markdown treatment plan."""
     if not groq_client:
         raise Exception("Groq client not initialized")
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
@@ -497,7 +497,7 @@ async def groq_expert_plan_fallback(prompt: str, image_bytes: bytes) -> str:
 
 
 async def groq_followup_fallback(prompt: str) -> str:
-    """Groq Llama 3.2 — text-only follow-up chat."""
+    """Groq Llama 4 — text-only follow-up chat."""
     if not groq_client:
         raise Exception("Groq client not initialized")
     response = await groq_client.chat.completions.create(
