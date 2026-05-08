@@ -87,23 +87,32 @@ class CircuitBreaker:
         self.failure_count = 0
         self.last_failure_time = 0
         self.is_open = False                         # open = skip Gemini
+        self.permanently_disabled = False            # True if geo-blocked
 
     def record_failure(self):
         self.failure_count += 1
         self.last_failure_time = time.time()
         if self.failure_count >= self.failure_threshold:
             self.is_open = True
-            print(f"🔴 Circuit OPEN — skipping Gemini for {self.recovery_timeout}s")
+            print(f"\U0001f534 Circuit OPEN \u2014 skipping Gemini for {self.recovery_timeout}s")
+
+    def permanent_disable(self, reason: str):
+        """Permanently disable Gemini for this server session (e.g. geo-block)."""
+        self.permanently_disabled = True
+        self.is_open = True
+        print(f"\U0001f6ab Gemini PERMANENTLY DISABLED: {reason}")
 
     def record_success(self):
         self.failure_count = 0
         self.is_open = False
 
     def should_skip_primary(self) -> bool:
+        if self.permanently_disabled:
+            return True   # never retry a geo-block
         if not self.is_open:
             return False
         if time.time() - self.last_failure_time > self.recovery_timeout:
-            print("🟢 Circuit HALF-OPEN — retrying Gemini")
+            print("\U0001f7e2 Circuit HALF-OPEN \u2014 retrying Gemini")
             self.is_open = False
             self.failure_count = 0
             return False
@@ -586,8 +595,12 @@ COORDINATE RULES for affected_regions:
             print(f"⚠️ Gemini returned non-JSON. Falling back to OpenAI...")
 
         except Exception as gemini_error:
-            gemini_breaker.record_failure()
-            print(f"⚠️ Gemini failed: {gemini_error}. Initiating fallback...")
+            err_str = str(gemini_error)
+            if "FAILED_PRECONDITION" in err_str or "location is not supported" in err_str:
+                gemini_breaker.permanent_disable("Geo-restriction on this server region")
+            else:
+                gemini_breaker.record_failure()
+            print(f"\u26a0\ufe0f Gemini failed: {gemini_error}. Initiating fallback...")
     else:
         if gemini_breaker.is_open:
             print("⏭️ Circuit open — skipping Gemini, going straight to OpenAI")
@@ -838,8 +851,12 @@ End on an encouraging note — the user can fix this.
             return {"plan": response.text.strip(), "_engine": "gemini"}
 
         except Exception as gemini_error:
-            gemini_breaker.record_failure()
-            print(f"⚠️ Expert plan Gemini failed: {gemini_error}")
+            err_str = str(gemini_error)
+            if "FAILED_PRECONDITION" in err_str or "location is not supported" in err_str:
+                gemini_breaker.permanent_disable("Geo-restriction on this server region")
+            else:
+                gemini_breaker.record_failure()
+            print(f"\u26a0\ufe0f Expert plan Gemini failed: {gemini_error}")
 
     # ── ATTEMPT 2: OpenAI fallback ──
     try:
@@ -956,8 +973,12 @@ ROLE-SPECIFIC FOLLOW-UP FOCUS:
             return {"reply": response.text.strip(), "_engine": "gemini"}
 
         except Exception as gemini_error:
-            gemini_breaker.record_failure()
-            print(f"⚠️ Followup Gemini failed: {gemini_error}")
+            err_str = str(gemini_error)
+            if "FAILED_PRECONDITION" in err_str or "location is not supported" in err_str:
+                gemini_breaker.permanent_disable("Geo-restriction on this server region")
+            else:
+                gemini_breaker.record_failure()
+            print(f"\u26a0\ufe0f Followup Gemini failed: {gemini_error}")
 
     # ── ATTEMPT 2: OpenAI fallback ──
     try:
