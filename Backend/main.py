@@ -85,7 +85,7 @@ groq_client = None
 if GROQ_API_KEY:
     try:
         groq_client = AsyncGroq(api_key=GROQ_API_KEY)
-        print("✅ Groq Client Ready (llama-3.2-11b-vision-preview)")
+        print("✅ Groq Client Ready (meta-llama/llama-4-scout-17b-16e-instruct)")
     except Exception as e:
         print(f"⚠️  Groq Init Failed: {e}")
 else:
@@ -461,7 +461,7 @@ async def groq_predict_fallback(prompt: str, image_bytes: bytes) -> dict:
         raise Exception("Groq client not initialized")
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
     response = await groq_client.chat.completions.create(
-        model="llama-3.2-11b-vision-preview",
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         temperature=0.1,
         max_tokens=4096,
         response_format={"type": "json_object"},
@@ -482,7 +482,7 @@ async def groq_expert_plan_fallback(prompt: str, image_bytes: bytes) -> str:
         raise Exception("Groq client not initialized")
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
     response = await groq_client.chat.completions.create(
-        model="llama-3.2-11b-vision-preview",
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         temperature=0.3,
         max_tokens=2048,
         messages=[
@@ -501,7 +501,7 @@ async def groq_followup_fallback(prompt: str) -> str:
     if not groq_client:
         raise Exception("Groq client not initialized")
     response = await groq_client.chat.completions.create(
-        model="llama-3.2-11b-vision-preview",
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         temperature=0.4,
         max_tokens=1024,
         messages=[{"role": "system", "content": prompt}],
@@ -516,7 +516,7 @@ def home():
         "status":  "FoliageCare API v2.3 Online",
         "engine": {
             "primary":     "gemini-2.5-flash",
-            "secondary":   "llama-3.2-11b-vision-preview (Groq)",
+            "secondary":   "meta-llama/llama-4-scout-17b-16e-instruct (Groq)",
             "fallback":    "gpt-4o-mini",
             "gemini_ready": gemini_client is not None,
             "groq_ready":   groq_client is not None,
