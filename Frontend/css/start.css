@@ -3038,6 +3038,53 @@ textarea[readonly] {
   font-weight: 600;
 }
 
+.engine-notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.engine-note {
+  min-height: 76px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text-secondary);
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+}
+
+.engine-note strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.engine-note span {
+  display: block;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.engine-note.selected {
+  border-color: var(--accent);
+  background: rgba(124, 179, 66, 0.08);
+  color: var(--text-primary);
+}
+
+@media (max-width: 520px) {
+  .engine-notes {
+    grid-template-columns: 1fr;
+  }
+
+  .engine-note {
+    min-height: auto;
+  }
+}
+
 /* -- Region Overlay Hero Card -- */
 .overlay-body {
   display: flex;

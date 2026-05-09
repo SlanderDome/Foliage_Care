@@ -122,6 +122,10 @@
     return cleaned || "Plant Scan";
   }
 
+  function plantNameKey(name) {
+    return normalizePlantName(name).toLowerCase();
+  }
+
   function isGenericPlantName(name) {
     const normalized = normalizePlantName(name).toLowerCase();
     return !normalized
@@ -207,8 +211,20 @@
     }
   }
 
-  function getScansForPlant(plantId) {
-    return state.scans.filter((scan) => scan.gardenPlantId === plantId);
+  function scanMatchesPlant(scan, plant) {
+    if (!scan || !plant) return false;
+    if (plant.isLegacy) return scan.gardenPlantId === plant.id;
+    if (scan.plantId && scan.plantId === plant.id) return true;
+
+    const scanName = plantNameKey(scan.plantName);
+    const plantNickname = plantNameKey(plant.nickname);
+    return !scan.plantId
+      && !isGenericPlantName(scanName)
+      && scanName === plantNickname;
+  }
+
+  function getScansForPlant(plant) {
+    return state.scans.filter((scan) => scanMatchesPlant(scan, plant));
   }
 
   function buildLegacyPlants(unlinkedScans) {
@@ -255,18 +271,24 @@
     });
 
     const hydrated = Array.from(byId.values()).map((plant) => {
-      const plantScans = scans.filter((scan) => scan.gardenPlantId === plant.id);
+      const plantScans = scans.filter((scan) => scanMatchesPlant(scan, plant));
       const latest = plantScans[0];
       return {
         ...plant,
-        totalScans: plant.totalScans || plantScans.length,
-        lastStatus: plant.lastStatus || normalizeSeverity(latest?.severity, latest?.disease),
-        lastDisease: plant.lastDisease || latest?.disease || "No scans yet",
-        lastScannedAt: plant.lastScannedAt || latest?.timestamp || null,
+        totalScans: plantScans.length || plant.totalScans || 0,
+        lastStatus: latest ? normalizeSeverity(latest.severity, latest.disease) : plant.lastStatus || "unknown",
+        lastDisease: latest?.disease || plant.lastDisease || "No scans yet",
+        lastScannedAt: latest?.timestamp || plant.lastScannedAt || null,
       };
     });
 
-    hydrated.push(...buildLegacyPlants(scans.filter((scan) => !scan.plantId)));
+    const matchedScanIds = new Set();
+    hydrated.forEach((plant) => {
+      scans.forEach((scan) => {
+        if (scanMatchesPlant(scan, plant)) matchedScanIds.add(scan.id);
+      });
+    });
+    hydrated.push(...buildLegacyPlants(scans.filter((scan) => !matchedScanIds.has(scan.id))));
 
     hydrated.sort((a, b) => getTimestampMillis(b.lastScannedAt) - getTimestampMillis(a.lastScannedAt));
     return hydrated;
@@ -275,11 +297,11 @@
   function normalizeScanDoc(docSnap, sourceType) {
     const data = docSnap.data();
     const plantName = normalizePlantName(data.plantName || data.plant || data.nickname || "");
-    const timestamp = parseTimestamp(data.timestamp) || new Date(0);
+    const timestamp = parseTimestamp(data.timestamp || data.createdAt || data.scannedAt || data.date) || new Date(0);
     const scan = {
       id: `${sourceType}-${docSnap.id}`,
       sourceType,
-      plantId: data.plantId || null,
+      plantId: data.plantId || data.gardenPlantId || data.plantDocId || data.plant_id || null,
       plantName,
       species: data.species || "",
       disease: data.disease || data.prediction || "Diagnosis unavailable",
@@ -566,7 +588,7 @@
       return;
     }
 
-    const scans = getScansForPlant(plant.id);
+    const scans = getScansForPlant(plant);
     if (els.detailTitle) {
       els.detailTitle.textContent = `${plant.icon || "🌿"} ${plant.nickname || "Unnamed Plant"}`;
     }

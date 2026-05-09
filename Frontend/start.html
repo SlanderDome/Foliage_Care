@@ -295,6 +295,24 @@
               <button type="button" class="user-type-pill" data-engine="groq">Groq</button>
               <button type="button" class="user-type-pill" data-engine="openai">GPT-4o</button>
             </div>
+            <div class="engine-notes" aria-label="AI engine strengths">
+              <div class="engine-note selected" data-engine-note="auto">
+                <strong>Auto</strong>
+                <span>Picks the most reliable path for the image, weather, and advice step.</span>
+              </div>
+              <div class="engine-note" data-engine-note="gemini">
+                <strong>Gemini</strong>
+                <span>Balanced all-rounder for plant visuals, symptoms, and practical care context.</span>
+              </div>
+              <div class="engine-note" data-engine-note="groq">
+                <strong>Groq</strong>
+                <span>Fastest for quick follow-ups, summaries, and lightweight treatment checks.</span>
+              </div>
+              <div class="engine-note" data-engine-note="openai">
+                <strong>OpenAI</strong>
+                <span>More decisive for severity calls, action plans, and nuanced user guidance.</span>
+              </div>
+            </div>
           </div>
           <!-- Action Buttons -->
           <div class="action-buttons">
@@ -443,11 +461,18 @@
   </script>
   <script>
     // AI Engine Toggle
+    function updateEngineNotes(chosen) {
+      document.querySelectorAll('[data-engine-note]').forEach(function(note) {
+        note.classList.toggle('selected', note.getAttribute('data-engine-note') === chosen);
+      });
+    }
+
     document.querySelectorAll('#engine-pills .user-type-pill').forEach(function(btn) {
       btn.addEventListener('click', function() {
         document.querySelectorAll('#engine-pills .user-type-pill').forEach(function(b){ b.classList.remove('selected'); });
         this.classList.add('selected');
         var chosen = this.getAttribute('data-engine');
+        updateEngineNotes(chosen);
         localStorage.setItem('fc_model', chosen);
         // Sync with up.js activeModel if loaded
         if (typeof window !== 'undefined') { try { window._fcSetModel && window._fcSetModel(chosen); } catch(e){} }
@@ -460,6 +485,7 @@
       if (btn) {
         document.querySelectorAll('#engine-pills .user-type-pill').forEach(function(b){ b.classList.remove('selected'); });
         btn.classList.add('selected');
+        updateEngineNotes(saved);
       }
     })();
   </script>
@@ -560,8 +586,7 @@
           try {
             var q = window.query(
               window.collection(window.db, 'plants'),
-              window.where('userId', '==', user.uid),
-              window.orderBy('lastScannedAt', 'desc')
+              window.where('userId', '==', user.uid)
             );
             window.getDocs(q).then(function(snap) {
               var sel = document.getElementById('plant-select');
@@ -574,7 +599,14 @@
                 var divider = document.createElement('option');
                 divider.disabled = true; divider.text = '\u2500\u2500\u2500\u2500\u2500\u2500\u2500';
                 sel.insertBefore(divider, sel.options[1]);
-                snap.forEach(function(docSnap) {
+                var docs = snap.docs.slice().sort(function(a, b) {
+                  var ad = a.data();
+                  var bd = b.data();
+                  var at = ad.lastScannedAt && typeof ad.lastScannedAt.toMillis === 'function' ? ad.lastScannedAt.toMillis() : 0;
+                  var bt = bd.lastScannedAt && typeof bd.lastScannedAt.toMillis === 'function' ? bd.lastScannedAt.toMillis() : 0;
+                  return bt - at;
+                });
+                docs.forEach(function(docSnap) {
                   var d = docSnap.data();
                   var opt = document.createElement('option');
                   opt.value = docSnap.id;

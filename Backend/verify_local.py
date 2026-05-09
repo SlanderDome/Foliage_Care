@@ -1,13 +1,11 @@
+from groq import Groq
 import os
 from dotenv import load_dotenv
-from google import genai
 
-# Load the .env file from the same directory
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+models = client.models.list()
 
-print("Available Gemini Models:")
-for m in client.models.list():
-    if "gemini" in m.name.lower():
-        print(f"- {m.name} ({m.description})")
+for model in models.data:
+    print(f"- {model.id} (owned by {model.owned_by})")
