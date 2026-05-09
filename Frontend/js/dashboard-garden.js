@@ -175,6 +175,38 @@
     return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
+  function healthInsight(score, severity) {
+    const value = normalizeSeverity(severity);
+    if (score >= 85) return { label: "Steady", copy: "Leaf condition looks strong. Keep the same care rhythm." };
+    if (score >= 60) return { label: "Watch", copy: "Minor stress is visible. Re-scan after care changes to confirm recovery." };
+    if (score >= 30) return { label: "Intervene", copy: "Symptoms need attention. Prioritize isolation, pruning, and treatment timing." };
+    if (value === "unknown") return { label: "Review", copy: "The scan needs a clearer follow-up to build a reliable trend." };
+    return { label: "Act now", copy: "High stress reading. Treat promptly and compare with the next scan." };
+  }
+
+  function trendInsight(orderedScans) {
+    if (orderedScans.length < 2) {
+      return {
+        label: "Baseline",
+        copy: "First reading saved. Re-scan in 3-5 days to reveal direction.",
+        delta: null,
+      };
+    }
+    const previous = severityToScore(orderedScans[orderedScans.length - 2].severity);
+    const latest = severityToScore(orderedScans[orderedScans.length - 1].severity);
+    const delta = latest - previous;
+    if (delta >= 12) return { label: "Improving", copy: `Health score rose ${delta} points since the previous scan.`, delta };
+    if (delta <= -12) return { label: "Worsening", copy: `Health score dropped ${Math.abs(delta)} points since the previous scan.`, delta };
+    return { label: "Stable", copy: `Health score changed ${Math.abs(delta)} points, so the plant is roughly steady.`, delta };
+  }
+
+  function confidenceLabel(scan) {
+    if (!scan) return "Confidence unavailable";
+    if (scan.confidence) return `${scan.confidence} confidence`;
+    if (typeof scan.confidenceValue === "number") return `${Math.round(scan.confidenceValue * 100)}% confidence`;
+    return "Confidence unavailable";
+  }
+
   function personaLabel(persona) {
     const map = {
       home_gardener: "Home Gardener",
@@ -502,9 +534,12 @@
     if (!scans.length) {
       els.detailXAxis.innerHTML = "";
       els.detailSparkline.innerHTML = `
-        <svg class="w-full h-full preserve-aspect-none" style="filter: drop-shadow(0px 10px 15px rgba(187,203,184,0.3));" viewBox="0 0 100 20">
-          <path d="M0,10 L100,10" fill="none" stroke="rgba(196,200,192,0.25)" stroke-linecap="round" stroke-width="0.5"></path>
-        </svg>
+        <div class="absolute inset-0 rounded-xl border border-outline/10 bg-surface-variant/10 flex items-center justify-center text-center px-6">
+          <div>
+            <div class="font-label-sm text-[11px] text-primary uppercase tracking-widest mb-2">No health signal yet</div>
+            <p class="font-body-md text-sm text-on-surface-variant">Run a scan to start a scored trend with severity bands and care insights.</p>
+          </div>
+        </div>
       `;
       return;
     }
@@ -512,32 +547,79 @@
     const ordered = [...scans].sort((a, b) => getTimestampMillis(a.timestamp) - getTimestampMillis(b.timestamp));
     const points = ordered.map((scan, index) => {
       const x = ordered.length === 1 ? 50 : (index / (ordered.length - 1)) * 100;
-      const y = 20 - (severityToScore(scan.severity) / 100) * 18 - 1;
-      return { x, y };
+      const score = severityToScore(scan.severity);
+      const y = 96 - score * 0.88;
+      return { x, y, score, scan };
     });
     const polyline = points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
-    const fillPoints = `0,20 ${polyline} 100,20`;
+    const fillPoints = `0,96 ${polyline} 100,96`;
     const last = ordered[ordered.length - 1];
+    const lastPoint = points[points.length - 1];
     const color = severityColor(last.severity);
+    const score = severityToScore(last.severity);
+    const insight = healthInsight(score, last.severity);
+    const trend = trendInsight(ordered);
+    const confidence = confidenceLabel(last);
+    const status = severityLabel(last.severity);
+    const areaOpacity = ordered.length === 1 ? "0.14" : "0.24";
+    const pointLabelX = Math.min(76, Math.max(8, lastPoint.x + (lastPoint.x > 70 ? -30 : 4)));
+    const pointLabelY = Math.max(5, lastPoint.y - 12);
 
     els.detailSparkline.innerHTML = `
-      <svg class="w-full h-full preserve-aspect-none" style="filter: drop-shadow(0px 10px 15px rgba(187,203,184,0.3));" viewBox="0 0 100 20">
+      <div class="absolute left-2 right-2 top-0 z-20 grid grid-cols-3 gap-2 pointer-events-none">
+        <div class="rounded-lg border border-outline/10 bg-black/20 px-3 py-2 backdrop-blur-sm">
+          <div class="font-label-sm text-[10px] uppercase tracking-widest text-on-surface-variant">Health Score</div>
+          <div class="font-headline-lg text-xl leading-none mt-1" style="color:${color}">${score}%</div>
+        </div>
+        <div class="rounded-lg border border-outline/10 bg-black/20 px-3 py-2 backdrop-blur-sm">
+          <div class="font-label-sm text-[10px] uppercase tracking-widest text-on-surface-variant">Signal</div>
+          <div class="font-body-md text-sm text-on-surface mt-1">${escapeHtml(insight.label)}</div>
+        </div>
+        <div class="rounded-lg border border-outline/10 bg-black/20 px-3 py-2 backdrop-blur-sm">
+          <div class="font-label-sm text-[10px] uppercase tracking-widest text-on-surface-variant">Trend</div>
+          <div class="font-body-md text-sm text-on-surface mt-1">${escapeHtml(trend.label)}</div>
+        </div>
+      </div>
+      <svg class="w-full h-full preserve-aspect-none" style="filter: drop-shadow(0px 10px 15px rgba(187,203,184,0.25));" viewBox="0 0 100 100">
         <defs>
           <linearGradient id="garden-spark-fill" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stop-color="${color}" stop-opacity="0.8"></stop>
             <stop offset="100%" stop-color="${color}" stop-opacity="0"></stop>
           </linearGradient>
         </defs>
-        <path d="M0,10 L100,10" fill="none" stroke="rgba(196,200,192,0.15)" stroke-linecap="round" stroke-width="0.35"></path>
-        <polygon points="${fillPoints}" fill="url(#garden-spark-fill)" opacity="0.22"></polygon>
-        <polyline points="${polyline}" fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.7"></polyline>
-        ${points.map((point, index) => `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${index === points.length - 1 ? 1.2 : 0.9}" fill="${color}" stroke="${index === points.length - 1 ? "#fff" : "none"}" stroke-width="0.25"></circle>`).join("")}
+        <rect x="0" y="8" width="100" height="22" fill="#bbcbb8" opacity="0.06"></rect>
+        <rect x="0" y="30" width="100" height="28" fill="#d4c06d" opacity="0.055"></rect>
+        <rect x="0" y="58" width="100" height="38" fill="#d46a5a" opacity="0.06"></rect>
+        <path d="M0,30 L100,30" fill="none" stroke="rgba(187,203,184,0.18)" stroke-dasharray="2 2" stroke-width="0.35"></path>
+        <path d="M0,58 L100,58" fill="none" stroke="rgba(212,192,109,0.18)" stroke-dasharray="2 2" stroke-width="0.35"></path>
+        <polygon points="${fillPoints}" fill="url(#garden-spark-fill)" opacity="${areaOpacity}"></polygon>
+        ${ordered.length === 1
+          ? `<path d="M12,${lastPoint.y.toFixed(1)} C28,${(lastPoint.y - 8).toFixed(1)} 38,${(lastPoint.y + 8).toFixed(1)} 50,${lastPoint.y.toFixed(1)} C62,${(lastPoint.y - 8).toFixed(1)} 74,${(lastPoint.y + 8).toFixed(1)} 88,${lastPoint.y.toFixed(1)}" fill="none" stroke="${color}" stroke-linecap="round" stroke-width="0.75" opacity="0.55"></path>`
+          : `<polyline points="${polyline}" fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.95"></polyline>`}
+        ${points.map((point, index) => `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${index === points.length - 1 ? 2.2 : 1.45}" fill="${color}" stroke="${index === points.length - 1 ? "#fff" : "rgba(255,255,255,0.55)"}" stroke-width="0.55"></circle>`).join("")}
+        <foreignObject x="${pointLabelX.toFixed(1)}" y="${pointLabelY.toFixed(1)}" width="23" height="13">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:Arial,sans-serif;font-size:3.4px;line-height:1.2;color:#f4f3ec;background:rgba(3,5,3,.72);border:1px solid rgba(255,255,255,.13);border-radius:3px;padding:1.8px 2.2px;">
+            ${score}% ${escapeHtml(status)}
+          </div>
+        </foreignObject>
       </svg>
+      <div class="absolute left-2 right-2 bottom-0 z-20 flex items-end justify-between gap-3 pointer-events-none">
+        <div class="max-w-[68%] rounded-lg border border-outline/10 bg-black/25 px-3 py-2 backdrop-blur-sm">
+          <div class="font-label-sm text-[10px] uppercase tracking-widest text-primary mb-1">${escapeHtml(last.disease || "Latest scan")}</div>
+          <p class="font-body-md text-xs text-on-surface-variant leading-snug">${escapeHtml(trend.copy)} ${escapeHtml(insight.copy)}</p>
+        </div>
+        <div class="text-right font-label-sm text-[10px] uppercase tracking-widest text-on-surface-variant/80">
+          <div>${escapeHtml(confidence)}</div>
+          <div>${escapeHtml(formatLongDate(last.timestamp))}</div>
+        </div>
+      </div>
     `;
 
-    els.detailXAxis.innerHTML = ordered.map((scan) => (
-      `<span class="font-body-md text-xs font-light text-on-surface-variant/60">${escapeHtml(formatShortDate(scan.timestamp))}</span>`
-    )).join("");
+    els.detailXAxis.innerHTML = ordered.length === 1
+      ? `<span class="font-body-md text-xs font-light text-on-surface-variant/60">${escapeHtml(formatShortDate(last.timestamp))}</span>`
+      : ordered.map((scan) => (
+        `<span class="font-body-md text-xs font-light text-on-surface-variant/60">${escapeHtml(formatShortDate(scan.timestamp))}</span>`
+      )).join("");
   }
 
   function renderHistory(scans) {
