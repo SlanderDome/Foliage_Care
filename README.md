@@ -1,251 +1,210 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/Gemini_Vision-4285F4?style=for-the-badge&logo=google&logoColor=white" />
-  <img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" />
-  <img src="https://img.shields.io/badge/Stable_Diffusion-8B5CF6?style=for-the-badge&logoColor=white" />
-  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" />
-</p>
+# Foliage Care
 
-# 🌿 Foliage Care — AI-Powered Phytopathological Consultation Platform
+Foliage Care is an AI-assisted plant-health consultation web app. It combines a vanilla JavaScript frontend, a FastAPI backend, multimodal AI services, and Firebase to help users review plant symptoms, explore treatment options, and track scans over time.
 
-**Foliage Care** is a full-stack, multimodal AI web platform that performs **real-time visual phytopathological analysis** of plant foliage. Rather than relying on a static image classifier, the system leverages **Google Gemini Vision** as its core inference engine — combining visual symptom recognition with **live weather telemetry**, **geolocation-aware seasonal context**, and **user-role-adaptive advisory generation** to deliver diagnosis-to-treatment pipelines tailored for Indian agriculture.
+> **Project demo:** [Watch the walkthrough](https://youtu.be/OYd5J8wdxEc)
 
-> Built as a final-year capstone project demonstrating the integration of generative AI, geospatial intelligence, and domain-specific prompt engineering for precision agriculture.
-Working Demo:https://youtu.be/OYd5J8wdxEc
----
+## Features
 
-## 🧠 Core Philosophy
+- **Plant diagnosis:** Upload a plant image for a structured report with plant and disease names, severity, confidence, visual evidence, affected-region coordinates, and recommended next steps.
+- **Treatment plans:** Request an image-aware, India-focused plan that starts with household and organic options before presenting chemical interventions as a last resort.
+- **Progression simulation:** Generate an illustrative image of how a diagnosed condition might appear after seven untreated days.
+- **Follow-up chat:** Ask questions grounded in the current diagnosis. The backend keeps a short conversation history and supports multilingual replies.
+- **Personal plant tracking:** Firebase Authentication and Firestore support user profiles, plant records, scan history, and the My Garden dashboard.
+- **Community map:** A Leaflet map can display location-based community scan reports stored in Firestore. Reports are submitted when the user has granted browser geolocation access.
+- **Weather-aware context:** The frontend can request location access and retrieve current and recent weather data from Open-Meteo to inform consultation requests.
+- **Role-adaptive advice:** Prompts can be tailored for farmers, nursery operators, home gardeners, and students/researchers.
 
-Traditional plant health tools offer a single classification label and generic advice. **Foliage Care** reimagines this as a **multi-stage consultation workflow**:
+AI-generated diagnoses and treatment suggestions are decision-support information, not a substitute for assessment by a qualified plant-health professional. Treat generated progression images as illustrations, not scientific forecasts. Follow local product labels and expert guidance for any pesticide use.
 
-1. **Diagnose** — Identify the pathology from leaf imagery with visual evidence overlays  
-2. **Simulate** — Generate a predictive visual of disease progression if left untreated  
-3. **Prescribe** — Produce a structured, seasonally-aware treatment plan with Indian-specific remedies  
-4. **Consult** — Engage in a context-aware conversational follow-up with the AI advisor  
+## Consultation workflow
 
-Each stage is weather-influenced, season-aware, and personalized to the user's role (farmer, nursery operator, home gardener, or student/researcher).
+Foliage Care organizes a plant-health consultation into four stages:
 
----
+1. **Diagnose** — Analyze an uploaded plant image and return a structured report with visual evidence, confidence, and affected-region overlays.
+2. **Simulate** — Optionally generate an illustrative image of how symptoms might look after seven untreated days. This is a visualization, not a reliable forecast.
+3. **Prescribe** — Build a season- and context-aware treatment plan, prioritizing lower-impact options and reserving chemical products for last-resort consideration.
+4. **Consult** — Continue with follow-up questions grounded in the diagnosis and recent conversation.
 
-## 🏗️ System Architecture
+### India-focused treatment tiers
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                         CLIENT (Browser)                     │
-│  HTML5 / CSS3 / Vanilla JS (ES6 Modules)                     │
-│  Firebase Auth · Leaflet.js Outbreak Map · Dynamic UI        │
-└────────────────────────────┬─────────────────────────────────┘
-                             │ REST API (CORS)
-┌────────────────────────────▼─────────────────────────────────┐
-│                    FastAPI GATEWAY (Python)                   │
-│             Uvicorn ASGI · Async I/O · v2.1.0                │
-├──────────────────────────────────────────────────────────────┤
-│  POST /predict         → Gemini Vision Diagnosis + Overlays  │
-│  POST /simulate        → Disease Progression Imaging         │
-│  POST /get_expert_plan → Structured Treatment Generation     │
-│  POST /followup        → Multi-Turn Conversational Advisor   │
-└───────┬──────────────────┬───────────────────────────────────┘
-        │                  │
-  ┌─────▼─────┐      ┌────▼──────────────┐
-  │  Gemini   │      │  HuggingFace Hub  │
-  │  Vision   │      │  SD 1.5 / FLUX.1  │
-  │  2.5 Flash│      │  (3-tier fallback) │
-  └───────────┘      └───────────────────┘
-```
+Treatment plans are framed as escalating options for Indian growing contexts:
 
----
-
-## 🔬 Technical Modules
-
-### Module 1 — Visual Pathology Diagnosis (`/predict`)
-
-- Accepts a leaf/plant image and returns a **structured JSON diagnosis** including plant identification, disease classification, severity scoring, and confidence estimation.
-- Generates **pixel-coordinate affected region annotations** (`x_pct`, `y_pct`, `w_pct`, `h_pct`) enabling the frontend to render **bounding-box overlays** directly on the uploaded image.
-- Produces **trust signals**: primary diagnosis justification, alternative differential diagnosis, and confidence explanation — improving transparency and user trust.
-- Cross-references **live weather data** (temperature, humidity, rainfall trends) with visual symptoms to resolve ambiguous presentations (e.g., leaf yellowing from drought stress vs. root suffocation from overwatering).
-
-### Module 2 — Disease Progression Simulation (`/simulate`)
-
-- Generates a **predictive future-state image** showing the likely visual appearance of the disease after 7 days without intervention.
-- Uses a **two-step generative pipeline**: Gemini Vision first constructs a context-aware visual prompt factoring in current season, location, and disease characteristics; the prompt is then fed to **Stable Diffusion** (image-to-image) or **FLUX.1-schnell** with a **3-tier cascading fallback** strategy to ensure reliability.
-- Designed as a behavioral nudge — visually communicating urgency to motivate timely treatment.
-
-### Module 3 — Expert Treatment Plan (`/get_expert_plan`)
-
-- Returns a **structured Markdown treatment plan** with escalating intervention tiers:
-  - **Tier 1**: Immediate containment using household/desi remedies (neem oil, turmeric paste, wood ash)
-  - **Tier 2**: Organic solutions (Jeevamrut, Panchagavya, Trichoderma viride)
-  - **Tier 3**: Chemical intervention as last resort — only Indian-market products (Dhanuka, UPL, Bayer India) with mandatory safety/PPE warnings
-- Includes seasonal prevention strategies and **Krishi Vigyan Kendra (KVK)** referral guidance.
-
-### Module 4 — Contextual Follow-Up Advisor (`/followup`)
-
-- Maintains a **6-turn sliding conversation window** for multi-turn Q&A grounded in the active diagnosis.
-- Supports **multilingual interaction** — auto-detects and responds in the user's language (Hindi, English, or regional).
-- Gently redirects off-topic queries back to plant health while remaining conversational and helpful.
-
-### Module 5 — "My Garden" Dashboard & Tracking
-
-- Integrates with **Firebase Firestore** to maintain individual plant records for each user.
-- Allows users to track the progression of specific plants over time by grouping scans under unique plant documents.
-- Features a dynamic **Plant Selector** on the scanning interface, seamlessly linking new visual analyses to existing plant histories or generating new entries.
-
-### Module 6 — Graphify Knowledge Graph Visualization
-
-- Integrates **Graphify** to represent the complex relationships between plant species, identified pathologies, and recommended treatments.
-- Renders an interactive `graph.html` visualization, enabling users to explore disease networks and common cross-species vulnerabilities visually.
-
----
-
-## 👤 Role-Adaptive Intelligence
-
-The platform dynamically adapts its diagnostic language, remedy recommendations, and treatment detail based on **four user personas**:
-
-| Persona | Adaptation |
-|---|---|
-| **Farmer** | Acreage-aware, yield-focused advice; Kharif/Rabi/Zaid seasonal context; field containment strategies; KVK referral language |
-| **Nursery Operator** | Batch management, stock segregation, propagation hygiene, tool sanitation workflows |
-| **Home Gardener** | Warm, jargon-free tone; kitchen-ingredient remedies; balcony/terrace/indoor plant focus |
-| **Student / Researcher** | Technical terminology with inline definitions; differential diagnosis reasoning; pathogen-class references |
-
----
-
-## 🌦️ Environment-Aware Inference
-
-Every diagnosis and treatment plan is influenced by:
-
-- **Real-time weather telemetry** — Temperature, humidity, and rainfall trends fetched via browser Geolocation API
-- **Indian seasonal calendar** — Monsoon (Jun–Sep), Post-Monsoon (Oct–Nov), Winter (Dec–Feb), Summer (Mar–May) with region-specific farming context
-- **Geolocation** — GPS coordinates used for climate zone inference (e.g., arid Rajasthan vs. humid Konkan coast)
-
----
-
-## 🗺️ Outbreak Mapping
-
-An interactive **Leaflet.js-powered geospatial map** aggregates anonymized diagnosis data across users to visualize:
-
-- Regional disease concentration patterns
-- Emerging outbreak clusters
-- Seasonal disease migration trends
-
-This transforms individual diagnoses into **collective agricultural intelligence**.
-
----
-
-## 🔐 Authentication & User Management
-
-- **Firebase Authentication** with Email/Password and **Google OAuth 2.0** sign-in
-- Persistent user profiles with diagnosis history tracking
-- Role selection (Farmer / Home Gardener / Nursery / Student) that drives personalized AI behavior
-
----
-
-## 🛠️ Technology Stack
-
-| Layer | Technology | Purpose |
+| Tier | Approach | Examples / guidance |
 |---|---|---|
-| **Frontend** | HTML5, CSS3, Vanilla JavaScript (ES6) | Responsive UI with dynamic result rendering and image overlays |
-| **Typography & Icons** | Google Fonts (Playfair Display, Roboto), Font Awesome | Premium visual aesthetics |
-| **Authentication** | Firebase Authentication (Google OAuth 2.0) | Secure multi-provider user management |
-| **Database** | Firebase Firestore | NoSQL document database for user profiles, plant collections, and scan history |
-| **Geospatial** | Leaflet.js, OpenStreetMap | Interactive outbreak mapping and location-based services |
-| **Visualization** | Graphify | Interactive knowledge graph rendering |
-| **Backend API** | FastAPI (Python 3.11+) | High-performance async REST API gateway |
-| **ASGI Server** | Uvicorn | Production-grade async server |
-| **Primary AI Engine** | Google Gemini 2.5 Flash (Vision) | Multimodal diagnosis, treatment generation, and conversational AI |
-| **Image Generation** | Stable Diffusion 1.5, FLUX.1-schnell (HuggingFace) | Disease progression simulation with cascading fallback |
-| **Image Processing** | Pillow (PIL) | Server-side image preprocessing and format handling |
-| **Environment** | python-dotenv | Secure credential and configuration management |
+| **1 — Immediate / household** | Contain spread and try practical household or desi remedies | Isolate affected plants, remove badly damaged leaves, or consider a carefully prepared neem-oil remedy where appropriate |
+| **2 — Organic** | Consider organic products or biological controls | Examples include Jeevamrut, Panchagavya, or *Trichoderma viride*, depending on the plant and suspected issue |
+| **3 — Chemical, last resort** | Consider an appropriate Indian-market product only if earlier steps do not help | Follow the product label, safety instructions, and personal protective equipment (PPE) requirements; seek expert guidance when uncertain |
 
----
+Plans can also include seasonal prevention tips and a referral to a nearby Krishi Vigyan Kendra (KVK) for expert advice.
 
-## 📂 Project Structure
+### Role-adaptive advice
 
+| Persona | How the guidance is tailored |
+|---|---|
+| **Farmer** | Field- and acreage-aware actions, crop impact, Kharif/Rabi/Zaid context, and KVK guidance |
+| **Nursery operator** | Batch management, plant segregation, propagation hygiene, and tool sanitation |
+| **Home gardener** | Friendly, jargon-light advice for indoor, balcony, and terrace plants, with practical household options |
+| **Student / researcher** | More technical terminology, differential-diagnosis reasoning, and pathogen context |
+
+## Screenshots
+
+| Landing page | Diagnosis page |
+|---|---|
+| ![Foliage Care landing page](Frontend/assets/screenshots/landing_page.png) | ![Plant diagnosis interface](Frontend/assets/screenshots/diagnose_page.png) |
+
+| Login page | About page | Contact page |
+|---|---|---|
+| ![Login page](Frontend/assets/screenshots/login_page.png) | ![About page](Frontend/assets/screenshots/about_page.png) | ![Contact page](Frontend/assets/screenshots/contact_page.png) |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Browser["Browser<br/>HTML · CSS · vanilla JavaScript<br/>Firebase · Leaflet"] -->|REST| API["FastAPI<br/>/predict · /simulate<br/>/get_expert_plan · /followup"]
+    Weather["Open-Meteo<br/>browser geolocation"] --> Browser
+    API -->|consultation| Gemini["Gemini 2.5 Flash"]
+    Gemini -->|fallback| Groq["Groq / Llama"]
+    Groq -->|fallback| OpenAI["OpenAI GPT-4o-mini"]
+    API -->|/simulate| SimGemini["Gemini prompt generation"]
+    SimGemini --> HF["Hugging Face Inference API<br/>SD 1.5 image-to-image → FLUX.1-schnell → SD 1.5 text-to-image"]
 ```
+
+The backend can fall back from Gemini to Groq/Llama and OpenAI for consultation requests when those providers are configured. For illustrative progression images, it tries Stable Diffusion image-to-image first, then FLUX.1-schnell text-to-image, followed by Stable Diffusion text-to-image.
+
+## API
+
+Start the backend, then visit `http://localhost:8000/docs` for the interactive FastAPI documentation. `GET /` returns a service status and the configured engine readiness.
+
+| Endpoint | Input | Purpose |
+|---|---|---|
+| `POST /predict` | `multipart/form-data` with `file`; optional user, location, weather, context, and `model_preference` fields | Plant diagnosis and structured visual evidence/action plan |
+| `POST /simulate` | `multipart/form-data` with `file` and `disease_name`; optional context and location fields | Generate an illustrative progression image and return it as base64 |
+| `POST /get_expert_plan` | `multipart/form-data` with `file` and `disease`; optional user, location, weather, and context fields | Generate a Markdown treatment plan |
+| `POST /followup` | JSON with `question`, `disease`, and optional `conversation_history` and user/context fields | Ask a follow-up question about the active diagnosis |
+
+For `/predict`, `/get_expert_plan`, and `/followup`, `model_preference` accepts `auto`, `gemini`, `groq`, or `openai`. In `auto` mode, configured engines are tried in sequence.
+
+## Technology
+
+- **Frontend:** HTML, CSS, vanilla JavaScript, Leaflet.js
+- **Backend:** Python 3.11+, FastAPI, Uvicorn, Pillow
+- **AI:** Google Gemini, Groq, OpenAI, Hugging Face Inference API
+- **Data and auth:** Firebase Authentication and Cloud Firestore
+- **Weather:** Open-Meteo API
+- **Deployment support:** Docker, Google Cloud Run, Render
+
+## Project layout
+
+```text
 Foliage_Care/
 ├── Backend/
-│   ├── main.py                  # API gateway — all endpoints
-│   ├── utils/
-│   │   ├── gradcam.py           # Grad-CAM visualization utilities
-│   │   ├── weather.py           # Weather data integration
-│   │   ├── preprocess.py        # Image preprocessing pipeline
-│   │   └── img_gen.py           # Image generation helpers
-│   └── models/                  # Model weights and class indices
+│   ├── main.py                  # FastAPI app and API endpoints
+│   ├── models/                  # Model-related Python code
+│   ├── utils/                   # AI prompts, weather, image and Grad-CAM utilities
+│   ├── tests/                   # Backend tests and utilities
+│   ├── class_indices.json
+│   └── foliagecare_model.keras  # Local model artifact, if used
 ├── Frontend/
 │   ├── index.html               # Landing page
-│   ├── start.html               # Diagnosis interface (with Plant Selector)
-│   ├── profile.html             # User profile & My Garden dashboard
-│   ├── map.html                 # Outbreak map visualization
-│   ├── playbook.html            # Treatment playbook
-│   ├── login.html               # Authentication
-│   ├── about.html               # Project information
-│   ├── contact.html             # Feedback & connect
-│   ├── css/                     # Stylesheets
-│   ├── js/                      # Client-side modules (incl. up.js w/ Firestore)
-│   └── assets/                  # Static media
-├── graphify-out/
-│   └── graph.html               # Knowledge graph visualization
-├── requirements.txt
-├── render.yaml                  # Render deployment configuration
+│   ├── start.html               # Diagnosis and consultation interface
+│   ├── profile.html             # Profile and scan history
+│   ├── dashboard_cinematic_3.html
+│   ├── map.html                 # Community map
+│   ├── playbook.html             # Plant-care playbook
+│   ├── login.html
+│   ├── assets/screenshots/
+│   ├── css/
+│   └── js/
+├── graphify-out/                # Generated standalone knowledge graph output
+├── Dockerfile
+├── render.yaml
+├── requirements.txt             # Python dependencies
 └── README.md
 ```
 
----
+`graphify-out/graph.html` is a generated, standalone visualization artifact. It is not integrated into the main app's navigation or consultation workflow.
 
-## 🚀 Getting Started
+## Run locally
 
-### Prerequisites
+### Requirements
 
-- Python 3.11+
-- [Google Gemini API Key](https://aistudio.google.com/apikey)
-- [HuggingFace API Token](https://huggingface.co/settings/tokens)
+- Python 3.11 or newer
+- A Google Gemini API key for the primary AI engine
+- A Hugging Face token for progression-image generation
+- Optional: OpenAI and Groq API keys for fallback engines
+- A Firebase project for authentication and Firestore-backed features
 
-### Installation
+### 1. Install backend dependencies
+
+From the repository root:
 
 ```bash
-# Clone the repository
-git clone https://github.com/<your-username>/Foliage_Care.git
-cd Foliage_Care
-
-# Create and activate virtual environment
 python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS/Linux
+```
 
-# Install dependencies
+Activate the virtual environment:
+
+```powershell
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+
+```bash
+# macOS / Linux
+source .venv/bin/activate
+```
+
+Then install dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Configuration
+### 2. Configure backend keys
 
-Create a `.env` file inside the `Backend/` directory:
+Create `Backend/.env` with the keys you intend to use:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
-HF_TOKEN=your_huggingface_token_here
+GEMINI_API_KEY=your_gemini_api_key
+HF_TOKEN=your_huggingface_token
+OPEN_API_KEY=your_openai_api_key
+GROQ_API_KEY=your_groq_api_key
 ```
 
-### Run
+`GEMINI_API_KEY` enables the primary model. `OPEN_API_KEY` and `GROQ_API_KEY` configure fallback providers; `HF_TOKEN` is used for image generation. Keep secret keys out of source control. The backend reads `OPEN_API_KEY` (with this exact spelling).
+
+### 3. Start the backend
+
+From the repository root:
 
 ```bash
 cd Backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Open the frontend by launching `Frontend/index.html` in a browser, or serve via any static file server.
+The API is available at `http://localhost:8000`, with interactive docs at `http://localhost:8000/docs`.
 
----
+### 4. Serve the frontend
 
-## 📸 Screenshots
+In a separate terminal, from the repository root:
 
----
+```bash
+python -m http.server 5500 --directory Frontend
+```
 
-## 📄 License
+Open `http://localhost:5500` in your browser. Serving the files over HTTP supports the frontend's JavaScript modules and browser APIs.
 
-This project was developed as a **final-year capstone project** for academic evaluation and demonstration purposes.
+**Local API note:** `Frontend/js/up.js` currently sends consultation requests to the deployed Cloud Run service (`https://foliage-care-775030113450.asia-south1.run.app`). To use the local backend, change those API URLs to `http://localhost:8000` while developing locally.
 
----
+### Firebase setup
 
-<p align="center">
-  
-</p>
+The frontend initializes Firebase in `Frontend/js/firebase.js`. For a separate Firebase project, update its web-app configuration there, enable the sign-in providers used by the app, and configure Firestore and its security rules in the Firebase console.
+
+## Deployment
+
+The repository includes a `Dockerfile` for container deployment and a `render.yaml` for Render. Configure the required API secrets in the deployment environment (`GEMINI_API_KEY`, `HF_TOKEN`, `OPEN_API_KEY`, and, if used, `GROQ_API_KEY`). The container uses the platform-provided `PORT` when available.
+
+## License
+
+No license is currently specified in this repository. Add a `LICENSE` file to define reuse and redistribution terms.
